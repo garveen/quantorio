@@ -1,0 +1,2 @@
+# quantorio
+Factorio Quantizative Tool
