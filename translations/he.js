@@ -1,4 +1,3 @@
-translation =
 {
     "advanced-circuit": "םדקתמ לגעמ",
     "alien-artifact": "ירזייח ץפח",

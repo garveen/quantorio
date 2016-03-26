@@ -1,4 +1,3 @@
-translation =
 {
     "advanced-circuit": "Avanceret kredsløb",
     "alien-artifact": "Alien artefakt",

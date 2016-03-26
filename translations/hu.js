@@ -1,4 +1,3 @@
-translation =
 {
     "advanced-circuit": "Nyomtatott áramkör",
     "alien-artifact": "Idegen műtárgy",

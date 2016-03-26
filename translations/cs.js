@@ -1,4 +1,3 @@
-translation =
 {
     "advanced-circuit": "Pokročilý obvod",
     "alien-artifact": "Mimozemský artefakt",

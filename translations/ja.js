@@ -1,4 +1,3 @@
-translation =
 {
     "advanced-circuit": "発展基板",
     "alien-artifact": "エイリアンアーティファクト",

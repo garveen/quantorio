@@ -1,4 +1,3 @@
-translation =
 {
     "advanced-circuit": "ةمدقتملا رئاودلا",
     "alien-science-pack": "ةيبنجالا مولعلا ةمزح",

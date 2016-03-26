@@ -1,4 +1,3 @@
-translation =
 {
     "advanced-circuit": "Gelişmiş devre",
     "alien-artifact": "Uzaylı obje",
