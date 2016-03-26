@@ -1,0 +1,28 @@
+translation =
+{
+    "battery": "Batterij",
+    "blueprint": "Blaudruk",
+    "coal": "Stienkoal",
+    "coin": "Munt",
+    "computer": "Kompjûter",
+    "copper-ore": "Kopererts",
+    "flame-thrower": "Flammewerper",
+    "iron-axe": "Izeren bile",
+    "iron-ore": "Izererts",
+    "lab": "Poarte",
+    "pistol": "Pistoal",
+    "rocket": "Raket",
+    "rocket-launcher": "Raketwerper",
+    "steel-axe": "Stielen bile",
+    "stone": "Stien",
+    "submachine-gun": "Masinegewear",
+    "sulfur": "Swevel",
+    "wood": "Hout",
+    "boiler": "Tsjettel",
+    "land-mine": "Lânmyn",
+    "market": "Merk",
+    "player": "spiler",
+    "radar": "Radar",
+    "battery-equipment": "Batterij",
+    "battery-mk2-equipment": "Batterij MK2"
+}

@@ -45,7 +45,7 @@
                         <button class='btn btn-success'>+</button>
                     </td>
                     <td class='col-xs-3 translate' data-string='name'></td>
-                    <td class='col-xs-1 translate' data-string='capacity-per-minute'></td>
+                    <td class='col-xs-1 translate' data-string='requirement-per-minute'></td>
                     <td class='col-xs-3 translate' data-string='factory'></td>
                     <td class='col-xs-1 translate' data-string='factory-number'></td>
                     <td class='col-xs-1 translate' data-string='power-consumption'></td>
@@ -53,6 +53,8 @@
                 </tr>
             </thead>
             <thead id='thead-target'>
+            </thead>
+            <thead id='thead-sub-production' style='display:none'>
             </thead>
             <tbody>
             </tbody>
@@ -71,9 +73,10 @@
     </div>
 </body>
 <script src="http://code.jquery.com/jquery-1.12.0.min.js"></script>
-<script src="resources.js"></script>
+<script src="items.js"></script>
 <script src="factories.js"></script>
-<script id='script-translate' src="translations/en.js"></script>
+<script src="translations/list.js"></script>
+<script src="translations/en.js"></script>
 <script src='index.js'></script>
 <!-- Latest compiled and minified JavaScript -->
 <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
