@@ -1,5 +1,4 @@
 $('#thead-target').on('keyup keydown keypress DOMAttrModified propertychange change', '.select-target', function() {
-    console.log(1)
     var $this = $(this);
     var id = $this.val();
     var tr = $this.closest('tr');
@@ -97,7 +96,7 @@ var getUpstreamsRecursive = function(id, needs, quantities) {
         if (typeof quantities[v.id] == 'undefined') {
             quantities[v.id] = 0;
         }
-        quantity = v.quantity * needs / subMaterial.capacity;
+        quantity = v.quantity * needs / subMaterial.capacity / material.capacity;
         quantities[v.id] += quantity;
         quantities = getUpstreamsRecursive(subMaterial.id, quantity, quantities);
     })
