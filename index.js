@@ -1,4 +1,5 @@
-$('#thead-target').on('change', '.select-target', function() {
+$('#thead-target').on('keyup keydown keypress DOMAttrModified propertychange change', '.select-target', function() {
+    console.log(1)
     var $this = $(this);
     var id = $this.val();
     var tr = $this.closest('tr');
@@ -81,7 +82,7 @@ var calc = function() {
 
 }
 $('#container').on('change', '.select-assembling', calc)
-$('#thead-target').on('keyup keydown keypress DOMAttrModified propertychange', calc)
+$('#thead-target').on('keyup keydown keypress DOMAttrModified propertychange change', calc)
 
 var getUpstreamsRecursive = function(id, needs, quantities) {
     var material = resources[id]
@@ -130,11 +131,21 @@ var getTargetSelector = function() {
     return html;
 }
 
-var translate = function() {
-    $('.translate').each(function() {
-        var $this = $(this)
-        $this.html(translation[$this.data('string')])
+var translate = function(language) {
+    $.ajax({
+        url: 'translations/' + language + '.js',
+        dataType: 'jsonp',
+        complete: function() {
+            $('.translate').each(function() {
+                var $this = $(this)
+                $this.html(translation[$this.data('string')])
+            })
+            $('#thead-target').html(getTargetRow())
+            render()
+        }
     })
+
+
 }
 
 $('#add-row button').click(function() {
@@ -145,18 +156,10 @@ $('#table-material').on('click', '.row-remove button', function() {
     $(this).closest('tr').remove()
 })
 $('#select-translate').change(function() {
-    $.ajax({
-        url: 'translations/' + $(this).val() + '.js',
-        dataType: 'jsonp',
-        complete: function() {
-            translate()
-            $('#thead-target').html(getTargetRow())
-            render()
-        }
-    })
+    translate($(this).val())
 })
 
 
 $('#thead-target').html(getTargetRow())
 $('#show-resource').change(render)
-translate()
+translate($('#select-translate').val())
