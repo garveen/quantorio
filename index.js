@@ -161,6 +161,7 @@ var changeLanguage = function(language) {
         complete: function() {
             translations[language] = translation;
             currentLanguage = language;
+            saveHash('language', language);
             $('.translate').each(function() {
                 var $this = $(this)
                 $this.html(translate($this.data('string'), true))
@@ -179,6 +180,27 @@ var changeLanguage = function(language) {
                 }
             })
         }
+    })
+}
+
+var hashes = {}
+
+var saveHash = function(name, value) {
+    hashes[name] = value
+    var tmp = []
+    $.each(hashes, function(k, v) {
+        tmp.push(k + '=' + v)
+    })
+    window.location.hash = tmp.join('&')
+}
+
+var loadHash = function() {
+    var hashStr = window.location.hash.substring(1)
+    if (!hashStr) return;
+    var tmp = hashStr.split('&')
+    $.each(tmp, function(i, v) {
+        var hash = v.split('=')
+        hashes[hash[0]] = hash[1]
     })
 }
 
@@ -232,11 +254,16 @@ $('#select-translate').change(function() {
 $('#container').on('change', '.select-assembling', calc)
 
 
+loadHash()
 if (typeof translateFallback == 'undefined') {
     var translateFallback = 'en';
 }
 if (typeof currentLanguage == 'undefined') {
-    var currentLanguage = translateFallback;
+    if (typeof hashes['language'] != 'undefined') {
+        var currentLanguage  = hashes['language']
+    } else {
+        var currentLanguage = translateFallback;
+    }
 }
 var translations = [];
 
@@ -260,3 +287,5 @@ translations[translateFallback] = translation
 
 $('#thead-target').html(getTargetRow())
 $('#show-resource').change(render)
+
+
