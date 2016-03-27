@@ -104,7 +104,7 @@ var getUpstreamsRecursive = function(id, needs, quantities, rendering) {
         if (typeof quantities[k] == 'undefined') {
             quantities[k] = 0;
         }
-        if(typeof subMaterial == 'undefined') {
+        if (typeof subMaterial == 'undefined') {
             console.log(material.id);
         }
         quantity = v * needs / subMaterial.capacity / material.capacity;
@@ -113,12 +113,12 @@ var getUpstreamsRecursive = function(id, needs, quantities, rendering) {
         quantities = getUpstreamsRecursive(subMaterial.id, quantity, quantities, rendering);
     })
 
-    if(!rendering) {
+    if (!rendering) {
         $.each(material.capacities, function(k, v) {
             if (typeof quantities[v.name] == 'undefined') {
                 quantities[v.name] = 0;
             }
-            quantities[v.name]  += v.amount * needs;
+            quantities[v.name] += v.amount * needs;
         })
     }
 
@@ -166,7 +166,7 @@ var getTargetSelector = function() {
 var changeLanguage = function(language) {
     var _change = function() {
         currentLanguage = language;
-            saveHash('language', language);
+        saveHash('language', language);
         $('.translate').each(function() {
             var $this = $(this)
             $this.html(translate($this.data('string'), true))
@@ -185,7 +185,7 @@ var changeLanguage = function(language) {
             }
         })
     }
-    if(typeof translations[language] != 'undefined') {
+    if (typeof translations[language] != 'undefined') {
         _change();
     } else {
         $.ajax({
@@ -277,7 +277,7 @@ if (typeof translateFallback == 'undefined') {
 }
 if (typeof currentLanguage == 'undefined') {
     if (typeof hashes['language'] != 'undefined') {
-        var currentLanguage  = hashes['language']
+        var currentLanguage = hashes['language']
     } else {
         var currentLanguage = translateFallback;
     }
@@ -301,5 +301,3 @@ changeLanguage(currentLanguage)
 
 $('#thead-target').html(getTargetRow())
 $('#show-resource').change(render)
-
-
