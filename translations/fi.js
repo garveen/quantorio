@@ -1,4 +1,3 @@
-translation =
 {
     "advanced-circuit": "Monimutkainen sähköpiiri",
     "alien-artifact": "Muukalaisten luomus",

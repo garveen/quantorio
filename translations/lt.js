@@ -1,4 +1,3 @@
-translation =
 {
     "advanced-circuit": "Pažangi grandinė",
     "alien-artifact": "Ateivių artefaktas",

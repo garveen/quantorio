@@ -164,33 +164,40 @@ var getTargetSelector = function() {
 }
 
 var changeLanguage = function(language) {
-    $.ajax({
-        url: 'translations/' + language + '.js',
-        dataType: 'jsonp',
-        // async: false,
-        complete: function() {
-            translations[language] = translation;
-            currentLanguage = language;
+    var _change = function() {
+        currentLanguage = language;
             saveHash('language', language);
-            $('.translate').each(function() {
-                var $this = $(this)
-                $this.html(translate($this.data('string'), true))
-            })
-            $('.select-translate').each(function() {
-                var $this = $(this)
-                if ($this.hasClass('select-assembling')) {
-                    var $new = $(getAssemblingSelector($this.data('id')))
-                    $new.val($this.val())
-                    $this.replaceWith($new)
-                }
-                if ($this.hasClass('select-target')) {
-                    var $new = $(getTargetSelector())
-                    $new.val($this.val())
-                    $this.replaceWith($new)
-                }
-            })
-        }
-    })
+        $('.translate').each(function() {
+            var $this = $(this)
+            $this.html(translate($this.data('string'), true))
+        })
+        $('.select-translate').each(function() {
+            var $this = $(this)
+            if ($this.hasClass('select-assembling')) {
+                var $new = $(getAssemblingSelector($this.data('id')))
+                $new.val($this.val())
+                $this.replaceWith($new)
+            }
+            if ($this.hasClass('select-target')) {
+                var $new = $(getTargetSelector())
+                $new.val($this.val())
+                $this.replaceWith($new)
+            }
+        })
+    }
+    if(typeof translations[language] != 'undefined') {
+        _change();
+    } else {
+        $.ajax({
+            url: 'translations/' + language + '.js?v=1',
+            dataType: 'json',
+            async: false,
+            success: function(data) {
+                translations[language] = data;
+                _change()
+            }
+        })
+    }
 }
 
 var hashes = {}
@@ -277,10 +284,7 @@ if (typeof currentLanguage == 'undefined') {
 }
 var translations = [];
 
-if (typeof translation == 'undefined') {
-    alert('fallback language init failed')
-}
-translations[translateFallback] = translation
+changeLanguage(currentLanguage)
 
 ;
 (function() {

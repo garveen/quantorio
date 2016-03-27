@@ -1,4 +1,3 @@
-translation =
 {
     "alien-artifact": "Citplanētiešu artefakts",
     "alien-science-pack": "Citplanētiešu zinātnes pakete",

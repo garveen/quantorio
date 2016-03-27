@@ -1,4 +1,3 @@
-translation =
 {
     "advanced-circuit": "Mạch tiên tiến",
     "alien-artifact": "Gói khoa học ngoài hành tinh",

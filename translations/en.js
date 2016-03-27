@@ -1,4 +1,3 @@
-translation =
 {
     "repair-pack": "Repair pack",
     "stone": "Stone",

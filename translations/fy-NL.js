@@ -1,4 +1,3 @@
-translation =
 {
     "battery": "Batterij",
     "blueprint": "Blaudruk",

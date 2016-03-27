@@ -1,4 +1,3 @@
-translation =
 {
     "coal": "Steenkool",
     "copper-ore": "Kopererts",
