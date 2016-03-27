@@ -1,5 +1,6 @@
 var calcRequirements = function(rendering) {
     var requirements = {}
+    var saves = []
     var html = ''
     $('#thead-target').children().each(function() {
         var $this = $(this)
@@ -46,10 +47,16 @@ var calc = function() {
     var electric_power = 0;
     var pollution = 0;
 
+    var saves = []
+
     var _calc = function(k, v) {
 
         var tr = $('tr[data-id=' + k + ']');
         var factory = factories[tr.find('.select-assembling').val()]
+        if(factory) {
+            saves.push(k + ':' + factory.id)
+        }
+
         tr.find('.td-amount').html(Math.round(v * 1000) / 1000)
 
         if (typeof factory == 'undefined') {
@@ -71,16 +78,20 @@ var calc = function() {
         }
     }
 
-
-    $.each(requirements, _calc)
-
     $('#thead-target').children().each(function() {
         var $this = $(this)
         var target = $this.find('.select-target').val()
         var needs = $this.find('.input-amount').val()
         _calc(target, needs)
+        saves[saves.length - 1] += ';' + needs
 
     })
+    saveHash('targets', saves.join(','))
+
+    saves = []
+    $.each(requirements, _calc)
+    saveHash('requirements', saves.join(','))
+
 
     $('.total-power').html(Math.round(electric_power * 1000) / 1000 + ' kW')
     $('.total-pollution').html(Math.round(pollution * 1000) / 1000)
@@ -221,6 +232,69 @@ var loadHash = function() {
     })
 }
 
+var loadLanguage = function() {
+
+    if (typeof translateFallback == 'undefined') {
+        translateFallback = 'en';
+    }
+    if (typeof currentLanguage == 'undefined') {
+        if (typeof hashes['language'] != 'undefined') {
+            currentLanguage = hashes['language']
+        } else {
+            currentLanguage = translateFallback;
+        }
+    }
+    var currentLanguageBak = currentLanguage
+
+    changeLanguage(translateFallback)
+    changeLanguage(currentLanguageBak)
+}
+
+var loadTargetRequirement = function() {
+    if(typeof hashes['show_resource'] != 'undefined') {
+        $('#show-resource').prop('checked', hashes['show_resource'] == 'true')
+    }
+    if(typeof hashes['targets'] != 'undefined' && hashes['targets'] != '') {
+        var thead = $('#thead-target')
+        thead.html('')
+
+        $.each(hashes['targets'].split(','), function(k, v) {
+            if(!v) return true;
+            var line = v.split(':')
+            var target = line[0]
+            var info = line[1].split(';')
+            var factory = info[0]
+            var needs = info[1]
+            var row = $(getTargetRow())
+            row.find('.select-target').val(target)
+            row.find('.input-amount').val(needs)
+            row.attr('data-id', target)
+            row.find('.td-assembling-select').html(getAssemblingSelector(target))
+            row.find('.select-assembling').val(factory)
+            thead.append(row)
+
+        })
+        var requirementsBak = hashes['requirements']
+        render()
+
+        if(typeof requirementsBak != 'undefined' && requirementsBak != '') {
+            var tbody = $('#table-material tbody')
+            $.each(requirementsBak.split(','), function(k, v) {
+                var line = v.split(':')
+                var id = line[0]
+                var factory = line[1]
+                console.log(id,factory,tbody.find('tr[data-id='+id+'] .select-assembling'))
+                // console.log()
+                tbody.find('tr[data-id='+id+'] .select-assembling').val(factory)
+            })
+
+        }
+
+        calc()
+
+    }
+}
+
 var rawTranslate = function(key) {
     if (typeof translations[currentLanguage][key] != 'undefined') {
         return translations[currentLanguage][key];
@@ -262,6 +336,7 @@ $('#add-row button').click(function() {
 
 $('#table-material').on('click', '.row-remove button', function() {
     $(this).closest('tr').remove()
+    render()
 })
 
 $('#select-translate').change(function() {
@@ -270,24 +345,24 @@ $('#select-translate').change(function() {
 
 $('#container').on('change', '.select-assembling', calc)
 
+$('#show-resource').change(function() {
+    var show_resource = $(this).is(':checked') ? 'true' : 'false'
+    saveHash('show_resource', show_resource)
+    render()
+})
 
-loadHash()
-if (typeof translateFallback == 'undefined') {
-    var translateFallback = 'en';
-}
-if (typeof currentLanguage == 'undefined') {
-    if (typeof hashes['language'] != 'undefined') {
-        var currentLanguage = hashes['language']
-    } else {
-        var currentLanguage = translateFallback;
-    }
-}
+
+
 var translations = [];
-
-changeLanguage(currentLanguage)
+var translateFallback, currentLanguage
 
 ;
 (function() {
+    loadHash()
+
+    loadLanguage()
+    loadTargetRequirement()
+
     var html = '';
 
     $.each(languages, function(k, v) {
@@ -298,6 +373,3 @@ changeLanguage(currentLanguage)
     changeLanguage(currentLanguage)
 })();
 
-
-$('#thead-target').html(getTargetRow())
-$('#show-resource').change(render)
