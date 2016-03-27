@@ -142,13 +142,23 @@ var getAssemblingSelector = function(id) {
 
 var getTargetSelector = function() {
     var html = '<select class="form-control select-target select-translate">';
+    var keys = []
+    var reverse = {}
+    var translated
 
     $.each(items, function(k, v) {
         if (v.is_resource || v.type == 'fluid') return true;
-
-        html += '<option value="' + k + '">' + translate(k, true) + '</option>';
-
+        translated = translate(k, true)
+        keys.push(translated)
+        reverse[translated] = k
     })
+    keys.sort()
+    var length = keys.length
+    for (var i = 0; i < length; i++) {
+
+        html += '<option value="' + reverse[keys[i]] + '">' + keys[i] + '</option>';
+
+    }
     html += '</select>';
     return html;
 }
