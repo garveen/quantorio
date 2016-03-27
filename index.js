@@ -27,7 +27,6 @@ var render = function() {
     var requirements = calcRequirements(true)
     var html = ''
     $.each(requirements, function(k, v) {
-        var material = items[k];
         html += '<tr data-id="' + k + '">';
         html += '<td></td><td>' + translate(k) + '</td><td class="td-amount"></td><td>' + getAssemblingSelector(k) + '</td><td class="factory-count"></td><td class="factory-power"></td><td class="factory-pollution"></td>';
         html += '</tr>';

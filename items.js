@@ -17,7 +17,9 @@ items =
         "time": 0.5,
         "capacity": 1,
         "materials": [],
-        "assemble_by": []
+        "assemble_by": [
+            "pumpjack"
+        ]
     },
     "heavy-oil": {
         "id": "heavy-oil",
@@ -488,7 +490,10 @@ items =
         "time": 0.5,
         "capacity": 1,
         "materials": [],
-        "assemble_by": []
+        "assemble_by": [
+            "basic-mining-drill",
+            "burner-mining-drill"
+        ]
     },
     "stone": {
         "id": "stone",
@@ -498,7 +503,10 @@ items =
         "time": 0.5,
         "capacity": 1,
         "materials": [],
-        "assemble_by": []
+        "assemble_by": [
+            "basic-mining-drill",
+            "burner-mining-drill"
+        ]
     },
     "iron-ore": {
         "id": "iron-ore",
@@ -508,7 +516,10 @@ items =
         "time": 0.5,
         "capacity": 1,
         "materials": [],
-        "assemble_by": []
+        "assemble_by": [
+            "basic-mining-drill",
+            "burner-mining-drill"
+        ]
     },
     "copper-ore": {
         "id": "copper-ore",
@@ -518,7 +529,10 @@ items =
         "time": 0.5,
         "capacity": 1,
         "materials": [],
-        "assemble_by": []
+        "assemble_by": [
+            "basic-mining-drill",
+            "burner-mining-drill"
+        ]
     },
     "wood": {
         "id": "wood",
