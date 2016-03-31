@@ -20,12 +20,13 @@ var render = function() {
         html += generateRow({
             hasName: k,
             hasRemove: false,
-            hasTarget: '<img src="' + items[k].icon + '"/> ' + translate(k),
+            hasTarget: '<div class="icon" data-icon="' + items[k].icon + '">&nbsp;</div> ' + translate(k),
             hasAssemble: getAssemblingSelector(k)
         })
 
     })
-    $('#table-material tbody').html(html)
+
+    $('#table-material tbody').html(html).find('.icon').each(getImage)
     calc()
 
 }
@@ -193,7 +194,7 @@ var getAssemblingSelector = function(name, val) {
             val = categories[category][0]
         }
     }
-    html = '<img src="' + items[val].icon + '"/> <select class="select-assembling form-control select-translate" data-name="' + name + '">';
+    html = '<div class="icon" data-icon="' + items[val].icon + '">&nbsp;</div> <select class="select-assembling form-control select-translate" data-name="' + name + '">';
 
     $.each(categories[category], function(k, name) {
         if (machines[name].type == 'assembling-machine' && machines[name].ingredient_count < recipe.ingredient_count) return true
@@ -208,7 +209,7 @@ var getTargetSelector = function(val) {
         val = 'player'
     }
     target_no++
-    var html = '<div class="select-target" data-val="' + val + '" data-target-no="' + target_no + '"><a href="javascript:;" class="btn btn-default"><img src="' + items[val].icon + '"/> ' + translate(val) + '</a></div>'
+    var html = '<div class="select-target" data-val="' + val + '" data-target-no="' + target_no + '"><a href="javascript:;" class="btn btn-default"><div class="icon" data-icon="' + items[val].icon + '">&nbsp;</div> ' + translate(val) + '</a></div>'
     return html
 
 }
@@ -226,7 +227,7 @@ var changeLanguage = function(language) {
             if ($this.hasClass('select-assembling')) {
                 var $new = $(getAssemblingSelector($this.data('name'), $this.val()))
 
-                $this.parent().html($new)
+                $this.parent().html($new).find('.icon').each(getImage)
             }
         })
         $('abbr').each(function() {
@@ -315,11 +316,12 @@ var loadTargetRequirement = function() {
             var row = $(getTargetRow(target))
             row.find('.input-amount').val(needs)
             row.attr('data-name', target)
-            row.find('.td-assembling-select').html(getAssemblingSelector(target))
+            row.find('.td-assembling-select').html(getAssemblingSelector(target)).find('.icon').each(getImage)
             row.find('.select-assembling').val(machine)
             thead.append(row)
 
         })
+        thead.find('.icon').each(getImage)
         var requirementsBak = hashes['requirements']
         render()
 
@@ -392,7 +394,7 @@ var initTargetSelector = function() {
                     keys.push(item.order)
                     to_appends[item.order] = ''
                 }
-                to_appends[item.order] += '<abbr title="" data-string="' + item_name + '"><a href="javascript:;" class="select-this-target" data-name="' + item_name + '"><div class="icon" style="background-image:url(' + item.icon + ')">&nbsp;</div></a></abbr>'
+                to_appends[item.order] += '<abbr title="" data-string="' + item_name + '"><a href="javascript:;" class="select-this-target" data-name="' + item_name + '"><div class="icon" data-icon="' + item.icon + '">&nbsp;</div></a></abbr>'
             })
             keys.sort()
             $.each(keys, function(l, order) {
@@ -409,6 +411,7 @@ var initTargetSelector = function() {
     })
     html += '</ul><div class="tab-content">' + panel + '</div></div>'
     modal.find('.modal-body').html(html)
+    modal.find('.icon').each(getImage)
 
     modal.find('.target-selector-tabs a').click(function(e) {
         e.preventDefault()
@@ -419,14 +422,46 @@ var initTargetSelector = function() {
         var val = $(this).data('name')
         var el = $('#thead-target .select-target[data-target-no=' + target_selecting + ']')
         el.data('val', val)
-        el.find('a').html('<img src="' + items[val].icon + '"/> ' + translate(val))
+        el.find('a').html('<div class="icon" data-icon="' + items[val].icon + '">&nbsp;</div> ' + translate(val)).find('.icon').each(getImage)
 
         var tr = el.closest('tr');
-        tr.find('.td-assembling-select').html(getAssemblingSelector(val));
+        tr.find('.td-assembling-select').html(getAssemblingSelector(val)).find('.icon').each(getImage)
         tr.attr('data-name', val);
         modal.modal('hide')
         render()
     })
+}
+
+var getImage = function() {
+    var el = $(this)
+    var url = el.data('icon')
+    if (window.localStorage && window.localStorage.getItem) {
+        var storage = window.localStorage
+        dataURL = storage.getItem('icon-' + url)
+        if (dataURL) {
+            el.css('background-image', 'url(' + dataURL + ')')
+        } else {
+            $('<img src="' + url + '">').load(function() {
+                var img = $(this)[0]
+                var canvas = document.createElement("canvas");
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                var ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0);
+
+                var dataURL = canvas.toDataURL("image/png");
+                try {
+                    storage.setItem('icon-' + url, dataURL)
+                } catch (e) {
+                    localStorage.clear()
+                }
+
+                el.css('background-image', 'url(' + dataURL + ')')
+
+            });
+        }
+    }
 }
 
 var target_selecting;
@@ -440,7 +475,7 @@ $('#thead-target').on('keyup keydown keypress DOMAttrModified propertychange cha
 
 var target_no = 0
 $('#add-row a').click(function() {
-    $('#thead-target').append(getTargetRow())
+    $('#thead-target').append(getTargetRow()).find('.icon').each(getImage)
 })
 
 $('#table-material').on('click', '.row-remove a', function() {

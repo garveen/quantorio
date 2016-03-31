@@ -11,7 +11,8 @@
         #modal-target-selector .table{display:table;}
         #modal-target-selector .table span{display:table-cell;}
         #modal-target-selector .table-row{padding-top: 5px;padding-bottom: 5px}
-        div.icon{width: 32px;height: 32px;padding:18px;display: inline-block;background-color: #ddd;border: 1px solid #ccc;background-repeat:no-repeat;background-position:center;}
+        div.icon{width: 32px;height: 32px;padding:18px;display:initial;background-repeat:no-repeat;background-position:center;}
+        .table-row div.icon{background-color: #ddd;border: 1px solid #ccc;display:inline-block;}
         a.select-this-target{width: 36px;height: 36px;margin: 1px}
         abbr[title]{border-bottom: none}
         div.select-target{width:100%}
@@ -20,6 +21,7 @@
         .tab-pane{background-color: #ddd}
         .container-fluid{padding:0;}
         #div-language,#div-show-resource{margin:0;}
+        td{display:table-cell;vertical-align: middle !important}
     </style>
     <title class='translate' data-string='factorio-quantizative-tool'>
         Factorio Quantizative Tool
@@ -92,8 +94,26 @@
         <!-- /.modal-dialog -->
     </div>
     <!-- /.modal -->
+    <div class="modal fade" id="modal-new-recipe">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" class='translate' data-string='new-recipe'></h4>
+          </div>
+          <div class="modal-body">
+            <p>One fine body&hellip;</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default translate" data-string='cancel' data-dismiss="modal"></button>
+            <button type="button" class="btn btn-primary translate" data-string='submit'></button>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
 </body>
 <script src="http://code.jquery.com/jquery-1.12.0.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
 <!--
 <script src="groups.js"></script>
 <script src="machines.js"></script>
@@ -107,6 +127,6 @@
 <script src='data.js'></script>
 <script src='index.js'></script>
 <!-- Latest compiled and minified JavaScript -->
-<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
 
 </html>
+
