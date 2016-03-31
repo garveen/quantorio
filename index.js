@@ -437,8 +437,8 @@ var getImage = function() {
     var url = el.data('icon')
     if (window.localStorage && window.localStorage.getItem) {
         var storage = window.localStorage
-        dataURL = storage.getItem('icon-' + url)
-        if (dataURL) {
+        dataURL = LZString.decompress(storage.getItem('icon-' + url))
+        if (dataURL && dataURL.substring(0, 4) == 'data') {
             el.css('background-image', 'url(' + dataURL + ')')
         } else {
             $('<img src="' + url + '">').load(function() {
@@ -452,7 +452,7 @@ var getImage = function() {
 
                 var dataURL = canvas.toDataURL("image/png");
                 try {
-                    storage.setItem('icon-' + url, dataURL)
+                    storage.setItem('icon-' + url, LZString.compress(dataURL))
                 } catch (e) {
                     localStorage.clear()
                 }
