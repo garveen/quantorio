@@ -435,11 +435,23 @@ var initTargetSelector = function() {
 var getImage = function() {
     var el = $(this)
     var url = el.data('icon')
+    if (imageLoading[url]) {
+        imageLoading[url].push(el)
+        return
+    } else {
+        imageLoading[url] = [el]
+    }
     if (window.localStorage && window.localStorage.getItem) {
-        var storage = window.localStorage
-        dataURL = LZString.decompress(storage.getItem('icon-' + url))
-        if (dataURL && dataURL.substring(0, 4) == 'data') {
-            el.css('background-image', 'url(' + dataURL + ')')
+        var compressed = window.localStorage.getItem('icon-' + url)
+        var dataURL
+        if (compressed) {
+            dataURL = Base64String.decompress(compressed)
+        }
+        if (dataURL && dataURL.substring(0, 22) != 'data:image/png;base64,') {
+            $.each(imageLoading[url], function(i, el) {
+                el.css('background-image', 'url(data:image/png;base64,' + dataURL + ')')
+            })
+            imageLoading[url] = null
         } else {
             $('<img src="' + url + '">').load(function() {
                 var img = $(this)[0]
@@ -452,13 +464,14 @@ var getImage = function() {
 
                 var dataURL = canvas.toDataURL("image/png");
                 try {
-                    storage.setItem('icon-' + url, LZString.compress(dataURL))
+                    window.localStorage.setItem('icon-' + url, Base64String.compress(dataURL.substring(22)))
                 } catch (e) {
-                    localStorage.clear()
+                    storage.clear()
                 }
-
-                el.css('background-image', 'url(' + dataURL + ')')
-
+                $.each(imageLoading[url], function(i, el) {
+                    el.css('background-image', 'url(' + dataURL + ')')
+                })
+                imageLoading[url] = null
             });
         }
     }
@@ -500,6 +513,7 @@ $('#show-resource').change(function() {
 
 
 
+var imageLoading = {}
 var translations = [];
 var translateFallback, currentLanguage
 
