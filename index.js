@@ -89,7 +89,7 @@ var calc = function() {
                 var resource = resources[k]
                 var count = v / 60 * resource.mining_time / machine.mining_speed / (machine.mining_power - resource.hardness)
             } else {
-                var count = v / 60 / machine.crafting_speed * recipe.energy_required
+                var count = v / 60 / machine.crafting_speed * recipe.energy_required / recipe.result_count
             }
             tr.find('.machine-count').html(Math.round(count * 1000) / 1000)
             var power = 0
@@ -388,7 +388,7 @@ var initTargetSelector = function() {
                 } else {
                     return true
                 }
-                if(typeof to_appends[item.order] == 'undefined') {
+                if (typeof to_appends[item.order] == 'undefined') {
                     keys.push(item.order)
                     to_appends[item.order] = ''
                 }
