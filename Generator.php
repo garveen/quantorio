@@ -96,8 +96,10 @@ class FactorioGenerator
         $this->writeData();
         unlink($this->descPath . '/index.htm');
         unlink($this->descPath . '/index.js');
+        unlink($this->descPath . '/index.css');
         copy('index.htm', $this->descPath . '/index.htm');
         copy('index.js', $this->descPath . '/index.js');
+        copy('index.css', $this->descPath . '/index.css');
 
     }
 
