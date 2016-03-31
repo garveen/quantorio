@@ -1,81 +1,110 @@
 <!DOCTYPE html>
 <html>
-<meta charset="utf-8">
-<!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
-<!-- Optional theme -->
-<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css">
 
 <head>
+    <meta charset="utf-8">
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css">
+    <style>
+        #modal-target-selector .table{display:table;}
+        #modal-target-selector .table span{display:table-cell;}
+        #modal-target-selector .table-row{padding-top: 5px;padding-bottom: 5px}
+        div.icon{width: 32px;height: 32px;padding:18px;display: inline-block;background-color: #ddd;border: 1px solid #ccc;background-repeat:no-repeat;background-position:center;}
+        a.select-this-target{width: 36px;height: 36px;margin: 1px}
+        abbr[title]{border-bottom: none}
+        div.select-target{width:100%}
+        div.select-target a{width:100%;text-align: left}
+        .target-selector-tabs.active a{background-color: #ddd !important}
+        .tab-pane{background-color: #ddd}
+        .container-fluid{padding:0;}
+        #div-language,#div-show-resource{margin:0;}
+    </style>
     <title class='translate' data-string='factorio-quantizative-tool'>
         Factorio Quantizative Tool
     </title>
 </head>
 
 <body>
-    <div class='container' id='container'>
+    <div class='container-fluid' id='container'>
         <h1>
         <span class='translate' data-string='factorio-quantizative-tool'></span>
         <div class='pull-right'>
         <a href="https://github.com/acabin/quantorio" class="btn btn-info">View on GitHub</a>
-        <a href="https://github.com/acabin/quantorio/zipball/master" class="btn btn-info">Download .zip</a>
-        <a href="https://github.com/acabin/quantorio/tarball/master" class="btn btn-info">Download .tar.gz</a>
         </div>
         </h1>
-        <form class='form-inline'>
-            <div class="form-group">
+        <form class='form-inline form-horizontal'>
+            <div class="form-group" id="div-show-resource">
                 <label>
                     <input class='form-control' type='checkbox' id='show-resource'> <span class='translate' data-string='show-resource'></span>
                 </label>
             </div>
-            <div class="form-group pull-right">
+            <div class="form-group pull-right" id="div-language">
                 <label>
                     <span class='translate' data-string='select-language'></span>
                     <select class='form-control' id='select-translate'>
-                        <option value='en'>English</option>
-                        <option value='zh-CN'>Simplified Chinese</option>
                     </select>
                 </label>
             </div>
+            <table class='table table-striped table-bordered table-hover' id='table-material'>
+                <thead>
+                    <tr class='info'>
+                        <td id='add-row' style='width:1%'>
+                            <a class='btn btn-success'>+</a>
+                        </td>
+                        <td class='col-xs-2 translate' data-string='name'></td>
+                        <td class='col-xs-1 translate' data-string='requirement-per-minute'></td>
+                        <td class='col-xs-3 translate' data-string='made-in'></td>
+                        <td class='col-xs-1 translate' data-string='machine-number'></td>
+                        <td class='col-xs-1 translate' data-string='electric-consumption'></td>
+                        <td class='col-xs-1 translate' data-string='pollution'></td>
+                    </tr>
+                </thead>
+                <thead id='thead-target'>
+                </thead>
+                <thead id='thead-sub-production' style='display:none'>
+                </thead>
+                <tbody>
+                </tbody>
+                <tfoot>
+                    <tr class='danger'>
+                        <td></td>
+                        <td class='translate' data-string='statistics'></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td class='total-power'></td>
+                        <td class='total-pollution'></td>
+                    </tr>
+                </tfoot>
+            </table>
         </form>
-        <table class='table table-striped table-bordered table-hover' id='table-material'>
-            <thead>
-                <tr class='info'>
-                    <td id='add-row' style='width:1%'>
-                        <button class='btn btn-success'>+</button>
-                    </td>
-                    <td class='col-xs-3 translate' data-string='name'></td>
-                    <td class='col-xs-1 translate' data-string='requirement-per-minute'></td>
-                    <td class='col-xs-3 translate' data-string='factory'></td>
-                    <td class='col-xs-1 translate' data-string='factory-number'></td>
-                    <td class='col-xs-1 translate' data-string='power-consumption'></td>
-                    <td class='col-xs-1 translate' data-string='pollution'></td>
-                </tr>
-            </thead>
-            <thead id='thead-target'>
-            </thead>
-            <thead id='thead-sub-production' style='display:none'>
-            </thead>
-            <tbody>
-            </tbody>
-            <tfoot>
-                <tr class='danger'>
-                    <td></td>
-                    <td class='translate' data-string='statistics'></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td class='total-power'></td>
-                    <td class='total-pollution'></td>
-                </tr>
-            </tfoot>
-        </table>
     </div>
+    <div class="modal fade" tabindex="-1" role="dialog" id="modal-target-selector">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-body">
+                </div>
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+    <!-- /.modal -->
 </body>
 <script src="http://code.jquery.com/jquery-1.12.0.min.js"></script>
+<!--
+<script src="groups.js"></script>
+<script src="machines.js"></script>
+<script src="categories.js"></script>
+<script src="recipes.js"></script>
+<script src="resources.js"></script>
 <script src="items.js"></script>
-<script src="factories.js"></script>
+<script src="subgroups.js"></script>
 <script src="translations/list.js"></script>
+ -->
+<script src='data.js'></script>
 <script src='index.js'></script>
 <!-- Latest compiled and minified JavaScript -->
 <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>

@@ -294,9 +294,9 @@
     "show-resource": "Show Resource",
     "name": "Name",
     "requirement-per-minute": "Requirement Per Minute",
-    "factory": "Factory",
-    "factory-number": "Factory Number",
-    "power-consumption": "Power Consumption",
+    "made-in": "Made In",
+    "machine-number": "Machine Number",
+    "electric-consumption": "Electric Consumption",
     "pollution": "Pollution",
     "statistics": "Statistics",
     "select-language": "Select Language:"

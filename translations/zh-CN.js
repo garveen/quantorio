@@ -293,9 +293,9 @@
     "show-resource": "显示原料",
     "name": "名字",
     "requirement-per-minute": "每分钟所需产量",
-    "factory": "工厂",
-    "factory-number": "工厂数量",
-    "power-consumption": "工厂耗电",
+    "made-in": "制造于",
+    "machine-number": "设备数量",
+    "electric-consumption": "电力消耗",
     "pollution": "污染",
     "statistics": "统计",
     "select-language": "选择语言："
