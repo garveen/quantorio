@@ -21,24 +21,37 @@ class FactorioGenerator
 
     public $descPath = '.';
     public $basePath = '';
+    public $firstSub = 0;
 
-    public function __construct($path = 'data', $descPath = '.')
+    public function __construct($descPath = '.')
     {
-        $this->basePath = rtrim($path, '/');
         $this->descPath = rtrim($descPath, '/');
-        $this->parseMods($path);
-
     }
 
-    public function parseMods($path)
+    public function parseMods($path, $data = false)
     {
-        $path .= '/*';
+        $path = rtrim($path, '/') . '/*';
         foreach (glob($path) as $mod) {
             $this->addMod($mod);
         }
-        foreach (glob($path) as $mod) {
-            $this->parseMod($mod);
+        if ($data) {
+            $this->firstSub = 1;
+            foreach ($data as $types) {
+                foreach ($types as $entity) {
+                    $this->parseEntity($entity);
+                }
+            }
+            foreach (glob($path) as $mod) {
+                $this->parseMod($mod, true);
+            }
+
+        } else {
+            $this->firstSub = 0;
+            foreach (glob($path) as $mod) {
+                $this->parseMod($mod);
+            }
         }
+        return $this;
     }
 
     public function addMod($path)
@@ -48,9 +61,14 @@ class FactorioGenerator
         $this->info[$info->name] = $info;
     }
 
-    public function parseMod($path)
+    public function parseMod($path, $only_locale = false)
     {
-        foreach (['locale', 'prototypes'] as $dir) {
+        if ($only_locale) {
+            $dirs = ['locale'];
+        } else {
+            $dirs = ['locale', 'prototypes'];
+        }
+        foreach ($dirs as $dir) {
             $this->travel($path . '/' . $dir);
         }
     }
@@ -83,9 +101,9 @@ class FactorioGenerator
 
     public function convertPath($path, $is_source)
     {
-        return preg_replace_callback('~__([^_]+?)__~', function ($matches) use ($is_source){
+        return preg_replace_callback('~__([^_]+?)__~', function ($matches) use ($is_source) {
             if (isset($this->info[$matches[1]])) {
-                if($is_source) {
+                if ($is_source) {
                     return $this->info[$matches[1]]->_path;
                 } else {
                     return $matches[1];
@@ -101,12 +119,12 @@ class FactorioGenerator
         $converted = $this->convertPath($file, false);
         $source = $this->convertPath($file, true);
         $target = $this->descPath . '/graphics/' . $converted;
-        if(!is_file($target)) {
+        if (!is_file($target)) {
             $dir = dirname($target);
             if (!is_dir($dir)) {
                 mkdir($dir, 0755, true);
             }
-            if(is_file($source)) {
+            if (is_file($source)) {
                 copy($source, $target);
             }
         }
@@ -115,15 +133,15 @@ class FactorioGenerator
 
     public function saveItem($entity)
     {
-        if (!isset($entity->icon) || !isset($entity->order)) {
+        if (!isset($entity['icon']) || !isset($entity['order'])) {
             return;
         }
         $item = [
-            'order' => $entity->order,
-            'icon' => $this->saveIcon($entity->icon),
+            'order' => $entity['order'],
+            'icon' => $this->saveIcon($entity['icon']),
         ];
 
-        $this->items[$entity->name] = $item;
+        $this->items[$entity['name']] = $item;
     }
 
     public function saveResource($entity)
@@ -131,9 +149,9 @@ class FactorioGenerator
         $resource = $this->buildItem($entity, [
             'category' => 'basic-solid',
         ]);
-        $resource->hardness = $entity->minable->hardness;
-        $resource->mining_time = $entity->minable->mining_time;
-        $this->resources[$entity->name] = $resource;
+        $resource['hardness'] = $entity['minable']['hardness'];
+        $resource['mining_time'] = $entity['minable']['mining_time'];
+        $this->resources[$entity['name']] = $resource;
 
     }
 
@@ -145,21 +163,21 @@ class FactorioGenerator
             'energy_required' => 0.5,
             'results',
         ]);
-        $recipe->ingredients = [];
-        foreach ($entity->ingredients as $ingredient) {
+        $recipe['ingredients'] = [];
+        foreach ($entity['ingredients'] as $ingredient) {
             if (isset($ingredient['type'])) {
-                $recipe->ingredients[$ingredient['name']] = $ingredient['amount'];
+                $recipe['ingredients'][$ingredient['name']] = $ingredient['amount'];
 
             } else {
-                $recipe->ingredients[$ingredient[0]] = $ingredient[1];
+                $recipe['ingredients'][$ingredient[$this->firstSub]] = $ingredient[$this->firstSub + 1];
             }
         }
-        $recipe->ingredient_count = count($recipe->ingredients);
-        if (isset($recipe->results) && count($recipe->results) == 1) {
-            $recipe->result_count = $recipe->results[0]->amount;
-            unset($recipe->results);
+        $recipe['ingredient_count'] = count($recipe['ingredients']);
+        if (isset($recipe['results']) && count($recipe['results']) == 1) {
+            $recipe['result_count'] = $recipe['results'][$this->firstSub]['amount'];
+            unset($recipe['results']);
         }
-        $this->recipes[$entity->name] = $recipe;
+        $this->recipes[$entity['name']] = $recipe;
     }
 
     public function saveMachine($entity)
@@ -171,34 +189,34 @@ class FactorioGenerator
             'mining_speed',
             'mining_power',
             'ingredient_count',
-            'energy_source' => new stdClass,
+            'energy_source' => [],
             'energy_usage' => 0,
             'drain',
         ]);
         if (
-            isset($machine->energy_source) &&
-            isset($machine->energy_source->emissions) &&
-            preg_match('~([0-9.]+)\s*/\s*([0-9.]+)~', $machine->energy_source->emissions, $match)
+            isset($machine['energy_source']) &&
+            isset($machine['energy_source']['emissions']) &&
+            preg_match('~([0-9.]+)\s*/\s*([0-9.]+)~', $machine['energy_source']['emissions'], $match)
         ) {
-            $machine->energy_source->emissions = $match[1] / $match[2];
+            $machine['energy_source']['emissions'] = $match[1] / $match[2];
         }
 
-        $machine->energy_usage = (int) $machine->energy_usage;
+        $machine['energy_usage'] = (int) $machine['energy_usage'];
 
-        unset($machine->energy_source->smoke);
-        unset($machine->energy_source->fuel_inventory_size);
-        unset($machine->energy_source->usage_priority);
-        isset($machine->energy_source->type) or $machine->energy_source->type = 'biologic';
-        isset($machine->energy_source->emissions) or $machine->energy_source->emissions = 0;
+        unset($machine['energy_source']['smoke']);
+        unset($machine['energy_source']['fuel_inventory_size']);
+        unset($machine['energy_source']['usage_priority']);
+        isset($machine['energy_source']['type']) or $machine['energy_source']['type'] = 'biologic';
+        isset($machine['energy_source']['emissions']) or $machine['energy_source']['emissions'] = 0;
         foreach (['resource_categories', 'crafting_categories'] as $category_group) {
-            if (isset($entity->$category_group)) {
-                foreach ($entity->$category_group as $category) {
-                    $this->categories[$category][] = $entity->name;
+            if (isset($entity[$category_group])) {
+                foreach ($entity[$category_group] as $category) {
+                    $this->categories[$category][] = $entity['name'];
                 }
             }
         }
 
-        $this->machines[$entity->name] = $machine;
+        $this->machines[$entity['name']] = $machine;
 
     }
 
@@ -234,6 +252,40 @@ class FactorioGenerator
         }
 
     }
+
+    public function parseEntity($entity)
+    {
+
+        if (!isset($entity['type'])) {
+            return;
+        }
+        switch ($entity['type']) {
+            case 'item-group':
+                $this->groups[$entity['name']] = ['icon' => $this->saveIcon($entity['icon']), 'order' => $entity['order'], 'subgroups' => []];
+                $this->orders[] = $entity['order'];
+                break;
+            case 'item-subgroup':
+                $this->groups[$entity['group']]['subgroups'][$entity['name']] = $entity['order'];
+                break;
+            case 'technology':
+                break;
+            case 'resource':
+            case 'recipe':
+                $this->{"save{$entity['type']}"}($entity);
+            default:
+                $this->saveItem($entity);
+                break;
+
+        }
+        if (isset($entity['subgroup']) && !isset($this->subgroups[$entity['subgroup']][$entity['name']])) {
+            $this->subgroups[$entity['subgroup']][$entity['name']] = true;
+        }
+
+        if (isset($entity['crafting_categories']) || isset($entity['resource_categories'])) {
+
+            $this->saveMachine($entity);
+        }
+    }
     public function travel($currentPath)
     {
         foreach (glob($currentPath) as $path) {
@@ -251,40 +303,12 @@ class FactorioGenerator
                 }
 
                 foreach ($result as $field) {
-                    if (!isset($field->{0}) || !isset($field->{0}->{0})) {
+                    if (!isset($field[0]) || !isset($field[0][0])) {
                         continue;
                     }
 
-                    foreach ($field->{0}->{0} as $entity) {
-                        if (!isset($entity->type)) {
-                            continue;
-                        }
-                        switch ($entity->type) {
-                            case 'item-group':
-                                $this->groups[$entity->name] = ['icon' => $this->saveIcon($entity->icon), 'order' => $entity->order, 'subgroups' => []];
-                                $this->orders[] = $entity->order;
-                                break;
-                            case 'item-subgroup':
-                                $this->groups[$entity->group]['subgroups'][$entity->name] = $entity->order;
-                                break;
-                            case 'technology':
-                                break;
-                            case 'resource':
-                            case 'recipe':
-                                $this->{"save{$entity->type}"}($entity);
-                            default:
-                                $this->saveItem($entity);
-                                break;
-
-                        }
-                        if (isset($entity->subgroup) && !isset($this->subgroups[$entity->subgroup][$entity->name])) {
-                            $this->subgroups[$entity->subgroup][$entity->name] = true;
-                        }
-
-                        if (isset($entity->crafting_categories) || isset($entity->resource_categories)) {
-
-                            $this->saveMachine($entity);
-                        }
+                    foreach ($field[0][0] as $entity) {
+                        $this->parseEntity($entity);
                     }
                 }
             }
@@ -293,17 +317,17 @@ class FactorioGenerator
 
     protected function buildItem($source, $params)
     {
-        $target = new stdClass;
+        $target = [];
         foreach ($params as $param => $default) {
             $has_default = true;
             if (is_int($param)) {
                 $param = $default;
                 $has_default = false;
             }
-            if (isset($source->$param)) {
-                $target->$param = $source->$param;
+            if (isset($source[$param])) {
+                $target[$param] = $source[$param];
             } else {
-                $has_default and $target->$param = $default;
+                $has_default and $target[$param] = $default;
             }
         }
         return $target;

@@ -16,21 +16,22 @@ class FactorioLuaParser
 
         $fields = preg_split('~(data:extend)~', $str);
         $returns = [];
-        foreach($fields as $str) {
+        foreach ($fields as $str) {
             $str = trim($str);
-            if(!preg_match('~^\(\s*\{~', $str)) continue;
+            if (!preg_match('~^\(\s*\{~', $str)) {
+                continue;
+            }
 
             $str = preg_replace('~^\s*--\s.*$~m', '', $str);
             $len = strlen($str);
-            $stack = [];
             $current = '';
             $key = '';
             $in_string = '';
             $is_string = false;
 
-            $root = new Node;
-            $chain = [$root];
-            $node = $root;
+            $root = [];
+            $chain = [ & $root];
+            $node = &$root;
 
             for ($i = 0; $i < $len; $i++) {
                 $chr = $str[$i];
@@ -40,15 +41,23 @@ class FactorioLuaParser
                     } else {
                         $current .= $chr;
                     }
-                }elseif ($chr == "'" || $chr == '"') {
-                        $is_string = true;
-                        $in_string = $chr;
+                } elseif ($chr == "'" || $chr == '"') {
+                    $is_string = true;
+                    $in_string = $chr;
                 } elseif ($chr == '[' || $chr == '(' || $chr == '{') {
-
-                    $son = new Node;
-                    $chain[] = $son;
-                    $node->push($key, $son, false);
-                    $node = $son;
+                    unset($son);
+                    $son = [];
+                    $chain[] = &$son;
+                    if ($key === '') {
+                        $node[] = &$son;
+                    } else {
+                        $node[$key] = &$son;
+                    }
+                    end($chain);
+                    unset($node);
+                    $node = &$chain[key($chain)];
+                    // $this->push($node, $key, &$son, $is_string);
+                    // $node = &$son;
                     $key = '';
                     $current = '';
                     $is_string = false;
@@ -56,20 +65,21 @@ class FactorioLuaParser
                 } elseif ($chr == ']' || $chr == ')' || $chr == '}') {
                     if ($current) {
 
-                        $node->push($key, $current, $is_string);
+                        $this->push($node, $key, $current, $is_string);
                         $current = '';
                         $is_string = false;
                     }
                     array_pop($chain);
-                    $node = end($chain);
+                    end($chain);
+                    unset($node);
+                    $node = &$chain[key($chain)];
 
                 } elseif ($chr == '=') {
                     $key = $current;
                     $current = '';
                 } elseif ($chr == ',') {
                     if ($current) {
-                        $node->push($key, $current, $is_string);
-
+                        $this->push($node, $key, $current, $is_string);
                     }
                     $key = '';
                     $current = '';
@@ -80,55 +90,14 @@ class FactorioLuaParser
             }
             $returns[] = $root;
         }
+        // var_dump($returns);
+        // exit;
         return $returns;
     }
-}
 
-class Node implements ArrayAccess, Iterator, Countable, JsonSerializable
-{
-    protected $data = [];
-    public function rewind()
+    public function push(&$node, $key, $value, $is_string)
     {
-        return reset($this->data);
-    }
-
-    public function current()
-    {
-        return current($this->data);
-    }
-
-    public function key()
-    {
-        return key($this->data);
-    }
-
-    public function next()
-    {
-        return next($this->data);
-    }
-
-    public function valid()
-    {
-        return isset($this->data[$this->key()]);
-    }
-    public function offsetExists($key)
-    {
-        return isset($this->data[$key]);
-    }
-    public function offsetSet($key, $value)
-    {
-        $this->data[$key] = $value;
-    }
-    public function offsetGet($key)
-    {
-        return $this->data[$key];
-    }
-    public function offsetUnset($key)
-    {
-        unset($this->data[$Key]);
-    }
-    public function push($key, $value, $is_string)
-    {
+        // var_dump($key, $value);
         if (!$is_string) {
             if ($value == 'false') {
                 $value = false;
@@ -144,43 +113,9 @@ class Node implements ArrayAccess, Iterator, Countable, JsonSerializable
 
         }
         if ($key === '') {
-            $this->data[] = $value;
+            $node[] = $value;
         } else {
-            $this->data[$key] = $value;
+            $node[$key] = $value;
         }
-    }
-    public function toArray()
-    {
-        return $this->data;
-    }
-
-    public function count() {
-        return count($this->data);
-    }
-
-    public function jsonSerialize() {
-        return $this->data;
-    }
-
-    public function __get($key)
-    {
-        if(!isset($this->data[$key])) {
-            debug_print_backtrace();
-        }
-        return $this->data[$key];
-    }
-    public function __set($key, $value)
-    {
-        return $this->data[$key] = $value;
-    }
-
-    public function __unset($key)
-    {
-        unset($this->data[$key]);
-    }
-
-    public function __isset($key)
-    {
-        return $this->offsetExists($key);
     }
 }
