@@ -501,7 +501,7 @@ $('#select-translate').change(function() {
 })
 
 $('#container').on('change', '.select-assembling', function() {
-    $(this).prev().attr('src', items[$(this).val()].icon)
+    $(this).siblings('.icon').data('icon', items[$(this).val()].icon).each(getImage)
     calc()
 })
 
