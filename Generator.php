@@ -100,19 +100,17 @@ class FactorioGenerator
     {
         $converted = $this->convertPath($file, false);
         $source = $this->convertPath($file, true);
-        // var_dump($converted);exit;
-        $target = $this->descPath . '/' . $converted;
-        if(is_file($target)) {
-            return $converted;
+        $target = $this->descPath . '/graphics/' . $converted;
+        if(!is_file($target)) {
+            $dir = dirname($target);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            if(is_file($source)) {
+                copy($source, $target);
+            }
         }
-        $dir = dirname($target);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        if(is_file($source)) {
-            copy($source, $target);
-        }
-        return $converted;
+        return 'graphics/' . $converted;
     }
 
     public function saveItem($entity)

@@ -2,4 +2,4 @@
 
 require('Generator.php');
 
-(new FactorioGenerator('data', '.'))->save();
+(new FactorioGenerator('data', 'public'))->save();
