@@ -94,6 +94,8 @@ class FactorioGenerator
         sort($this->languages);
         $this->writeJs('translations/list', $this->languages, 'languages');
         $this->writeData();
+        unlink($this->descPath . '/index.htm');
+        unlink($this->descPath . '/index.js');
         copy('index.htm', $this->descPath . '/index.htm');
         copy('index.js', $this->descPath . '/index.js');
 
@@ -343,6 +345,7 @@ class FactorioGenerator
         if (!is_dir(dirname("{$this->descPath}/{$name}"))) {
             mkdir(dirname("{$this->descPath}/{$name}"), 0755, true);
         }
+        unlink("{$this->descPath}/{$name}.js");
         file_put_contents("{$this->descPath}/{$name}.js", $prefix . json_encode($content, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n");
         var_dump($name);
     }
