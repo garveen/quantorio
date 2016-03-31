@@ -83,6 +83,18 @@ class FactorioGenerator
 
         $this->writeJs('groups', $this->groups);
         $this->writeJs('machines', $this->machines);
+
+        foreach ($this->categories as $category => $content) {
+            $orders = [];
+            foreach ($content as $name) {
+                if ($name == 'player') {
+                    $orders[] = '0';
+                } else {
+                    $orders[] = preg_replace('~\[.*?\]~', '', $this->items[$name]['order']);
+                }
+            }
+            array_multisort($orders, $this->categories[$category]);
+        }
         $this->writeJs('categories', $this->categories);
         $this->writeJs('recipes', $this->recipes);
         $this->writeJs('resources', $this->resources);
