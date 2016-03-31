@@ -261,7 +261,8 @@ class FactorioGenerator
         }
         switch ($entity['type']) {
             case 'item-group':
-                $this->groups[$entity['name']] = ['icon' => $this->saveIcon($entity['icon']), 'order' => $entity['order'], 'subgroups' => []];
+                $this->groups[$entity['name']]['icon'] = $this->saveIcon($entity['icon']);
+                $this->groups[$entity['name']]['order'] = $entity['order'];
                 $this->orders[] = $entity['order'];
                 break;
             case 'item-subgroup':
@@ -348,6 +349,7 @@ class FactorioGenerator
 
     protected function writeData()
     {
+        unlink("{$this->descPath}/data.js");
         file_put_contents("{$this->descPath}/data.js", $this->datastr);
     }
 }
