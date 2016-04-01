@@ -52,7 +52,7 @@ var generateRow = function(user_config) {
         config[k] = v
     })
     return '<tr' + (config.hasClass ? ' class="' + config.hasClass + '"' : '') + (config.hasName ? ' data-name="' + config.hasName + '"' : '') + '>' +
-        (config.hasRemove ? '<td class="row-remove"><a class="btn btn-danger">-</a></td>' : '<td></td>') +
+        (config.hasRemove ? '<td class="row-remove"><a class="btn btn-danger btn-mono">-</a></td>' : '<td></td>') +
         '<td>' + config.hasTarget + '</td>' +
         '<td' + (config.hasAmountInput ? '' : ' class="td-amount"') + '>' + (config.hasAmountInput ? '<input type="text" class="form-control input-amount" value="1" />' : '') + '</td>' +
         '<td class="td-assembling-select">' + config.hasAssemble + '</td>' +

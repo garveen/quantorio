@@ -65,3 +65,12 @@ td {
     display: table-cell;
     vertical-align: middle !important
 }
+
+.btn-mono {
+    font-family: Courier, monospace;
+    font-weight: 900
+}
+
+textarea {
+    font-family: Courier, monospace;
+}
