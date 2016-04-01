@@ -375,6 +375,9 @@ var initTargetSelector = function() {
         var panel_append = ''
         var is_append = false
         var icon = config.icon
+        if(!icon) {
+            icon = 'local/questionmark.png'
+        }
         html_append += '<li role="presentation" class="target-selector-tabs' + (actived ? '' : ' active') + '"><a href="#selector-' + group_name + '" aria-controls="selector-' + group_name + '" role="tab" data-toggle="tab">' + '<img src="' + config.icon + '"/> ' + '</a></li>'
         panel_append += '<div role="tabpanel" class="tab-pane' + (actived ? '' : ' active') + '" id="selector-' + group_name + '"><div class="table">'
         $.each(config.subgroups, function(subgroup_name, order) {
@@ -435,6 +438,9 @@ var initTargetSelector = function() {
 var getImage = function() {
     var el = $(this)
     var url = el.data('icon')
+    if(typeof url == 'undefined' || !url) {
+        url = 'local/bonus-icon.png'
+    }
     if (imageLoading[url]) {
         imageLoading[url].push(el)
         return
@@ -509,6 +515,36 @@ $('#show-resource').change(function() {
     var show_resource = $(this).is(':checked') ? 'true' : 'false'
     saveHash('show_resource', show_resource)
     render()
+})
+
+var demos = []
+$('#button-show-demo').click(function() {
+    var name = $('#select-demo').val()
+    if(!demos[name]) {
+        $.ajax({
+            url: name + '.js',
+            dataType: 'text',
+            success: function(data) {
+                demos[name] = data
+                $('#textarea-demo').val(data).show()
+            }
+        })
+    } else {
+        $('#textarea-demo').val(demos[name])
+    }
+})
+
+$('#submit-alter-data').click(function() {
+    $('#modal-alter-data').modal('hide')
+    var alters = eval('(' + $('#textarea-alter-data').val() + ')')
+    $.each(alters, function(alter, datas) {
+        $.each(datas, function(name, data) {
+            window[alter][name] = data
+        })
+    })
+    initTargetSelector()
+    changeLanguage(currentLanguage)
+
 })
 
 

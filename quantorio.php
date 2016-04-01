@@ -2,11 +2,13 @@
 
 require 'Generator.php';
 
+$target = 'public';
+
 if (class_exists('lua')) {
 
     $lua = new lua;
-    $lua->registerCallback('putdata', function ($data) {
-        (new FactorioGenerator('public'))->parseMods('data', $data)->save();
+    $lua->registerCallback('putdata', function ($data) use ($target) {
+        (new FactorioGenerator($target))->parseMods('data', $data)->save();
 
     });
     $lua->registerCallback('php_findfile', function ($path) {
@@ -26,5 +28,5 @@ if (class_exists('lua')) {
     $lua->eval('putdata(data.raw)');
 } else {
 
-    (new FactorioGenerator('public'))->parseMods('data')->save();
+    (new FactorioGenerator($target))->parseMods('data')->save();
 }
