@@ -6,7 +6,7 @@ if (class_exists('lua')) {
 
     $lua = new lua;
     $lua->registerCallback('putdata', function ($data) {
-        (new FactorioGenerator('public'))->parseMods('data', $data)->save();
+        (new FactorioGenerator('.'))->parseMods('data', $data)->save();
 
     });
     $lua->registerCallback('php_findfile', function ($path) {

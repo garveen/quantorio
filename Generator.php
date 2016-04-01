@@ -75,11 +75,20 @@ class FactorioGenerator
 
     public function save()
     {
+        $this->subgroups['user-defined'] = new stdClass;
         $this->writeJs('subgroups', $this->subgroups);
         foreach ($this->groups as $k => $group) {
             asort($this->groups[$k]['subgroups']);
         }
         array_multisort(array_unique($this->orders), $this->groups);
+
+        $this->groups['user-defined'] = [
+            'icon' => $this->saveIcon('local/questionmark.png'),
+            'order' => 'zzzzzzz',
+            'subgroups' => [
+                'user-defined' => 'zzzzzzz',
+            ],
+        ];
 
         $this->writeJs('groups', $this->groups);
         $this->writeJs('machines', $this->machines);

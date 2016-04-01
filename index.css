@@ -65,3 +65,16 @@ td {
     display: table-cell;
     vertical-align: middle !important
 }
+
+.btn-mono {
+    font-family: Courier, monospace;
+    font-weight: 900
+}
+
+.select-ingredient-wrapper {
+    padding-right: 1px
+}
+
+.ingredient-amount-wrapper {
+    padding-left: 1px
+}

@@ -3,10 +3,10 @@
 
 <head>
     <meta charset="utf-8">
-    <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
-    <!-- Optional theme -->
-    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css">
+<!--     <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css"> -->
+    <link rel="stylesheet" href="local/bootstrap.min.css">
+    <link rel="stylesheet" href="local/bootstrap-theme.min.css">
     <link rel="stylesheet" href="index.css">
 
     <title class='translate' data-string='factorio-quantizative-tool'>
@@ -23,9 +23,10 @@
         </div>
         </h1>
         <form class='form-inline form-horizontal'>
+            <a class='btn btn-default translate' id="add-recipe" data-string='add-recipe'></a>
             <div class="form-group" id="div-show-resource">
                 <label>
-                    <input class='form-control' type='checkbox' id='show-resource'> <span class='translate' data-string='show-resource'></span>
+                    <input type='checkbox' id='show-resource'> <span class='translate' data-string='show-resource'></span>
                 </label>
             </div>
             <div class="form-group pull-right" id="div-language">
@@ -39,7 +40,7 @@
                 <thead>
                     <tr class='info'>
                         <td id='add-row' style='width:1%'>
-                            <a class='btn btn-success'>+</a>
+                            <a class='btn btn-success btn-mono'>+</a>
                         </td>
                         <td class='col-xs-2 translate' data-string='name'></td>
                         <td class='col-xs-1 translate' data-string='requirement-per-minute'></td>
@@ -80,19 +81,94 @@
         <!-- /.modal-dialog -->
     </div>
     <!-- /.modal -->
-    <div class="modal fade" id="modal-new-recipe">
+    <div class="modal fade" id="modal-add-recipe">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" class='translate' data-string='new-recipe'></h4>
+                    <h4 class="modal-title translate" data-string='add-recipe'></h4>
                 </div>
                 <div class="modal-body">
-                    <p>One fine body&hellip;</p>
+                    <form class='form-horizontal'>
+                        <div class="form-group">
+                            <label class='col-sm-12'>
+                                <span class='col-sm-3 translate' data-string='target-name'></span>
+                                <div class='col-sm-9'>
+                                    <input type='text' class='form-control' id='add-target-name' />
+                                </div>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class='col-sm-12'>
+                                <span class='col-sm-3 translate' data-string='target-amount'></span>
+                                <div class='col-sm-9'>
+                                    <input type='text' class='form-control' id='add-target-amount' value='1' />
+                                </div>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class='col-sm-12'>
+                                <span class='col-sm-3 translate' data-string='add-target-icon'></span>
+                                <div class='col-sm-9'>
+                                    <input type='file' id='add-recipe-icon' />
+                                </div>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class='col-sm-12'>
+                                <span class='col-sm-3 translate' data-string='add-target-category'></span>
+                                <div class='col-sm-9'>
+                                    <select class='form-control select-translate select-category' id='add-target-category'></select>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="form-group group-add-ingredient">
+                            <label class='col-sm-12'>
+                                <span class='col-sm-3 translate' data-string='target-energy-require'></span>
+                                <div class='col-sm-9'>
+                                    <input type='text' class='form-control' id='add-target-energy-require' value='0.5' />
+                                </div>
+                            </label>
+                        </div>
+                        <div class="form-group group-add-ingredient">
+                            <div class='col-sm-12'>
+                                <label class='col-sm-3'>
+                                    <span class='translate' data-string='add-ingredient'></span>
+                                </label>
+                                <div class='col-sm-9 table' style="width:75%">
+                                    <div id='ingredient-placeholder'>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group group-input-resource">
+                            <div class='col-sm-12'>
+                                <label class='col-sm-3'>
+                                    <span class='translate' data-string='hardress'></span>
+                                </label>
+                                <div class='col-sm-9'>
+                                    <input type='text' class='form-control' id='input-resource-hardness' value='0.9' />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group group-input-resource">
+                            <div class='col-sm-12'>
+                                <label class='col-sm-3'>
+                                    <span class='translate' data-string='mining-time'></span>
+                                </label>
+                                <div class='col-sm-9'>
+                                    <input type='text' class='form-control' id='input-resource-mining-time' value='2' />
+                                </div>
+                            </div>
+                        </div>
+                        <span class='translate' data-string='recipe-hint'>
+                        </span>
+                        <textarea class='form-control'></textarea>
+                    </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default translate" data-string='cancel' data-dismiss="modal"></button>
-                    <button type="button" class="btn btn-primary translate" data-string='submit'></button>
+                    <button type="button" class="btn btn-primary translate" data-string='submit' id='submit-add-recipe'></button>
                 </div>
             </div>
             <!-- /.modal-content -->
@@ -101,10 +177,15 @@
     </div>
     <!-- /.modal -->
 </body>
-<script src="https://code.jquery.com/jquery-1.12.0.min.js"></script>
+<!-- <script src="https://code.jquery.com/jquery-1.12.0.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
 <script src="https://cdn.rawgit.com/pieroxy/lz-string/1.4.4/libs/lz-string.min.js"></script>
-<script src="https://cdn.rawgit.com/pieroxy/lz-string/1.4.4/libs/base64-string.js"></script>
+<script src="https://cdn.rawgit.com/pieroxy/lz-string/1.4.4/libs/base64-string.js"></script> -->
+<script src="local/jquery-1.12.0.min.js"></script>
+<script src="local/bootstrap.min.js"></script>
+<script src="local/lz-string.min.js"></script>
+<script src="local/base64-string.js"></script>
+
 <!--
 <script src="groups.js"></script>
 <script src="machines.js"></script>

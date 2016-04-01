@@ -17,7 +17,7 @@ var render = function() {
     var requirements = calcRequirements(true)
     var html = ''
     $.each(requirements, function(k, v) {
-        html += generateRow({
+        html += generateTargetRow({
             hasName: k,
             hasRemove: false,
             hasTarget: '<div class="icon" data-icon="' + items[k].icon + '">&nbsp;</div> ' + translate(k),
@@ -31,7 +31,7 @@ var render = function() {
 
 }
 var getTargetRow = function(val) {
-    return generateRow({
+    return generateTargetRow({
         hasClass: 'success',
         hasTarget: getTargetSelector(val),
         hasAmountInput: true,
@@ -39,7 +39,7 @@ var getTargetRow = function(val) {
     })
 }
 
-var generateRow = function(user_config) {
+var generateTargetRow = function(user_config) {
     var config = {
         hasClass: false,
         hasName: false,
@@ -52,7 +52,7 @@ var generateRow = function(user_config) {
         config[k] = v
     })
     return '<tr' + (config.hasClass ? ' class="' + config.hasClass + '"' : '') + (config.hasName ? ' data-name="' + config.hasName + '"' : '') + '>' +
-        (config.hasRemove ? '<td class="row-remove"><a class="btn btn-danger">-</a></td>' : '<td></td>') +
+        (config.hasRemove ? '<td class="row-remove"><a class="btn btn-danger btn-mono">-</a></td>' : '<td></td>') +
         '<td>' + config.hasTarget + '</td>' +
         '<td' + (config.hasAmountInput ? '' : ' class="td-amount"') + '>' + (config.hasAmountInput ? '<input type="text" class="form-control input-amount" value="1" />' : '') + '</td>' +
         '<td class="td-assembling-select">' + config.hasAssemble + '</td>' +
@@ -227,7 +227,14 @@ var changeLanguage = function(language) {
             if ($this.hasClass('select-assembling')) {
                 var $new = $(getAssemblingSelector($this.data('name'), $this.val()))
 
-                $this.parent().html($new).find('.icon').each(getImage)
+                $this.replaceWith($new)
+                $new.find('.icon').each(getImage)
+            } else if ($this.hasClass('select-ingredient')) {
+                var $new = $(getIngredientSelector($this.val()))
+                $this.replaceWith($new)
+            } else if($this.hasClass('select-category')) {
+                var $new = $(getCategorySelector($this.val()))
+                $this.replaceWith($new)
             }
         })
         $('abbr').each(function() {
@@ -310,6 +317,9 @@ var loadTargetRequirement = function() {
             if (!v) return true;
             var line = v.split(':')
             var target = line[0]
+            if(!items[target]) {
+                return true;
+            }
             var info = line[1].split(';')
             var machine = info[0]
             var needs = info[1]
@@ -477,6 +487,63 @@ var getImage = function() {
     }
 }
 
+
+var generateIngredientRow = function(is_first) {
+    html = '<div class="row add-ingredient-row"><p><div class="col-sm-1">'
+    if(is_first) {
+        html += '<a class="btn btn-success btn-mono add-ingredient">+</a>'
+    } else {
+        html += '<a class="btn btn-danger btn-mono minus-ingredient">-</a>'
+
+    }
+    html += '</div><div class="col-sm-9 select-ingredient-wrapper">' + getIngredientSelector() +
+     '</div><div class="col-sm-2 ingredient-amount-wrapper"><input type="text" value="1" class="form-control ingredient-amount"></div></p></div>'
+    return html
+}
+
+
+var getIngredientSelector = function(selected){
+    var names = []
+    var html = '<select name="add-sources" class="form-control select-translate select-ingredient">'
+    $.each(items, function(name) {
+        names.push(name)
+    })
+    names.sort()
+    $.each(names, function(i, name) {
+        html += '<option value="' + name + '"' + (selected == name ? ' selected="selected"' : '') + '>' + translate(name, true) + '</option>'
+
+    })
+    html += '</select>'
+    return html
+}
+
+var getCategorySelector = function(selected) {
+    var html = "<select class='form-control select-translate select-category' id='add-target-category'>"
+    $.each(categories, function(category, machine_names) {
+        var is_resource = 0
+        if(machines[machine_names[0]].type == 'mining-drill') {
+            is_resource = 1
+        }
+        html += '<option data-is-resource="' + is_resource + '" value="' + category + '"' + (selected == name ? ' selected="selected"' : '') + '>' + translate(category, true) + '</option>'
+    })
+    html += '</select>'
+    return html
+}
+
+var initNewRecipeSelector = function() {
+
+    $('#add-target-category').replaceWith(getCategorySelector())
+
+    $('#ingredient-placeholder').replaceWith(generateIngredientRow(true))
+
+    $('#add-target-category').change()
+}
+
+
+$('#add-recipe').click(function() {
+    $('#modal-add-recipe').modal('show')
+})
+
 var target_selecting;
 $('#thead-target').on('click', '.select-target a', function() {
     target_selecting = $(this).parent().data('target-no')
@@ -513,6 +580,89 @@ $('#show-resource').change(function() {
 
 
 
+
+$('#modal-add-recipe .table').on('click', '.minus-ingredient,.add-ingredient', function() {
+    var $this = $(this)
+    if($this.hasClass('minus-ingredient')) {
+        $(this).closest('.row').remove()
+
+    } else {
+        $(this).closest('.table').append(generateIngredientRow(false))
+    }
+})
+
+$('#modal-add-recipe ').on('change', '.select-category', function() {
+    var ingredient_selector = $('.group-add-ingredient')
+    if($(this).find('option:selected').data('is-resource')) {
+        ingredient_selector.hide()
+        $('.group-input-resource').show()
+    } else {
+        ingredient_selector.show()
+        $('.group-input-resource').hide()
+    }
+})
+
+$('#submit-add-recipe').click(function() {
+    var name = $('#add-target-name').val()
+
+    var is_resource = $('#add-target-category option:selected').data('is-resource')
+
+    items[name] = {
+    }
+
+    subgroups['user-defined'][name] = true
+
+    if(is_resource) {
+        var hardness = $('#input-resource-hardness').val()
+        var mining_time = $('#input-resource-mining-time').val()
+        var category = $('#add-target-category').val()
+        resources[name] = {
+            hardness: hardness,
+            category: category,
+            mining_time: mining_time
+        }
+        $('.select-ingredient').each(function() {
+            $(this).replaceWith(getIngredientSelector($(this).val()))
+        })
+    } else {
+        var amount = $('#add-target-amount').val()
+        var energy_required = Number($('#add-target-energy-require').val())
+        var ingredients = {}
+        var ingredient_count = 0
+        $('.add-ingredient-row').each(function() {
+            var row = $(this)
+            var name = row.find('.select-ingredient').val()
+            var result = Number(row.find('.ingredient-amount').val())
+            if(result) {
+                if(ingredients[name]) {
+                    ingredients[name] += result
+                } else {
+                    ingredients[name] = result
+                }
+            }
+        })
+
+        recipes[name] = {
+            result_count: amount,
+            category: category,
+            energy_required: energy_required,
+            ingredients: ingredients,
+            ingredient_count: ingredient_count
+        }
+
+    }
+
+
+
+    initTargetSelector()
+    // recipe.result_count = amount
+
+
+
+    // console.log(1)
+})
+
+
 var imageLoading = {}
 var translations = [];
 var translateFallback, currentLanguage
@@ -523,6 +673,7 @@ $(function() {
     loadLanguage()
     loadTargetRequirement()
     initTargetSelector()
+    initNewRecipeSelector()
 
     var html = '';
 
