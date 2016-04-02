@@ -238,7 +238,7 @@ var changeLanguage = function(language) {
         _change();
     } else {
         $.ajax({
-            url: 'translations/' + language + '.js?v=2',
+            url: 'translations/' + language + '.js?v=3',
             dataType: 'json',
             async: false,
             success: function(data) {
@@ -545,6 +545,11 @@ $('#submit-alter-data').click(function() {
     initTargetSelector()
     changeLanguage(currentLanguage)
 
+})
+
+$('#rebuild-icon').click(function() {
+    window.localStorage.clear()
+    $('.icon').each(getImage)
 })
 
 
