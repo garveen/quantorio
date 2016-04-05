@@ -180,30 +180,33 @@ var calc = function () {
 }
 
 
-var getUpstreamsRecursive = function (type, target, needs, quantities, max_depth) {
+var getUpstreamsRecursive = function (type, targetName, needs, quantities, max_depth) {
     if (typeof max_depth == 'undefined') max_depth = -1
     max_depth = Math.round(max_depth)
     if (max_depth == 0) {
         return quantities
     }
     max_depth--;
-    if (typeof target == 'string') {
+    var target;
+    if (typeof targetName == 'string') {
 
         if (typeof type != 'undefined') {
-            target = window[type + 's'][target]
+            target = window[type + 's'][targetName]
         } else {
-            target = recipes[target]
+            target = recipes[targetName]
         }
+    } else if (typeof targetName == 'object') {
+        target = targetName
     }
     if (typeof target == 'undefined') {
         return quantities
     }
 
-    var ingredients
-
     if (type == 'technology') {
-        ingredients = {}
-        quantities = getUpstreamsRecursive('recipe', target, target.count, quantities, 1);
+        if (typeof targetName == 'string' && typeof quantities[targetName] == 'undefined') {
+            quantities = getUpstreamsRecursive('recipe', target, target.count, quantities, 1);
+        }
+
         $.each(target.prerequisites, function (i, name) {
             if (typeof quantities[name] == 'undefined') {
                 quantities[name] = {
@@ -211,10 +214,8 @@ var getUpstreamsRecursive = function (type, target, needs, quantities, max_depth
                     value: 1
                 }
 
-                next = technologys[name]
-
-
-                quantities = getUpstreamsRecursive(type, next, 1, quantities, max_depth);
+                quantities = getUpstreamsRecursive('recipe', technologys[name], technologys[name].count, quantities, 1);
+                quantities = getUpstreamsRecursive(type, name, 1, quantities, max_depth);
 
             }
 
@@ -223,7 +224,7 @@ var getUpstreamsRecursive = function (type, target, needs, quantities, max_depth
         return quantities
 
     } else if (target) {
-        ingredients = target.ingredients
+        var ingredients = target.ingredients
     }
 
 
@@ -243,13 +244,7 @@ var getUpstreamsRecursive = function (type, target, needs, quantities, max_depth
         quantity = v * needs / result_count;
         quantities[k].value += quantity;
 
-        if (typeof type != 'undefined') {
-            next = window[type + 's'][k]
-        } else {
-            next = recipes[k]
-        }
-
-        quantities = getUpstreamsRecursive(type, next, quantity, quantities, max_depth);
+        quantities = getUpstreamsRecursive(type, k, quantity, quantities, max_depth);
     })
     return quantities;
 }
