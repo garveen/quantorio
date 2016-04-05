@@ -85,7 +85,7 @@ class FactorioGenerator
         }
         array_multisort(array_unique($this->orders), $this->groups);
 
-        $this->writeJs('groups', $this->groups);
+        $this->writeJs('groups', $this->groups, true, true, false);
         $this->writeJs('machines', $this->machines);
 
         foreach ($this->categories as $category => $content) {
@@ -99,15 +99,15 @@ class FactorioGenerator
             }
             array_multisort($orders, $this->categories[$category]);
         }
-        $this->writeJs('categories', $this->categories);
+        $this->writeJs('categories', $this->categories, true, true, false);
         $this->writeJs('recipes', $this->recipes);
         $this->writeJs('resources', $this->resources);
         $this->writeJs('items', $this->items);
         $this->writeJs('technologys', $this->technologys);
         foreach ($this->translations as $name => $content) {
-            foreach($content as $k => &$v) {
-                if(is_array($v)) {
-                    if(count(array_count_values($v)) == 1) {
+            foreach ($content as $k => &$v) {
+                if (is_array($v)) {
+                    if (count(array_count_values($v)) == 1) {
                         $v = reset($v);
                     }
                 }
@@ -116,7 +116,7 @@ class FactorioGenerator
         }
         $this->languages = array_unique($this->languages);
         sort($this->languages);
-        $this->writeJs('translations/list', $this->languages, 'languages');
+        $this->writeJs('translations/list', $this->languages, 'languages', true, false);
         $this->writeData();
         if ($this->descPath != '.') {
             unlink($this->descPath . '/index.htm');
@@ -335,7 +335,7 @@ class FactorioGenerator
         ] as $groupName) {
             if (isset($locale[$groupName])) {
                 $group = $locale[$groupName];
-                foreach($group as $k => $v) {
+                foreach ($group as $k => $v) {
                     $translation[$k][$groupName] = $v;
                 }
             }
@@ -431,9 +431,12 @@ class FactorioGenerator
         return $target;
     }
 
-    protected function writeJs($name, $content, $prefix = true, $concat = true)
+    protected function writeJs($name, $content, $prefix = true, $concat = true, $sort = true)
     {
-        ksort($content);
+        if ($sort) {
+            ksort($content);
+        }
+
         $prefix = true === $prefix ? $name . "=\n" : ($prefix ? $prefix . " =\n" : '');
         if ($concat) {
             $this->datastr .= $prefix . json_encode($content, JSON_UNESCAPED_UNICODE) . "\n";
