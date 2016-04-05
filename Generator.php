@@ -435,6 +435,7 @@ class FactorioGenerator
 
     protected function writeJs($name, $content, $prefix = true, $concat = true)
     {
+        ksort($content);
         $prefix = true === $prefix ? $name . "=\n" : ($prefix ? $prefix . " =\n" : '');
         if ($concat) {
             $this->datastr .= $prefix . json_encode($content, JSON_UNESCAPED_UNICODE) . "\n";
