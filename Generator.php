@@ -14,6 +14,7 @@ class FactorioGenerator
     public $items = [];
     public $languages = [];
     public $translations = [];
+    public $technologys = [];
 
     public $info = [];
 
@@ -76,6 +77,13 @@ class FactorioGenerator
     public function save()
     {
         $this->writeJs('subgroups', $this->subgroups);
+        $this->groups['technology'] = [
+            'subgroups' => ['technology' => 'a'],
+            'icon' => $this->groups['fluids']['icon'],
+            'order' => 'y',
+        ];
+        // var_dump($this->orders);exit;
+        $this->orders[] = 'y';
         foreach ($this->groups as $k => $group) {
             asort($this->groups[$k]['subgroups']);
         }
@@ -99,7 +107,15 @@ class FactorioGenerator
         $this->writeJs('recipes', $this->recipes);
         $this->writeJs('resources', $this->resources);
         $this->writeJs('items', $this->items);
+        $this->writeJs('technologys', $this->technologys);
         foreach ($this->translations as $name => $content) {
+            foreach($content as $k => &$v) {
+                if(is_array($v)) {
+                    if(count(array_count_values($v)) == 1) {
+                        $v = reset($v);
+                    }
+                }
+            }
             $this->writeJs("translations/{$name}", $content, '', false);
         }
         $this->languages = array_unique($this->languages);
@@ -210,6 +226,7 @@ class FactorioGenerator
             'energy_source' => [],
             'energy_usage' => 0,
             'drain',
+            'researching_speed',
         ]);
         if (
             isset($machine['energy_source']) &&
@@ -238,36 +255,95 @@ class FactorioGenerator
 
     }
 
+    public function saveTechnology($entity)
+    {
+        $technology = $this->buildItem($entity, [
+            'upgrade' => false,
+        ]);
+        $technology['prerequisites'] = [];
+        if (isset($entity['prerequisites'])) {
+            foreach ($entity['prerequisites'] as $prerequisite) {
+                $technology['prerequisites'][] = $prerequisite;
+            }
+
+        }
+        foreach ($entity['unit']['ingredients'] as $ingredient) {
+            $technology['ingredients'][$ingredient[$this->firstSub]] = $ingredient[$this->firstSub + 1];
+
+        }
+        $technology['icon'] = $this->saveIcon($entity['icon']);
+        $technology['order'] = preg_replace('~\[.*?\]~', '', $entity['order']);
+        $technology['time'] = $entity['unit']['time'];
+        $technology['count'] = $entity['unit']['count'];
+        $technology['category'] = 'lab';
+        $this->technologys[$entity['name']] = $technology;
+        $this->subgroups['technology'][$entity['name']] = true;
+
+    }
+
+    public function finishTechnologys()
+    {
+        $calcLevel = function ($name, &$technology) use (&$calcLevel) {
+            $maxLevel = -1;
+            foreach ($technology['prerequisites'] as $prerequisite_name) {
+                $prerequisite = &$this->technologys[$prerequisite_name];
+                if (!isset($prerequisite['level'])) {
+                    $calcLevel($prerequisite_name, $prerequisite);
+                }
+                if ($prerequisite['level'] > $maxLevel) {
+                    $maxLevel = $prerequisite['level'];
+                }
+            }
+            if ($technology['upgrade']) {
+                $technology['level'] = $maxLevel;
+            } else {
+                $technology['level'] = $maxLevel + 1;
+            }
+
+        };
+        foreach ($this->technologys as $name => &$technology) {
+            $this->subgroups['technology'][] = $name;
+            $calcLevel($name, $technology);
+            foreach ($technology['prerequisites'] as $prerequisite) {
+
+            }
+        }
+    }
+
     public function saveLanguage($path)
     {
 
         $language = basename(dirname($path));
         $this->languages[] = $language;
 
+        if (isset($this->translations[$language])) {
+            $translation = $this->translations[$language];
+        } else {
+            $translation = [];
+
+            if (is_file($ex = "locale/{$language}.ini")) {
+                $translation = parse_ini_file($ex, false, INI_SCANNER_RAW);
+            }
+
+        }
         $locale = parse_ini_file($path, true, INI_SCANNER_RAW);
-        $translation = [];
         foreach ([
             'item-name',
             'entity-name',
             'fluid-name',
             'equipment-name',
             'recipe-name',
-        ] as $group) {
-            if (isset($locale[$group])) {
-                $translation = array_merge($translation, $locale[$group]);
+            'technology-name',
+        ] as $groupName) {
+            if (isset($locale[$groupName])) {
+                $group = $locale[$groupName];
+                foreach($group as $k => $v) {
+                    $translation[$k][$groupName] = $v;
+                }
             }
-
         }
 
-        if (is_file($ex = "locale/{$language}.ini")) {
-            $translation = array_merge($translation, parse_ini_file($ex, false, INI_SCANNER_RAW));
-        }
-        if (isset($this->translations[$language])) {
-            $this->translations[$language] = array_merge($this->translations[$language], $translation);
-        } else {
-            $this->translations[$language] = $translation;
-
-        }
+        $this->translations[$language] = $translation;
 
     }
 
@@ -287,6 +363,11 @@ class FactorioGenerator
                 $this->groups[$entity['group']]['subgroups'][$entity['name']] = $entity['order'];
                 break;
             case 'technology':
+                $this->saveTechnology($entity);
+                break;
+            case 'lab':
+                $this->categories['lab'][] = $entity['name'];
+                $this->saveMachine($entity);
                 break;
             case 'resource':
             case 'recipe':
@@ -301,9 +382,9 @@ class FactorioGenerator
         }
 
         if (isset($entity['crafting_categories']) || isset($entity['resource_categories'])) {
-
             $this->saveMachine($entity);
         }
+
     }
     public function travel($currentPath)
     {

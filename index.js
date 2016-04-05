@@ -1,73 +1,116 @@
-var calcRequirements = function(rendering) {
-    var requirements = {}
+var imageLoading = {}
+var translations = [];
+var translateFallback, currentLanguage
+var target_selecting;
+var target_no = 0
+var demos = []
+var requirements = {}
+
+
+var calcRequirements = function () {
     var saves = []
     var html = ''
-    $('#thead-target').children().each(function() {
+    requirements = {}
+    $('#thead-target').children().each(function () {
         var $this = $(this)
         var target = $this.find('.select-target').data('val')
         var needs = $this.find('.input-amount').val()
-        var recipe = recipes[target]
-        requirements = getUpstreamsRecursive(target, needs, requirements, rendering)
+        requirements = getUpstreamsRecursive($this.data('type'), target, needs, requirements)
 
     })
-    return requirements;
 }
 
-var render = function() {
-    var requirements = calcRequirements(true)
+var getTarget = function (type, name) {
+    if (typeof type != 'undefined') {
+        if (typeof window[type + 's'][name] != 'undefined') {
+            return window[type + 's'][name]
+        }
+    }
+    return items[name]
+}
+
+var getIcon = function (type, name) {
+    var target = getTarget(type, name)
+    if (typeof target.icon != 'undefined') {
+        return target.icon
+    } else {
+        return getTarget('item', name).icon
+    }
+}
+
+var removeFromArray = function (arr) {
+    var what, a = arguments,
+        L = a.length,
+        ax;
+    while (L > 1 && arr.length) {
+        what = a[--L];
+        while ((ax = arr.indexOf(what)) !== -1) {
+            arr.splice(ax, 1);
+        }
+    }
+    return arr;
+}
+
+var render = function () {
+    calcRequirements()
     var html = ''
-    $.each(requirements, function(k, v) {
+    $.each(requirements, function (k, v) {
         html += generateRow({
             hasName: k,
             hasRemove: false,
-            hasTarget: '<div class="icon" data-icon="' + items[k].icon + '">&nbsp;</div> ' + translate(k),
-            hasAssemble: getAssemblingSelector(k)
+            hasTarget: '<div class="icon icon-' + v.type + '" data-icon="' + getIcon(v.type, k) + '">&nbsp;</div> ' + translate(k),
+            hasAssemble: getAssemblingSelectorEx(v.type, k)
         })
 
     })
 
     $('#table-material tbody').html(html).find('.icon').each(getImage)
     calc()
-
 }
-var getTargetRow = function(val) {
+var getTargetRow = function (type, val) {
     return generateRow({
         hasClass: 'success',
-        hasTarget: getTargetSelector(val),
+        hasTarget: getTargetSelector(type, val),
         hasAmountInput: true,
         hasRemove: true
     })
 }
 
-var generateRow = function(user_config) {
+var generateRow = function (user_config) {
     var config = {
         hasClass: false,
         hasName: false,
         hasRemove: false,
+        hasExpand: true,
         hasAmountInput: false,
         hasTarget: false,
         hasAssemble: false
     }
-    $.each(user_config, function(k, v) {
+    $.each(user_config, function (k, v) {
         config[k] = v
     })
     return '<tr' + (config.hasClass ? ' class="' + config.hasClass + '"' : '') + (config.hasName ? ' data-name="' + config.hasName + '"' : '') + '>' +
-        (config.hasRemove ? '<td class="row-remove"><a class="btn btn-danger btn-mono">-</a></td>' : '<td></td>') +
+        (config.hasRemove ? '<td class="row-remove"><a class="btn btn-danger btn-mono">-</a></td>' : (config.hasExpand ? '<td class="row-expend"><a class="btn btn-info btn-mono">&gt;</a></td>' : '<td></td>')) +
         '<td>' + config.hasTarget + '</td>' +
         '<td' + (config.hasAmountInput ? '' : ' class="td-amount"') + '>' + (config.hasAmountInput ? '<input type="text" class="form-control input-amount" value="1" />' : '') + '</td>' +
         '<td class="td-assembling-select">' + config.hasAssemble + '</td>' +
         '<td class="machine-count"></td><td class="machine-power"></td><td class="machine-pollution"></td></tr>'
 }
 
-var calc = function() {
-    var requirements = calcRequirements(false)
+var calcWithRequirements = function () {
+    calcRequirements()
+    calc()
+}
+
+var calc = function () {
     var total_electric_power = 0;
     var total_pollution = 0;
 
     var saves = []
     var tmpsaves = {}
 
-    var _calc = function(k, v) {
+    var _calc = function (k, config) {
+        var v = config.value
 
         var tr = $('tr[data-name=' + k + ']');
         var machine_name = tr.find('.select-assembling').val()
@@ -89,6 +132,10 @@ var calc = function() {
             if (machine.type == 'mining-drill') {
                 var resource = resources[k]
                 var count = v / 60 * resource.mining_time / machine.mining_speed / (machine.mining_power - resource.hardness)
+            } else if (machine.type == 'lab') {
+                var technology = technologys[k]
+
+                var count = v / 60 * technology.time * technology.count
             } else {
                 var count = v / 60 / machine.crafting_speed * recipe.energy_required / recipe.result_count
             }
@@ -105,7 +152,7 @@ var calc = function() {
         }
     }
 
-    $('#thead-target').children().each(function() {
+    $('#thead-target').children().each(function () {
         var $this = $(this)
         var target = $this.find('.select-target').data('val')
         var needs = $this.find('.input-amount').val()
@@ -113,7 +160,7 @@ var calc = function() {
         saves[saves.length - 1] += ';' + needs
 
     })
-    $.each(tmpsaves, function(k, v) {
+    $.each(tmpsaves, function (k, v) {
         requirementMachines[k] = v
     })
     saveHash('targets', saves.join(','))
@@ -121,63 +168,103 @@ var calc = function() {
     saves = []
     tmpsaves = {}
     $.each(requirements, _calc)
-    $.each(tmpsaves, function(k, v) {
+    $.each(tmpsaves, function (k, v) {
         requirementMachines[k] = v
     })
 
     saveHash('requirements', saves.join(','))
 
-
     $('.total-power').html(Math.round(total_electric_power * 1000) / 1000 + ' kW')
     $('.total-pollution').html(Math.round(total_pollution * 1000) / 1000)
-
-
 
 }
 
 
-var getUpstreamsRecursive = function(target, needs, quantities, rendering) {
-    var recipe = recipes[target]
-    if (typeof recipe == 'undefined') return quantities
-    var ingredients = recipe.ingredients
+var getUpstreamsRecursive = function (type, target, needs, quantities, max_depth) {
+    if (typeof max_depth == 'undefined') max_depth = -1
+    max_depth = Math.round(max_depth)
+    if (max_depth == 0) {
+        return quantities
+    }
+    max_depth--;
+    if (typeof target == 'string') {
+
+        if (typeof type != 'undefined') {
+            target = window[type + 's'][target]
+        } else {
+            target = recipes[target]
+        }
+    }
+    if (typeof target == 'undefined') {
+        return quantities
+    }
+
+    var ingredients
+
+    if (type == 'technology') {
+        ingredients = {}
+        quantities = getUpstreamsRecursive('recipe', target, target.count, quantities, 1);
+        $.each(target.prerequisites, function (i, name) {
+            if (typeof quantities[name] == 'undefined') {
+                quantities[name] = {
+                    type: 'technology',
+                    value: 1
+                }
+
+                next = technologys[name]
+
+
+                quantities = getUpstreamsRecursive(type, next, 1, quantities, max_depth);
+
+            }
+
+        })
+
+        return quantities
+
+    } else if (target) {
+        ingredients = target.ingredients
+    }
+
 
     var show_resource = $('#show-resource').is(':checked')
-    $.each(ingredients, function(k, v) {
+    $.each(ingredients, function (k, v) {
 
-        ingredient = items[k];
         if (!show_resource && typeof resources[k] != 'undefined') {
             return true;
         }
         if (typeof quantities[k] == 'undefined') {
-            quantities[k] = 0;
+            quantities[k] = {
+                type: typeof resources[k] != 'undefined' ? 'resource' : type,
+                value: 0
+            };
         }
-        if (typeof ingredient == 'undefined') {
-            console.log(k);
-        }
-        quantity = v * needs / recipe.result_count;
-        quantities[k] += quantity;
+        var result_count = typeof target.result_count != 'undefined' ? target.result_count : 1
+        quantity = v * needs / result_count;
+        quantities[k].value += quantity;
 
-        quantities = getUpstreamsRecursive(k, quantity, quantities, rendering);
+        if (typeof type != 'undefined') {
+            next = window[type + 's'][k]
+        } else {
+            next = recipes[k]
+        }
+
+        quantities = getUpstreamsRecursive(type, next, quantity, quantities, max_depth);
     })
-
-    if (!rendering) {
-        $.each(recipe.results, function(k, v) {
-            if (typeof quantities[k] == 'undefined') {
-                quantities[k] = 0;
-            }
-            quantities[k] += v.amount * needs;
-        })
-    }
-
-
-
     return quantities;
-
-
 }
 
-var getAssemblingSelector = function(name, val) {
-    var recipe = recipes[name]
+var getAssemblingSelector = function (name, val) {
+    return getAssemblingSelectorEx(undefined, name, val)
+}
+
+var getAssemblingSelectorEx = function (type, name, val) {
+    if (typeof type == 'undefined') {
+        type = 'recipes'
+    } else {
+        type += 's'
+    }
+    var recipe = window[type][name]
     if (typeof recipe == 'undefined' || typeof categories[recipe.category] == 'undefined') {
         if (typeof resources[name] != 'undefined') {
             category = resources[name].category
@@ -194,44 +281,40 @@ var getAssemblingSelector = function(name, val) {
             val = categories[category][0]
         }
     }
-    html = '<div class="icon" data-icon="' + items[val].icon + '">&nbsp;</div> <select class="select-assembling form-control select-translate" data-name="' + name + '">';
+    html = '<div class="icon" data-icon="' + items[val].icon + '">&nbsp;</div> <select class="select-assembling form-control" data-name="' + name + '">';
 
-    $.each(categories[category], function(k, name) {
+    $.each(categories[category], function (k, name) {
         if (machines[name].type == 'assembling-machine' && machines[name].ingredient_count < recipe.ingredient_count) return true
-        html += '<option value="' + name + '"' + (val == name ? 'selected="selected"' : '') + '>' + translate(name, true) + '</option>';
+        html += '<option value="' + name + '"' + (val == name ? 'selected="selected"' : '') + ' class="translate" data-string="' + name + '">' + translate(name, true) + '</option>';
     })
     html += '</select>';
     return html;
 }
 
-var getTargetSelector = function(val) {
+var getTargetSelector = function (type, val) {
     if (typeof val == 'undefined') {
         val = 'player'
     }
     target_no++
-    var html = '<div class="select-target" data-val="' + val + '" data-target-no="' + target_no + '"><a href="javascript:;" class="btn btn-default"><div class="icon" data-icon="' + items[val].icon + '">&nbsp;</div> ' + translate(val) + '</a></div>'
+    var html = '<div class="select-target" data-val="' + val + '" data-target-no="' + target_no +
+        '"><a href="javascript:;" class="btn btn-default"><div class="icon icon-' + type + '" data-icon="' + getIcon(type, val) +
+        '">&nbsp;</div> ' + translate(val) + '</a></div>'
     return html
 
 }
 
-var changeLanguage = function(language) {
-    var _change = function() {
+var changeLanguage = function (language) {
+    var _change = function () {
         currentLanguage = language;
         saveHash('language', language);
-        $('.translate').each(function() {
+        $('.translate').each(function () {
             var $this = $(this)
             $this.html(translate($this.data('string'), true))
         })
-        $('.select-translate').each(function() {
-            var $this = $(this)
-            if ($this.hasClass('select-assembling')) {
-                var $new = $(getAssemblingSelector($this.data('name'), $this.val()))
 
-                $this.parent().html($new).find('.icon').each(getImage)
-            }
-        })
-        $('abbr').each(function() {
-            $(this).attr('title', translate($(this).data('string'), true))
+        $('.translate-data').each(function () {
+            var $this = $(this)
+            $this.attr($this.data('translate-target'), translateEx($this.data('group'), $this.data('string'), true))
         })
     }
     if (typeof translations[language] != 'undefined') {
@@ -241,11 +324,11 @@ var changeLanguage = function(language) {
             url: 'translations/' + language + '.js?v=3',
             dataType: 'json',
             async: false,
-            success: function(data) {
+            success: function (data) {
                 translations[language] = data;
                 _change()
             },
-            error: function(data) {
+            error: function (data) {
                 alert('load translations error')
             }
         })
@@ -255,26 +338,26 @@ var changeLanguage = function(language) {
 var hashes = {}
 var requirementMachines = {}
 
-var saveHash = function(name, value) {
+var saveHash = function (name, value) {
     hashes[name] = value
     var tmp = []
-    $.each(hashes, function(k, v) {
+    $.each(hashes, function (k, v) {
         tmp.push(k + '=' + v)
     })
     window.location.hash = tmp.join('&')
 }
 
-var loadHash = function() {
+var loadHash = function () {
     var hashStr = window.location.hash.substring(1)
     if (!hashStr) return;
     var tmp = hashStr.split('&')
-    $.each(tmp, function(i, v) {
+    $.each(tmp, function (i, v) {
         var hash = v.split('=')
         hashes[hash[0]] = hash[1]
     })
 }
 
-var loadLanguage = function() {
+var loadLanguage = function () {
 
     if (typeof translateFallback == 'undefined') {
         translateFallback = 'en';
@@ -297,7 +380,7 @@ var loadLanguage = function() {
     changeLanguage(currentLanguageBak)
 }
 
-var loadTargetRequirement = function() {
+var loadTargetRequirement = function () {
     // return
     if (typeof hashes['show_resource'] != 'undefined') {
         $('#show-resource').prop('checked', hashes['show_resource'] == 'true')
@@ -306,18 +389,23 @@ var loadTargetRequirement = function() {
         var thead = $('#thead-target')
         thead.html('')
 
-        $.each(hashes['targets'].split(','), function(k, v) {
+        $.each(hashes['targets'].split(','), function (k, v) {
             if (!v) return true;
             var line = v.split(':')
             var target = line[0]
             var info = line[1].split(';')
             var machine = info[0]
             var needs = info[1]
-            var row = $(getTargetRow(target))
+            var type
+            if (machine == 'lab') {
+                type = 'technology'
+            }
+            var row = $(getTargetRow(type, target))
             row.find('.input-amount').val(needs)
             row.attr('data-name', target)
-            row.find('.td-assembling-select').html(getAssemblingSelector(target)).find('.icon').each(getImage)
+            row.find('.td-assembling-select').html(getAssemblingSelectorEx(type, target)).find('.icon').each(getImage)
             row.find('.select-assembling').val(machine)
+            row.attr('data-type', type)
             thead.append(row)
 
         })
@@ -327,7 +415,7 @@ var loadTargetRequirement = function() {
 
         if (typeof requirementsBak != 'undefined' && requirementsBak != '') {
             var tbody = $('#table-material tbody')
-            $.each(requirementsBak.split(','), function(k, v) {
+            $.each(requirementsBak.split(','), function (k, v) {
                 var line = v.split(':')
                 var name = line[0]
                 var machine = line[1]
@@ -342,66 +430,160 @@ var loadTargetRequirement = function() {
     }
 }
 
-var rawTranslate = function(key) {
-    if (typeof translations[currentLanguage][key] != 'undefined') {
-        return translations[currentLanguage][key];
-    } else if (typeof translations[translateFallback][key] != 'undefined') {
-        return translations[translateFallback][key];
-    } else {
-        // console.log(key);
-        return key;
-    }
+var rawTranslate = function (groupName, key) {
+    /*    var group
+        if (typeof groupName != 'undefined' && typeof translations[currentLanguage][groupName] != 'undefined') {
+            group = translations[currentLanguage][groupName]
+        } else {
+            group = translations[currentLanguage]
+        }
+        var groupFallback
+        if (typeof groupName != 'undefined' && typeof translations[translateFallback][groupName] != 'undefined') {
+            groupFallback = translations[translateFallback][groupName]
+        } else {
+            groupFallback = translations[translateFallback]
+        }*/
+
+    var append = ''
+    do {
+        var result
+        $.each([currentLanguage, translateFallback], function (i, language) {
+            switch (typeof translations[language][key]) {
+            case 'string':
+                result = translations[language][key]
+                return false
+            case 'object':
+                if (typeof translations[language][key][groupName] != 'undefined') {
+                    result = translations[language][key][groupName]
+                    return false
+                } else {
+                    result = translations[language][key][Object.keys(translations[language][key])[0]]
+                    return false
+                }
+
+            }
+
+        })
+        if (typeof result == 'string') {
+            return result + append
+        }
+        /*
+                if (typeof group[key] != 'undefined') {
+                    return group[key] + append
+                }
+
+                if (typeof groupFallback[key] != 'undefined') {
+                    return groupFallback[key] + append
+                }*/
+        var matches = key.match(/^(.*?)(-([^-]*))?$/)
+            // console.log(matches)
+        if (matches && matches[2]) {
+            key = matches[1]
+            append = ' ' + matches[3] + append
+        } else {
+            break
+        }
+    } while (true)
+    // console.trace()
+    // zzz()
+    console.log(groupName, key + append)
+    return key + append;
+
 }
-var translate = function(key, is_raw) {
+var translate = function (key, is_raw) {
+    return translateEx(undefined, key, is_raw)
+}
+
+var translateEx = function (group, key, is_raw) {
     if (typeof is_raw == 'undefined') {
         is_raw = false
     }
     if (is_raw) {
-        return rawTranslate(key)
+        return rawTranslate(group + '-name', key)
     } else {
-        return '<span class="translate" data-string="' + key + '">' + rawTranslate(key) + '</span>'
+        return '<span class="translate" data-string="' + key + '">' + rawTranslate(group + '-name', key) + '</span>'
     }
 }
 
-var initTargetSelector = function() {
+var initTargetSelector = function (force) {
     var modal = $('#modal-target-selector')
     var orders = {}
 
     var html = '<ul class="nav nav-tabs" role="tablist">'
     var panel = ''
     var actived = false
-    $.each(groups, function(group_name, config) {
+    $.each(groups, function (group_name, config) {
         var html_append = ''
         var panel_append = ''
         var is_append = false
         var icon = config.icon
-        if(!icon) {
+        if (!icon) {
             icon = 'local/questionmark.png'
         }
-        html_append += '<li role="presentation" class="target-selector-tabs' + (actived ? '' : ' active') + '"><a href="#selector-' + group_name + '" aria-controls="selector-' + group_name + '" role="tab" data-toggle="tab">' + '<img src="' + config.icon + '"/> ' + '</a></li>'
+        html_append += '<li role="presentation" class="target-selector-tabs' + (actived ? '' : ' active') + '"><a href="#selector-' + group_name +
+            '" aria-controls="selector-' + group_name + '" role="tab" data-toggle="tab">' + '<img src="' + config.icon + '"/> ' + '</a></li>'
         panel_append += '<div role="tabpanel" class="tab-pane' + (actived ? '' : ' active') + '" id="selector-' + group_name + '"><div class="table">'
-        $.each(config.subgroups, function(subgroup_name, order) {
+        $.each(config.subgroups, function (subgroup_name, order) {
             if (typeof subgroups[subgroup_name] == 'undefined') return true
             panel_append += '<div class="table-row">'
             var keys = []
             var to_appends = {}
-            $.each(subgroups[subgroup_name], function(item_name, j) {
-                // console.log(item_name)
-                var item = items[item_name]
-                if (typeof recipes[item_name] != 'undefined') {
-                    is_append = true
+            $.each(subgroups[subgroup_name], function (item_name, j) {
+                var item
+                if (subgroup_name != 'technology') {
+                    item = items[item_name]
+                    if (typeof recipes[item_name] != 'undefined') {
+                        is_append = true
+                    } else {
+                        return true
+                    }
+
+                    if (typeof to_appends[item_name] == 'undefined') {
+                        keys.push({ order: item.order, name: item_name })
+                        to_appends[item_name] = ''
+                    }
+                    to_appends[item_name] += '<abbr class="translate-data" title="" data-translate-target="title" data-string="' + item_name +
+                        '"><a href="javascript:;" class="select-this-target" data-name="' + item_name + '"><div class="icon" data-icon="' +
+                        item.icon + '">&nbsp;</div></a></abbr>'
+
+
                 } else {
-                    return true
+                    item = technologys[item_name]
+                    is_append = true
+
+                    if (typeof to_appends[item_name] == 'undefined') {
+                        keys.push({ order: item.order, name: item_name })
+                        to_appends[item_name] = ''
+                    }
+                    to_appends[item_name] += '<abbr class="translate-data" title="" data-translate-target="title" data-group="technology" data-string="' +
+                        item_name + '"><a href="javascript:;" class="select-this-target technology" data-name="' + item_name + '"><div class="icon icon-technology" data-icon="' +
+                        item.icon + '">&nbsp;</div></a></abbr>'
+
                 }
-                if (typeof to_appends[item.order] == 'undefined') {
-                    keys.push(item.order)
-                    to_appends[item.order] = ''
-                }
-                to_appends[item.order] += '<abbr title="" data-string="' + item_name + '"><a href="javascript:;" class="select-this-target" data-name="' + item_name + '"><div class="icon" data-icon="' + item.icon + '">&nbsp;</div></a></abbr>'
+
             })
-            keys.sort()
-            $.each(keys, function(l, order) {
-                panel_append += to_appends[order]
+            var f = String.fromCharCode(0)
+            var sort = function (a, b) {
+                if (a.order > b.order) {
+                    return 1
+                } else if (a.order < b.order) {
+                    return -1
+                } else {
+                    var a_name = parseInt(a.name.replace(/^.*-/, ''))
+                    var b_name = parseInt(b.name.replace(/^.*-/, ''))
+
+                    if (a_name > b_name) {
+                        return 1
+                    } else if (a_name < b_name) {
+                        return -1
+                    }
+                }
+                return 0
+
+            }
+            keys.sort(sort)
+            $.each(keys, function (l, order) {
+                panel_append += to_appends[order.name]
             })
             panel_append += '</div>'
         })
@@ -416,29 +598,45 @@ var initTargetSelector = function() {
     modal.find('.modal-body').html(html)
     modal.find('.icon').each(getImage)
 
-    modal.find('.target-selector-tabs a').click(function(e) {
+    modal.find('.target-selector-tabs a').click(function (e) {
         e.preventDefault()
         $(this).tab('show')
     })
 
-    modal.find('.select-this-target').click(function() {
-        var val = $(this).data('name')
+    modal.find('.select-this-target').click(function () {
+        var $this = $(this)
+        var val = $this.data('name')
         var el = $('#thead-target .select-target[data-target-no=' + target_selecting + ']')
-        el.data('val', val)
-        el.find('a').html('<div class="icon" data-icon="' + items[val].icon + '">&nbsp;</div> ' + translate(val)).find('.icon').each(getImage)
-
         var tr = el.closest('tr');
-        tr.find('.td-assembling-select').html(getAssemblingSelector(val)).find('.icon').each(getImage)
+        el.data('val', val)
+        var item, translation, class2x = '',
+            assemblingSelector = ''
+        if ($this.hasClass('technology')) {
+            tr.attr('data-type', 'technology')
+            item = technologys[val]
+            translation = translateEx('technology', val)
+            class2x = ' icon-technology'
+            assemblingSelector = getAssemblingSelectorEx('technology', val)
+        } else {
+            tr.attr('data-type', 'recipe')
+            item = items[val]
+            translation = translate(val)
+            assemblingSelector = getAssemblingSelector(val)
+        }
+
+        el.find('a').html('<div class="icon' + class2x + '" data-icon="' + item.icon + '">&nbsp;</div> ' + translation).find('.icon').each(getImage)
+
+        tr.find('.td-assembling-select').html(assemblingSelector).find('.icon').each(getImage)
         tr.attr('data-name', val);
         modal.modal('hide')
         render()
     })
 }
 
-var getImage = function() {
+var getImage = function () {
     var el = $(this)
     var url = el.data('icon')
-    if(typeof url == 'undefined' || !url) {
+    if (typeof url == 'undefined' || !url) {
         url = 'local/bonus-icon.png'
     }
     if (imageLoading[url]) {
@@ -454,12 +652,12 @@ var getImage = function() {
             dataURL = Base64String.decompress(compressed)
         }
         if (dataURL && dataURL.substring(0, 22) != 'data:image/png;base64,') {
-            $.each(imageLoading[url], function(i, el) {
+            $.each(imageLoading[url], function (i, el) {
                 el.css('background-image', 'url(data:image/png;base64,' + dataURL + ')')
             })
             imageLoading[url] = null
         } else {
-            $('<img src="' + url + '">').load(function() {
+            $('<img src="' + url + '">').load(function () {
                 var img = $(this)[0]
                 var canvas = document.createElement("canvas");
                 canvas.width = img.width;
@@ -474,7 +672,7 @@ var getImage = function() {
                 } catch (e) {
                     storage.clear()
                 }
-                $.each(imageLoading[url], function(i, el) {
+                $.each(imageLoading[url], function (i, el) {
                     el.css('background-image', 'url(' + dataURL + ')')
                 })
                 imageLoading[url] = null
@@ -483,48 +681,47 @@ var getImage = function() {
     }
 }
 
-var target_selecting;
-$('#thead-target').on('click', '.select-target a', function() {
+$('#thead-target').on('click', '.select-target a', function () {
     target_selecting = $(this).parent().data('target-no')
     $('#modal-target-selector').modal('show')
 })
 
-$('#thead-target').on('keyup keydown keypress DOMAttrModified propertychange change', '.input-amount', calc)
+$('#thead-target').on('keyup keydown keypress DOMAttrModified propertychange change', '.input-amount', calcWithRequirements)
 
 
-var target_no = 0
-$('#add-row a').click(function() {
-    $('#thead-target').append(getTargetRow()).find('.icon').each(getImage)
+$('#add-row a').click(function () {
+    var row = $(getTargetRow())
+    $('#thead-target').append(row).find('.icon').each(getImage)
+    row.find('.select-target a').click()
 })
 
-$('#table-material').on('click', '.row-remove a', function() {
+$('#table-material').on('click', '.row-remove a', function () {
     $(this).closest('tr').remove()
     render()
 })
 
-$('#select-translate').change(function() {
+$('#select-translate').change(function () {
     changeLanguage($(this).val())
 })
 
-$('#container').on('change', '.select-assembling', function() {
+$('#container').on('change', '.select-assembling', function () {
     $(this).siblings('.icon').data('icon', items[$(this).val()].icon).each(getImage)
     calc()
 })
 
-$('#show-resource').change(function() {
+$('#show-resource').change(function () {
     var show_resource = $(this).is(':checked') ? 'true' : 'false'
     saveHash('show_resource', show_resource)
     render()
 })
 
-var demos = []
-$('#button-show-demo').click(function() {
+$('#button-show-demo').click(function () {
     var name = $('#select-demo').val()
-    if(!demos[name]) {
+    if (!demos[name]) {
         $.ajax({
             url: name + '.js',
             dataType: 'text',
-            success: function(data) {
+            success: function (data) {
                 demos[name] = data
                 $('#textarea-demo').val(data).show()
             }
@@ -534,40 +731,42 @@ $('#button-show-demo').click(function() {
     }
 })
 
-$('#submit-alter-data').click(function() {
+$('#submit-alter-data').click(function () {
     $('#modal-alter-data').modal('hide')
     var alters = eval('(' + $('#textarea-alter-data').val() + ')')
-    $.each(alters, function(alter, datas) {
-        $.each(datas, function(name, data) {
+    $.each(alters, function (alter, datas) {
+        $.each(datas, function (name, data) {
             window[alter][name] = data
         })
     })
-    initTargetSelector()
+    initTargetSelector(true)
     changeLanguage(currentLanguage)
 
 })
 
-$('#rebuild-icon').click(function() {
+$('#rebuild-icon').click(function () {
     window.localStorage.clear()
     $('.icon').each(getImage)
 })
 
+$('#table-material').on('click', '.btn-expand', function () {
+
+})
 
 
-var imageLoading = {}
-var translations = [];
-var translateFallback, currentLanguage
 
-$(function() {
+$(function () {
     loadHash()
 
     loadLanguage()
     loadTargetRequirement()
-    initTargetSelector()
+    initTargetSelector(false)
+
+    $('#modal-technology-tree').on('show.bs.modal', function () {})
 
     var html = '';
 
-    $.each(languages, function(k, v) {
+    $.each(languages, function (k, v) {
         html += '<option value="' + v + '">' + v + '</option>'
     })
     $('#select-translate').html(html)

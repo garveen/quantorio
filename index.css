@@ -20,6 +20,10 @@ div.icon {
     background-position: center;
 }
 
+div.icon-technology {
+    background-size: 100%
+}
+
 .table-row div.icon {
     background-color: #ddd;
     border: 1px solid #ccc;
