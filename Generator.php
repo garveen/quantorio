@@ -77,12 +77,8 @@ class FactorioGenerator
     public function save()
     {
         $this->writeJs('subgroups', $this->subgroups);
-        $this->groups['technology'] = [
-            'subgroups' => ['technology' => 'a'],
-            'icon' => $this->groups['fluids']['icon'],
-            'order' => 'y',
-        ];
-        // var_dump($this->orders);exit;
+        $this->groups['technology']['icon'] = $this->groups['fluids']['icon'];
+        $this->groups['technology']['order'] = 'y';
         $this->orders[] = 'y';
         foreach ($this->groups as $k => $group) {
             asort($this->groups[$k]['subgroups']);
@@ -273,11 +269,13 @@ class FactorioGenerator
         }
         $technology['icon'] = $this->saveIcon($entity['icon']);
         $technology['order'] = preg_replace('~\[.*?\]~', '', $entity['order']);
+        $firstOrder = preg_replace('~-.*~', '', $technology['order']);
         $technology['time'] = $entity['unit']['time'];
         $technology['count'] = $entity['unit']['count'];
         $technology['category'] = 'lab';
         $this->technologys[$entity['name']] = $technology;
-        $this->subgroups['technology'][$entity['name']] = true;
+        $this->subgroups["technology-{$firstOrder}"][$entity['name']] = true;
+        $this->groups['technology']['subgroups']["technology-{$firstOrder}"] = $firstOrder;
 
     }
 

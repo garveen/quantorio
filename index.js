@@ -530,7 +530,7 @@ var initTargetSelector = function (force) {
             var to_appends = {}
             $.each(subgroups[subgroup_name], function (item_name, j) {
                 var item
-                if (subgroup_name != 'technology') {
+                if (subgroup_name.search('technology') < 0) {
                     item = items[item_name]
                     if (typeof recipes[item_name] != 'undefined') {
                         is_append = true
