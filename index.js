@@ -1,3 +1,13 @@
+/*@cc_on
+  // conditional IE < 9 only fix
+  @if (@_jscript_version <= 9)
+  (function(f){
+     window.setTimeout=f(window.setTimeout);
+     window.setInterval=f(window.setInterval);
+  })(function(f){return function(c,t){var a=[].slice.call(arguments,2);return f(function(){c instanceof Function?c.apply(this,a):eval(c)},t)}});
+  @end
+@*/
+
 var imageLoading = {}
 var translations = [];
 var translateFallback, currentLanguage
@@ -131,7 +141,6 @@ var calc = {
             calc.saves[target] += ';' + needs
 
         })
-
         saveHash('targets', calc.saves)
 
         calc.saves = {}
@@ -351,10 +360,12 @@ var changeLanguage = function (language) {
 var hashes = {}
 var requirementMachines = {}
 
-var saveHashTimeout
+var saveHashTimeouts = {}
 var saveHash = function (name, value) {
-    clearTimeout(saveHashTimeout)
-    saveHashTimeout = setTimeout(function () {
+    clearTimeout(saveHashTimeouts[name])
+
+
+    saveHashTimeouts[name] = setTimeout(function (name, value) {
         var str = ''
         if (typeof value != 'string') {
             var arr = []
@@ -371,7 +382,7 @@ var saveHash = function (name, value) {
             tmp.push(k + '=' + v)
         })
         window.location.hash = tmp.join('&')
-    }, 100)
+    }, 100, name, value)
 }
 
 var loadHash = function () {
