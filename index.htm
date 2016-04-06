@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css">
     <link rel="stylesheet" href="index.css">
 
-    <title class='translate' data-typetype='quantorio' data-string='factorio-quantizative-tool'>
+    <title class='translate' data-type='quantorio' data-string='factorio-quantizative-tool'>
         Factorio Quantizative Tool
     </title>
 </head>
@@ -17,17 +17,17 @@
 <body>
     <div class='container-fluid' id='container'>
         <h1>
-        <span class='translate' data-typetype='quantorio' data-string='factorio-quantizative-tool'></span>
+        <span class='translate' data-type='quantorio' data-string='factorio-quantizative-tool'></span>
         <div class='pull-right'>
         <a href="https://github.com/acabin/quantorio" class="btn btn-info">View on GitHub</a>
         </div>
         </h1>
         <form class='form-inline form-horizontal'>
-            <a class='btn btn-default translate' data-typetype='quantorio' data-toggle="modal" data-target="#modal-alter-data" data-string='alter-data'></a>
-            <a class='btn btn-default translate' data-typetype='quantorio' id='rebuild-icon' data-string='rebuild-icon'></a>
+            <a class='btn btn-default translate' data-type='quantorio' data-toggle="modal" data-target="#modal-alter-data" data-string='alter-data'></a>
+            <a class='btn btn-default translate' data-type='quantorio' id='rebuild-icon' data-string='rebuild-icon'></a>
             <div class="form-group pull-right" id="div-language">
                 <label>
-                    <span class='translate' data-typetype='quantorio' data-string='select-language'></span>
+                    <span class='translate' data-type='quantorio' data-string='select-language'></span>
                     <select class='form-control' id='select-translate'>
                     </select>
                 </label>
@@ -38,12 +38,17 @@
                         <td id='add-row' style='width:1%'>
                             <a class='btn btn-success btn-mono'>+</a>
                         </td>
-                        <td class='col-xs-2 translate' data-typetype='quantorio' data-string='name'></td>
-                        <td class='col-xs-1 translate' data-typetype='quantorio' data-string='requirement-per-minute'></td>
-                        <td class='col-xs-3 translate' data-typetype='quantorio' data-string='made-in'></td>
-                        <td class='col-xs-1 translate' data-typetype='quantorio' data-string='machine-number'></td>
-                        <td class='col-xs-1 translate' data-typetype='quantorio' data-string='electric-consumption'></td>
-                        <td class='col-xs-1 translate' data-typetype='quantorio' data-string='pollution'></td>
+                        <td class='col-xs-2 translate' data-type='quantorio' data-string='name'></td>
+                        <td class='col-xs-1 translate' data-type='quantorio' data-string='requirement-per-minute'></td>
+                        <td class='col-xs-3'>
+                            <span class='translate' data-type='quantorio' data-string='made-in'></span>
+                            <div class="icon">&nbsp;</div>
+                            <select class="form-control" id='select-all-assembling'>
+                            </select>
+                        </td>
+                        <td class='col-xs-1 translate' data-type='quantorio' data-string='machine-number'></td>
+                        <td class='col-xs-1 translate' data-type='quantorio' data-string='electric-consumption'></td>
+                        <td class='col-xs-1 translate' data-type='quantorio' data-string='pollution'></td>
                     </tr>
                 </thead>
                 <tbody id='tbody-target'>
@@ -53,7 +58,7 @@
                 <tfoot>
                     <tr class='danger'>
                         <td></td>
-                        <td class='translate' data-typetype='quantorio' data-string='statistics'></td>
+                        <td class='translate' data-type='quantorio' data-string='statistics'></td>
                         <td></td>
                         <td></td>
                         <td></td>
@@ -80,7 +85,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title translate" data-typetype='quantorio' data-string='alter-data'></h4>
+                    <h4 class="modal-title translate" data-type='quantorio' data-string='alter-data'></h4>
                 </div>
                 <div class="modal-body">
                     <textarea class='form-control' id="textarea-alter-data" rows='10'>
@@ -169,9 +174,9 @@
                             <option value='items'>items</option>
                         </select>
                     </div>
-                    <a class='btn btn-success pull-left translate' data-typetype='quantorio' data-string='show-demo' id="button-show-demo"></a>
-                    <button type="button" class="btn btn-default translate" data-typetype='quantorio' data-string='cancel' data-dismiss="modal"></button>
-                    <button type="button" class="btn btn-primary translate" data-typetype='quantorio' data-string='submit' id='submit-alter-data'></button>
+                    <a class='btn btn-success pull-left translate' data-type='quantorio' data-string='show-demo' id="button-show-demo"></a>
+                    <button type="button" class="btn btn-default translate" data-type='quantorio' data-string='cancel' data-dismiss="modal"></button>
+                    <button type="button" class="btn btn-primary translate" data-type='quantorio' data-string='submit' id='submit-alter-data'></button>
                 </div>
             </div>
             <!-- /.modal-content -->

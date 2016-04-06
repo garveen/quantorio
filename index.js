@@ -165,7 +165,7 @@ var calc = {
 
             saveHash('requirements', calc.saves)
         }
-        if(config) {
+        if (config) {
             tr.find('.td-amount').html(Math.round(value * 1000) / 1000)
         }
 
@@ -799,6 +799,11 @@ $('#container').on('change', '.select-assembling', function () {
     calc.single(name, undefined, tr)
 })
 
+$('#select-all-assembling').change(function () {
+    var val = $(this).val()
+    $('select.select-assembling option[value=' + val + ']').parent().val(val).change()
+})
+
 $('#button-show-demo').click(function () {
     var name = $('#select-demo').val()
     if (!demos[name]) {
@@ -840,7 +845,13 @@ $(function () {
     loadTargetRequirement()
     initTargetSelector(false)
 
-    $('#modal-technology-tree').on('show.bs.modal', function () {})
+    $('#select-all-assembling').html(function(){
+
+        $.each(machines, function (name) {
+            html += '<option value="' + name + '"' + 'class="translate" data-string="' + name + '">' + translate(name, true) + '</option>';
+        })
+        return html;
+    })
 
     var html = '';
 
