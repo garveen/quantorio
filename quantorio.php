@@ -11,20 +11,23 @@ if (class_exists('lua')) {
         (new FactorioGenerator($target))->parseMods('data', $data)->save();
 
     });
-    $lua->registerCallback('php_findfile', function ($path) {
+    $mod;
+    $lua->registerCallback('php_findfile', function ($path) use (&$mod) {
         $path = str_replace('.', '/', $path);
         var_dump($path);
         if (is_file("core/lualib/{$path}.lua")) {
             return "core/lualib/$path";
-        } elseif (is_file("data/base/{$path}.lua")) {
-            return "data/base/$path";
+        } elseif (is_file("{$mod}/{$path}.lua")) {
+            return "{$mod}/{$path}";
         }
     });
     $lua->include('core/prefix.lua');
     foreach (glob('core/lualib/*.lua') as $luafile) {
         $lua->include($luafile);
     }
-    $lua->include('data/base/data.lua');
+    foreach (glob('data/*') as $mod) {
+        $lua->include("{$mod}/data.lua");
+    }
     $lua->eval('putdata(data.raw)');
 } else {
 

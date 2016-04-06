@@ -76,16 +76,20 @@ class FactorioGenerator
 
     public function save()
     {
+        foreach ($this->subgroups as &$subgroup) {
+            ksort($subgroup);
+        }
         $this->writeJs('subgroups', $this->subgroups);
         $this->groups['technology']['icon'] = $this->groups['fluids']['icon'];
         $this->groups['technology']['order'] = 'y';
-        $this->orders[] = 'y';
+        $orders = [];
         foreach ($this->groups as $k => $group) {
-            asort($this->groups[$k]['subgroups']);
+            ksort($this->groups[$k]['subgroups']);
+            $orders[] = $group['order'];
         }
-        array_multisort($this->orders, $this->groups);
+        array_multisort($orders, $this->groups);
 
-        $this->writeJs('groups', $this->groups, true, true, false);
+        $this->writeJs('groups', $this->groups, true, true);
         $this->writeJs('machines', $this->machines);
 
         foreach ($this->categories as $category => $content) {
@@ -347,18 +351,40 @@ class FactorioGenerator
 
     public function parseEntity($entity)
     {
+        $ksort_recursive = function (&$arr) use (&$ksort_recursive) {
+            ksort($arr);
+            foreach ($arr as $k => &$v) {
+                if (is_array($v)) {
+                    $ksort_recursive($v);
+                }
+            }
+        };
+        $ksort_recursive($entity);
 
+        $checkGroup = function ($entity) {
+        };
         if (!isset($entity['type'])) {
             return;
         }
         switch ($entity['type']) {
             case 'item-group':
-                $this->groups[$entity['name']]['icon'] = $this->saveIcon($entity['icon']);
-                $this->groups[$entity['name']]['order'] = $entity['order'];
-                $this->orders[$entity['name']] = $entity['order'];
-                break;
             case 'item-subgroup':
-                $this->groups[$entity['group']]['subgroups'][$entity['name']] = $entity['order'];
+                if ($entity['type'] == 'item-group') {
+                    $groupName = $entity['name'];
+                } else {
+                    $groupName = $entity['group'];
+                }
+                if (!isset($this->groups[$groupName])) {
+                    $this->groups[$groupName] = ['icon' => '', 'order' => '', 'subgroups' => []];
+                }
+                if ($entity['type'] == 'item-group') {
+
+                    $this->groups[$entity['name']]['icon'] = $this->saveIcon($entity['icon']);
+                    $this->groups[$entity['name']]['order'] = $entity['order'];
+                } else {
+
+                    $this->groups[$entity['group']]['subgroups'][$entity['name']] = $entity['order'];
+                }
                 break;
             case 'technology':
                 $this->saveTechnology($entity);
