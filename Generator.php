@@ -83,7 +83,7 @@ class FactorioGenerator
         foreach ($this->groups as $k => $group) {
             asort($this->groups[$k]['subgroups']);
         }
-        array_multisort(array_unique($this->orders), $this->groups);
+        array_multisort($this->orders, $this->groups);
 
         $this->writeJs('groups', $this->groups, true, true, false);
         $this->writeJs('machines', $this->machines);
@@ -355,7 +355,7 @@ class FactorioGenerator
             case 'item-group':
                 $this->groups[$entity['name']]['icon'] = $this->saveIcon($entity['icon']);
                 $this->groups[$entity['name']]['order'] = $entity['order'];
-                $this->orders[] = $entity['order'];
+                $this->orders[$entity['name']] = $entity['order'];
                 break;
             case 'item-subgroup':
                 $this->groups[$entity['group']]['subgroups'][$entity['name']] = $entity['order'];
