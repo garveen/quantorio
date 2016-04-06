@@ -101,9 +101,14 @@ var generateRow = function (user_config) {
         '<td class="machine-count"></td><td class="machine-power"></td><td class="machine-pollution"></td></tr>'
 }
 
+var calcTimeout
 var calcWithRequirements = function () {
-    var requirements = calcRequirements()
-    calc.full(requirements)
+    clearTimeout(calcTimeout)
+    calcTimeout = setTimeout(function () {
+        var requirements = calcRequirements()
+        calc.full(requirements)
+    }, 100);
+
 }
 
 var calc = {
@@ -160,8 +165,9 @@ var calc = {
 
             saveHash('requirements', calc.saves)
         }
-
-        tr.find('.td-amount').html(Math.round(value * 1000) / 1000)
+        if(config) {
+            tr.find('.td-amount').html(Math.round(value * 1000) / 1000)
+        }
 
         if (typeof machine == 'undefined') {
             tr.find('.machine-count').html('')
@@ -345,23 +351,27 @@ var changeLanguage = function (language) {
 var hashes = {}
 var requirementMachines = {}
 
+var saveHashTimeout
 var saveHash = function (name, value) {
-    var str = ''
-    if(typeof value != 'string') {
-        var arr = []
-        $.each(value, function(k, v) {
-            arr.push(k + ':' + v)
+    clearTimeout(saveHashTimeout)
+    saveHashTimeout = setTimeout(function () {
+        var str = ''
+        if (typeof value != 'string') {
+            var arr = []
+            $.each(value, function (k, v) {
+                arr.push(k + ':' + v)
+            })
+            str = arr.join(',')
+        } else {
+            str = value
+        }
+        hashes[name] = str
+        var tmp = []
+        $.each(hashes, function (k, v) {
+            tmp.push(k + '=' + v)
         })
-        str = arr.join(',')
-    } else {
-        str = value
-    }
-    hashes[name] = str
-    var tmp = []
-    $.each(hashes, function (k, v) {
-        tmp.push(k + '=' + v)
-    })
-    window.location.hash = tmp.join('&')
+        window.location.hash = tmp.join('&')
+    }, 100)
 }
 
 var loadHash = function () {
