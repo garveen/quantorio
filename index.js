@@ -156,7 +156,7 @@ var calc = function () {
         var $this = $(this)
         var target = $this.find('.select-target').data('val')
         var needs = $this.find('.input-amount').val()
-        _calc(target, needs)
+        _calc(target, {value:needs})
         saves[saves.length - 1] += ';' + needs
 
     })
