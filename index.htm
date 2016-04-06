@@ -25,11 +25,6 @@
         <form class='form-inline form-horizontal'>
             <a class='btn btn-default translate' data-typetype='quantorio' data-toggle="modal" data-target="#modal-alter-data" data-string='alter-data'></a>
             <a class='btn btn-default translate' data-typetype='quantorio' id='rebuild-icon' data-string='rebuild-icon'></a>
-            <div class="form-group" id="div-show-resource">
-                <label>
-                    <input class='form-control' type='checkbox' id='show-resource'> <span class='translate' data-typetype='quantorio' data-string='show-resource'></span>
-                </label>
-            </div>
             <div class="form-group pull-right" id="div-language">
                 <label>
                     <span class='translate' data-typetype='quantorio' data-string='select-language'></span>
@@ -51,11 +46,9 @@
                         <td class='col-xs-1 translate' data-typetype='quantorio' data-string='pollution'></td>
                     </tr>
                 </thead>
-                <thead id='thead-target'>
-                </thead>
-                <thead id='thead-sub-production' style='display:none'>
-                </thead>
-                <tbody>
+                <tbody id='tbody-target'>
+                </tbody>
+                <tbody id='tbody-remainder'>
                 </tbody>
                 <tfoot>
                     <tr class='danger'>

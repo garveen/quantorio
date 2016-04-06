@@ -4,20 +4,21 @@ var translateFallback, currentLanguage
 var target_selecting;
 var target_no = 0
 var demos = []
-var requirements = {}
+var nameDelimiter = '-_-'
 
 
-var calcRequirements = function () {
+var calcRequirements = function (max_depth) {
     var saves = []
     var html = ''
     requirements = {}
-    $('#thead-target').children().each(function () {
+    $('#tbody-target').children().each(function () {
         var $this = $(this)
         var target = $this.find('.select-target').data('val')
         var needs = $this.find('.input-amount').val()
-        requirements = getUpstreamsRecursive($this.data('type'), target, needs, requirements)
+        requirements = getUpstreamsRecursive($this.data('type'), target, needs, requirements, max_depth)
 
     })
+    return requirements
 }
 
 var getTarget = function (type, name) {
@@ -52,27 +53,28 @@ var removeFromArray = function (arr) {
 }
 
 var render = function () {
-    calcRequirements()
+    var requirements = calcRequirements()
     var html = ''
     $.each(requirements, function (k, v) {
         html += generateRow({
             hasName: k,
-            hasRemove: false,
+            hasType: v.type,
             hasTarget: '<div class="icon icon-' + v.type + '" data-icon="' + getIcon(v.type, k) + '">&nbsp;</div> ' + translate(k),
             hasAssemble: getAssemblingSelectorEx(v.type, k)
         })
 
     })
 
-    $('#table-material tbody').html(html).find('.icon').each(getImage)
-    calc()
+    $('#tbody-remainder').html(html).find('.icon').each(getImage)
+    calc.full(requirements)
 }
 var getTargetRow = function (type, val) {
     return generateRow({
         hasClass: 'success',
         hasTarget: getTargetSelector(type, val),
         hasAmountInput: true,
-        hasRemove: true
+        hasRemove: true,
+        hasExpand: true
     })
 }
 
@@ -80,47 +82,86 @@ var generateRow = function (user_config) {
     var config = {
         hasClass: false,
         hasName: false,
+        hasType: false,
         hasRemove: false,
         hasExpand: true,
         hasAmountInput: false,
+        hasAmount: false,
         hasTarget: false,
         hasAssemble: false
     }
     $.each(user_config, function (k, v) {
         config[k] = v
     })
-    return '<tr' + (config.hasClass ? ' class="' + config.hasClass + '"' : '') + (config.hasName ? ' data-name="' + config.hasName + '"' : '') + '>' +
-        (config.hasRemove ? '<td class="row-remove"><a class="btn btn-danger btn-mono">-</a></td>' : (config.hasExpand ? '<td class="row-expend"><a class="btn btn-info btn-mono">&gt;</a></td>' : '<td></td>')) +
-        '<td>' + config.hasTarget + '</td>' +
-        '<td' + (config.hasAmountInput ? '' : ' class="td-amount"') + '>' + (config.hasAmountInput ? '<input type="text" class="form-control input-amount" value="1" />' : '') + '</td>' +
+    return '<tr' + (config.hasClass ? ' class="' + config.hasClass + '"' : '') + (config.hasName ? ' data-name="' + config.hasName + '"' : '') + (config.hasType ? ' data-type="' + config.hasType + '"' : '') + '><td>' +
+        (config.hasRemove ? '<a class="btn btn-danger btn-mono row-remove">-</a>' : '') + (config.hasExpand ? '<a class="btn btn-info btn-mono row-expand">&gt;</a>' : '') +
+        '</td><td>' + config.hasTarget + '</td>' +
+        '<td' + (config.hasAmountInput ? '' : ' class="td-amount"') + '>' + (config.hasAmountInput ? '<input type="text" class="form-control input-amount" value="1" />' : '') + (config.hasAmount !== false ? config.hasAmount : '') + '</td>' +
         '<td class="td-assembling-select">' + config.hasAssemble + '</td>' +
         '<td class="machine-count"></td><td class="machine-power"></td><td class="machine-pollution"></td></tr>'
 }
 
 var calcWithRequirements = function () {
-    calcRequirements()
-    calc()
+    var requirements = calcRequirements()
+    calc.full(requirements)
 }
 
-var calc = function () {
-    var total_electric_power = 0;
-    var total_pollution = 0;
+var calc = {
+    init: function () {
+        calc.total_electric_power = 0;
+        calc.total_pollution = 0;
 
-    var saves = []
-    var tmpsaves = {}
+        calc.saves = {}
+        return calc
+    },
 
-    var _calc = function (k, config) {
-        var v = config.value
+    full: function (requirements) {
+        calc.init()
 
-        var tr = $('tr[data-name=' + k + ']');
+        $('#tbody-target').children().each(function () {
+            var $this = $(this)
+            var target = $this.find('.select-target').data('val')
+            var needs = $this.find('.input-amount').val()
+            calc.single(target, { value: needs })
+            calc.saves[target] += ';' + needs
+
+        })
+
+        saveHash('targets', calc.saves)
+
+        calc.saves = {}
+        $.each(requirements, calc.single)
+
+        $('.total-power').html(Math.round(calc.total_electric_power * 1000) / 1000 + ' kW')
+        $('.total-pollution').html(Math.round(calc.total_pollution * 1000) / 1000)
+    },
+
+    single: function (name, config, tr) {
+        var value
+        if (typeof tr == 'undefined') {
+            tr = $('tr[data-name=' + name + ']');
+        }
+        if (typeof config == 'undefined') {
+            var td = tr.find('.td-amount')
+            if (td.length) {
+                value = parseFloat(td.html())
+            } else {
+                value = tr.find('.input-amount').val()
+            }
+        } else {
+            value = config.value
+        }
+
         var machine_name = tr.find('.select-assembling').val()
         var machine = machines[machine_name]
         if (machine) {
-            saves.push(k + ':' + machine_name)
-            tmpsaves[k] = machine_name
+            calc.saves[name] = machine_name
+            requirementMachines[name] = machine_name
+
+            saveHash('requirements', calc.saves)
         }
 
-        tr.find('.td-amount').html(Math.round(v * 1000) / 1000)
+        tr.find('.td-amount').html(Math.round(value * 1000) / 1000)
 
         if (typeof machine == 'undefined') {
             tr.find('.machine-count').html('')
@@ -128,54 +169,29 @@ var calc = function () {
             tr.find('.machine-pollution').html('')
         } else {
 
-            var recipe = recipes[k]
+            var recipe = recipes[name]
             if (machine.type == 'mining-drill') {
-                var resource = resources[k]
-                var count = v / 60 * resource.mining_time / machine.mining_speed / (machine.mining_power - resource.hardness)
+                var resource = resources[name]
+                var count = value / 60 * resource.mining_time / machine.mining_speed / (machine.mining_power - resource.hardness)
             } else if (machine.type == 'lab') {
-                var technology = technologys[k]
+                var technology = technologys[name]
 
-                var count = v / 60 * technology.time * technology.count
+                var count = value / 60 * technology.time * technology.count
             } else {
-                var count = v / 60 / machine.crafting_speed * recipe.energy_required / recipe.result_count
+                var count = value / 60 / machine.crafting_speed * recipe.energy_required / recipe.result_count
             }
             tr.find('.machine-count').html(Math.round(count * 1000) / 1000)
             var power = 0
             if (machine.energy_source && machine.energy_source.type == 'electric') {
                 power = machine.energy_usage * count;
-                total_electric_power += power
+                calc.total_electric_power += power
 
             }
             tr.find('.machine-power').html(Math.round(power * 1000) / 1000 + ' kW')
-            total_pollution += machine.energy_usage * count * machine.energy_source.emissions;
+            calc.total_pollution += machine.energy_usage * count * machine.energy_source.emissions;
             tr.find('.machine-pollution').html(Math.round(machine.energy_usage * count * machine.energy_source.emissions * 1000) / 1000)
         }
     }
-
-    $('#thead-target').children().each(function () {
-        var $this = $(this)
-        var target = $this.find('.select-target').data('val')
-        var needs = $this.find('.input-amount').val()
-        _calc(target, {value:needs})
-        saves[saves.length - 1] += ';' + needs
-
-    })
-    $.each(tmpsaves, function (k, v) {
-        requirementMachines[k] = v
-    })
-    saveHash('targets', saves.join(','))
-
-    saves = []
-    tmpsaves = {}
-    $.each(requirements, _calc)
-    $.each(tmpsaves, function (k, v) {
-        requirementMachines[k] = v
-    })
-
-    saveHash('requirements', saves.join(','))
-
-    $('.total-power').html(Math.round(total_electric_power * 1000) / 1000 + ' kW')
-    $('.total-pollution').html(Math.round(total_pollution * 1000) / 1000)
 
 }
 
@@ -228,12 +244,8 @@ var getUpstreamsRecursive = function (type, targetName, needs, quantities, max_d
     }
 
 
-    var show_resource = $('#show-resource').is(':checked')
     $.each(ingredients, function (k, v) {
 
-        if (!show_resource && typeof resources[k] != 'undefined') {
-            return true;
-        }
         if (typeof quantities[k] == 'undefined') {
             quantities[k] = {
                 type: typeof resources[k] != 'undefined' ? 'resource' : type,
@@ -334,7 +346,17 @@ var hashes = {}
 var requirementMachines = {}
 
 var saveHash = function (name, value) {
-    hashes[name] = value
+    var str = ''
+    if(typeof value != 'string') {
+        var arr = []
+        $.each(value, function(k, v) {
+            arr.push(k + ':' + v)
+        })
+        str = arr.join(',')
+    } else {
+        str = value
+    }
+    hashes[name] = str
     var tmp = []
     $.each(hashes, function (k, v) {
         tmp.push(k + '=' + v)
@@ -376,13 +398,10 @@ var loadLanguage = function () {
 }
 
 var loadTargetRequirement = function () {
-    // return
-    if (typeof hashes['show_resource'] != 'undefined') {
-        $('#show-resource').prop('checked', hashes['show_resource'] == 'true')
-    }
+
     if (typeof hashes['targets'] != 'undefined' && hashes['targets'] != '') {
-        var thead = $('#thead-target')
-        thead.html('')
+        var tbody = $('#tbody-target')
+        tbody.html('')
 
         $.each(hashes['targets'].split(','), function (k, v) {
             if (!v) return true;
@@ -394,6 +413,8 @@ var loadTargetRequirement = function () {
             var type
             if (machine == 'lab') {
                 type = 'technology'
+            } else {
+                type = 'recipe'
             }
             var row = $(getTargetRow(type, target))
             row.find('.input-amount').val(needs)
@@ -401,43 +422,28 @@ var loadTargetRequirement = function () {
             row.find('.td-assembling-select').html(getAssemblingSelectorEx(type, target)).find('.icon').each(getImage)
             row.find('.select-assembling').val(machine)
             row.attr('data-type', type)
-            thead.append(row)
+            tbody.append(row)
 
         })
-        thead.find('.icon').each(getImage)
+        tbody.find('.icon').each(getImage)
         var requirementsBak = hashes['requirements']
         render()
 
         if (typeof requirementsBak != 'undefined' && requirementsBak != '') {
-            var tbody = $('#table-material tbody')
+            var tbody = $('#tbody-remainder')
             $.each(requirementsBak.split(','), function (k, v) {
                 var line = v.split(':')
                 var name = line[0]
                 var machine = line[1]
-                tbody.find('tr[data-name=' + name + '] .select-assembling').val(machine)
+                tbody.find('tr[data-name=' + name + '] .select-assembling').val(machine).change()
                 requirementMachines[name] = machine
             })
-
         }
-
-        calc()
-
+        calc.full(calcRequirements())
     }
 }
 
 var rawTranslate = function (groupName, key) {
-    /*    var group
-        if (typeof groupName != 'undefined' && typeof translations[currentLanguage][groupName] != 'undefined') {
-            group = translations[currentLanguage][groupName]
-        } else {
-            group = translations[currentLanguage]
-        }
-        var groupFallback
-        if (typeof groupName != 'undefined' && typeof translations[translateFallback][groupName] != 'undefined') {
-            groupFallback = translations[translateFallback][groupName]
-        } else {
-            groupFallback = translations[translateFallback]
-        }*/
 
     var append = ''
     do {
@@ -462,16 +468,8 @@ var rawTranslate = function (groupName, key) {
         if (typeof result == 'string') {
             return result + append
         }
-        /*
-                if (typeof group[key] != 'undefined') {
-                    return group[key] + append
-                }
 
-                if (typeof groupFallback[key] != 'undefined') {
-                    return groupFallback[key] + append
-                }*/
         var matches = key.match(/^(.*?)(-([^-]*))?$/)
-            // console.log(matches)
         if (matches && matches[2]) {
             key = matches[1]
             append = ' ' + matches[3] + append
@@ -479,8 +477,6 @@ var rawTranslate = function (groupName, key) {
             break
         }
     } while (true)
-    // console.trace()
-    // zzz()
     console.log(groupName, key + append)
     return key + append;
 
@@ -601,7 +597,7 @@ var initTargetSelector = function (force) {
     modal.find('.select-this-target').click(function () {
         var $this = $(this)
         var val = $this.data('name')
-        var el = $('#thead-target .select-target[data-target-no=' + target_selecting + ']')
+        var el = $('#tbody-target .select-target[data-target-no=' + target_selecting + ']')
         var tr = el.closest('tr');
         el.data('val', val)
         var item, translation, class2x = '',
@@ -676,38 +672,121 @@ var getImage = function () {
     }
 }
 
-$('#thead-target').on('click', '.select-target a', function () {
+$('#tbody-target').on('click', '.select-target a', function () {
     target_selecting = $(this).parent().data('target-no')
     $('#modal-target-selector').modal('show')
 })
 
-$('#thead-target').on('keyup keydown keypress DOMAttrModified propertychange change', '.input-amount', calcWithRequirements)
+$('#tbody-target').on('keyup keydown keypress DOMAttrModified propertychange change', '.input-amount', calcWithRequirements)
 
 
 $('#add-row a').click(function () {
     var row = $(getTargetRow())
-    $('#thead-target').append(row).find('.icon').each(getImage)
+    $('#tbody-target').append(row).find('.icon').each(getImage)
+    $('#table-material .row-fold').click()
     row.find('.select-target a').click()
 })
 
-$('#table-material').on('click', '.row-remove a', function () {
+$('#table-material').on('click', 'a.row-remove', function () {
+    var tr = $(this).closest('tr')
+    $('#table-material .row-fold').click()
     $(this).closest('tr').remove()
     render()
 })
+
+$('#table-material').on('click', 'a.row-expand', function () {
+    var tr = $(this).closest('tr')
+    var fullName = tr.data('name')
+    var path = fullName.split(nameDelimiter)
+    var name = path[path.length - 1]
+    var requirements = {}
+    var td = tr.find('.td-amount')
+    var amount
+    if (td.length) {
+        amount = parseFloat(td.html())
+    } else {
+        amount = tr.find('.input-amount').val()
+    }
+    requirements = getUpstreamsRecursive(tr.data('type'), name, amount, requirements, 1)
+    $('tr[data-name^=' + fullName + nameDelimiter + ']').remove()
+    $.each(requirements, function (name, config) {
+        var machine
+        $('tr[data-name=' + name + ']').each(function () {
+            var $this = $(this)
+            machine = $this.find('.select-assembling').val()
+            $this.find('a.row-fold').click()
+            var td = $this.find('td.td-amount')
+            var amount = td.html() - config.value
+            if (Math.abs(amount) < 0.0001) {
+                $this.remove()
+            } else {
+                calc.single(name, { type: config.type, value: amount })
+            }
+        })
+
+        var row = $(generateRow({
+            hasName: fullName + nameDelimiter + name,
+            hasExpand: true,
+            hasAssemble: getAssemblingSelectorEx(config.type, name, machine),
+            hasAmount: config.value,
+            hasTarget: '<div class="icon col-xs-offset-' + path.length + '" data-icon="' + getIcon(config.type, name) + '">&nbsp;</div> ' + translateEx(config.type, name)
+        }))
+        tr.after(row)
+        calc.single(name, undefined, row)
+
+    })
+    $(this).replaceWith('<a class="btn btn-warning btn-mono row-fold">&lt;</a>')
+    $('#table-material tr[data-name^=' + fullName + nameDelimiter + ']').find('.icon').each(getImage)
+
+})
+
+$('#table-material').on('click', 'a.row-fold', function () {
+    var tr = $(this).closest('tr')
+    var fullName = tr.data('name')
+
+    var path = fullName.split(nameDelimiter)
+    var name = path[path.length - 1]
+    $('tr[data-name^=' + fullName + nameDelimiter + ']').each(function () {
+        var $this = $(this)
+        var path = $this.data('name').split(nameDelimiter)
+        var name = path[path.length - 1]
+        var row = $('tr[data-name=' + name + ']')
+        if (row.length) {
+            var td = row.find('.td-amount')
+            td.html(parseFloat(td.html()) + parseFloat($this.find('.td-amount').html()))
+            calc.single(name, undefined, row)
+        } else {
+            var type = $this.data('type')
+            var newrow = $(generateRow({
+                hasName: name,
+                hasExpand: true,
+                hasAssemble: getAssemblingSelectorEx(type, name, $this.find('.select-assembling').val()),
+                hasAmount: $this.find('.td-amount').html(),
+                hasTarget: '<div class="icon" data-icon="' + getIcon(type, name) + '">&nbsp;</div> ' + translateEx(type, name)
+            }))
+            $('#tbody-remainder').append(newrow)
+            newrow.find('.icon').each(getImage)
+            calc.single(name, undefined, newrow)
+
+        }
+        $this.remove()
+    })
+    $(this).replaceWith('<a class="btn btn-info btn-mono row-expand">&gt;</a>')
+
+})
+
 
 $('#select-translate').change(function () {
     changeLanguage($(this).val())
 })
 
 $('#container').on('change', '.select-assembling', function () {
-    $(this).siblings('.icon').data('icon', items[$(this).val()].icon).each(getImage)
-    calc()
-})
-
-$('#show-resource').change(function () {
-    var show_resource = $(this).is(':checked') ? 'true' : 'false'
-    saveHash('show_resource', show_resource)
-    render()
+    var $this = $(this)
+    $this.siblings('.icon').data('icon', items[$this.val()].icon).each(getImage)
+    var tr = $this.closest('tr')
+    var path = tr.data('name').split(nameDelimiter)
+    var name = path[path.length - 1]
+    calc.single(name, undefined, tr)
 })
 
 $('#button-show-demo').click(function () {
@@ -743,12 +822,6 @@ $('#rebuild-icon').click(function () {
     window.localStorage.clear()
     $('.icon').each(getImage)
 })
-
-$('#table-material').on('click', '.btn-expand', function () {
-
-})
-
-
 
 $(function () {
     loadHash()
