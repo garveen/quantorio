@@ -99,7 +99,7 @@ class FactorioGenerator
             }
             array_multisort($orders, $this->categories[$category]);
         }
-        $this->writeJs('categories', $this->categories, true, true, false);
+        $this->writeJs('categories', $this->categories, true, true);
         $this->writeJs('recipes', $this->recipes);
         $this->writeJs('resources', $this->resources);
         $this->writeJs('items', $this->items);
