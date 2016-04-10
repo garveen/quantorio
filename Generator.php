@@ -15,6 +15,7 @@ class FactorioGenerator
     public $languages = [];
     public $translations = [];
     public $technologys = [];
+    public $inserters = [];
 
     public $info = [];
 
@@ -98,7 +99,7 @@ class FactorioGenerator
                 if ($name == 'player') {
                     $orders[] = '0';
                 } else {
-                    $orders[] = preg_replace('~\[.*?\]~', '', $this->items[$name]['order']);
+                    $orders[] = $this->items[$name]['order'];
                 }
             }
             array_multisort($orders, $this->categories[$category]);
@@ -108,6 +109,7 @@ class FactorioGenerator
         $this->writeJs('resources', $this->resources);
         $this->writeJs('items', $this->items);
         $this->writeJs('technologys', $this->technologys);
+        $this->writeJs('inserters', $this->inserters);
         foreach ($this->translations as $name => $content) {
             foreach ($content as $k => &$v) {
                 if (is_array($v)) {
@@ -171,7 +173,7 @@ class FactorioGenerator
             return;
         }
         $item = [
-            'order' => $entity['order'],
+            'order' => preg_replace('~\[.*?\]~', '', $entity['order']),
             'icon' => $this->saveIcon($entity['icon']),
         ];
 
@@ -209,6 +211,7 @@ class FactorioGenerator
         $recipe['ingredient_count'] = count($recipe['ingredients']);
         if (isset($recipe['results']) && count($recipe['results']) == 1) {
             $recipe['result_count'] = $recipe['results'][$this->firstSub]['amount'];
+            $recipe['type'] = $recipe['results'][$this->firstSub]['type'];
             unset($recipe['results']);
         }
         $this->recipes[$entity['name']] = $recipe;
@@ -278,7 +281,7 @@ class FactorioGenerator
         $technology['count'] = $entity['unit']['count'];
         $technology['category'] = 'lab';
         $this->technologys[$entity['name']] = $technology;
-        $this->subgroups["technology-{$firstOrder}"][$entity['name']] = true;
+        // $this->subgroups["technology-{$firstOrder}"][$entity['name']] = true;
         $this->groups['technology']['subgroups']["technology-{$firstOrder}"] = $firstOrder;
 
     }
@@ -310,6 +313,34 @@ class FactorioGenerator
 
             }
         }
+    }
+
+    public function saveInserter($entity)
+    {
+        $inserter = [];
+        $angles = [];
+        $distances = [];
+        foreach (['pickup_position', 'insert_position'] as $position) {
+            $x = $entity[$position][$this->firstSub];
+            $y = $entity[$position][$this->firstSub + 1];
+
+            if ($x == 0) {
+                $angles[$position] = pi() / 2 * (($y > 0) - ($y < 0));
+            } else {
+                $angles[$position] = atan($y / $x);
+            }
+
+            $distances[$position] = sqrt($x * $x + $y * $y);
+        }
+        $angle = abs($angles['pickup_position'] - $angles['insert_position']);
+        $rotation_turns_per_minute = 60/*seconds*/ * ($entity['rotation_speed'] * 60/* tick */) * pi() / $angle;
+
+        $delta_distance = abs($distances['pickup_position'] - $distances['insert_position']);
+        $extension_turns_per_minute = $delta_distance / $entity['extension_speed'] * 60;
+        $inserter['turns_per_minute'] = min($rotation_turns_per_minute, $extension_turns_per_minute);
+
+        // $inserter['icon'] = $this->saveIcon($entity['icon']);
+        $this->inserters[$entity['name']] = $inserter;
     }
 
     public function saveLanguage($path)
@@ -385,6 +416,9 @@ class FactorioGenerator
 
                     $this->groups[$entity['group']]['subgroups'][$entity['name']] = $entity['order'];
                 }
+                break;
+            case 'inserter':
+                $this->saveInserter($entity);
                 break;
             case 'technology':
                 $this->saveTechnology($entity);

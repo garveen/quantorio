@@ -3,10 +3,10 @@
 
 <head>
     <meta charset="utf-8">
-    <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
-    <!-- Optional theme -->
     <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css">
+<!--     <link rel="stylesheet" href="local/bootstrap.css">
+    <link rel="stylesheet" href="local/bootstrap-theme.css"> -->
     <link rel="stylesheet" href="index.css">
 
     <title class='translate' data-type='quantorio' data-string='factorio-quantizative-tool'>
@@ -32,7 +32,7 @@
                     </select>
                 </label>
             </div>
-            <table class='table table-striped table-bordered table-hover' id='table-material'>
+            <table class='table table-bordered table-hover' id='table-material'>
                 <thead>
                     <tr class='info'>
                         <td id='add-row' style='width:1%'>
@@ -49,9 +49,16 @@
                         <td class='col-xs-1 translate' data-type='quantorio' data-string='machine-number'></td>
                         <td class='col-xs-1 translate' data-type='quantorio' data-string='electric-consumption'></td>
                         <td class='col-xs-1 translate' data-type='quantorio' data-string='pollution'></td>
+                        <td class='col-xs-1 inserter'></td>
                     </tr>
                 </thead>
                 <tbody id='tbody-target'>
+                </tbody>
+                <tbody id='tbody-split'>
+                    <tr class='info'>
+                        <td></td>
+                        <td class='translate' data-type='quantorio' data-string='remainder' colspan="100"></td>
+
                 </tbody>
                 <tbody id='tbody-remainder'>
                 </tbody>
@@ -64,6 +71,7 @@
                         <td></td>
                         <td class='total-power'></td>
                         <td class='total-pollution'></td>
+                        <td colspan="100"></td>
                     </tr>
                 </tfoot>
             </table>
@@ -189,6 +197,10 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
 <script src="https://cdn.rawgit.com/pieroxy/lz-string/1.4.4/libs/lz-string.min.js"></script>
 <script src="https://cdn.rawgit.com/pieroxy/lz-string/1.4.4/libs/base64-string.js"></script>
+<!-- <script src="local/jquery.js"></script>
+<script src="local/bootstrap.js"></script>
+<script src="local/lz-string.js"></script>
+<script src="local/base64-string.js"></script> -->
 <!--
 <script src="groups.js"></script>
 <script src="machines.js"></script>
