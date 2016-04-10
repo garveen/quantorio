@@ -989,9 +989,14 @@ $('#container').on('change', '.select-assembling', function () {
     var $this = $(this);
     $this.siblings('.icon').data('icon', items[$this.val()].icon).each(getImage);
     var tr = $this.closest('tr');
-    var path = tr.data('name').split(nameDelimiter);
-    var name = path[path.length - 1];
-    render.single(tr);
+    if(tr.hasClass('target')) {
+        render.full()
+    } else {
+        var path = tr.data('name').split(nameDelimiter);
+        var name = path[path.length - 1];
+        render.single(tr);
+
+    }
 });
 
 $('#select-all-assembling').change(function () {
