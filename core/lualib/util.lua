@@ -1,5 +1,5 @@
 
-module(..., package.seeall)
+
 
 function distance(position1, position2)
   return ((position1.x - position2.x)^2 + (position1.y - position2.y)^2)^0.5
@@ -50,7 +50,7 @@ function table.compare( tbl1, tbl2 )
     for k, v in pairs( tbl2 ) do
         if type(v) == "table" and type(tbl1[k]) == "table" then
             if not table.compare( v, tbl1[k] ) then return false end
-        else 
+        else
             if v ~= tbl1[k] then return false end
         end
     end
@@ -125,3 +125,56 @@ function multiplystripes(count, stripes)
   end
   return ret
 end
+
+function by_pixel(x,y)
+  return {x/32,y/32}
+end
+
+function format_number(amount, append_suffix)
+  local suffix = ""
+  if append_suffix then
+    local suffix_list =
+      {
+        ["T"] = 1000000000000,
+        ["B"] = 1000000000,
+        ["M"] = 1000000,
+        ["k"] = 1000
+      }
+    for letter, limit in pairs (suffix_list) do
+      if math.abs(amount) >= limit then
+        amount = math.floor(amount/(limit/10))/10
+        suffix = letter
+        break
+      end
+    end
+  end
+  local formatted = amount
+  while true do
+    formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
+    if (k==0) then
+      break
+    end
+  end
+  return formatted..suffix
+end
+
+function increment(t, k, v)
+  t[k] = t[k] + (v or 1)
+end
+return {
+ distance = distance,
+ findfirstentity = findfirstentity,
+ positiontostr = positiontostr,
+ table = {
+ deepcopy = table.deepcopy,
+ compare = table.compare
+ },
+ _copy = _copy,
+ formattime = formattime,
+ moveposition = moveposition,
+ oppositedirection = oppositedirection,
+ ismoduleavailable = ismoduleavailable,
+ multiplystripes = multiplystripes,
+ by_pixel = by_pixel,
+ format_number = format_number,
+ increment = increment, }

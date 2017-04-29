@@ -496,20 +496,10 @@ var changeLanguage = function (language) {
         });
     };
     if (typeof translations[language] != 'undefined') {
+        console.log(translations[language])
         _change();
     } else {
-        $.ajax({
-            url: 'translations/' + language + '.js?v=3',
-            dataType: 'json',
-            async: false,
-            success: function (data) {
-                translations[language] = data;
-                _change();
-            },
-            error: function (data) {
-                alert('load translations error');
-            }
-        });
+        $('body').append('<script src="translations/'+language+'.js"></script>')
     }
 };
 
@@ -744,6 +734,7 @@ var initTargetSelector = function (force) {
                 var item;
                 if (subgroup_name.search('technology') < 0) {
                     item = items[item_name];
+                    if(typeof item == 'undefined') return true
                     if (typeof recipes[item_name] != 'undefined') {
                         is_append = true;
                     } else {
@@ -751,6 +742,7 @@ var initTargetSelector = function (force) {
                     }
 
                     if (typeof to_appends[item_name] == 'undefined') {
+
                         keys.push({ order: item.order, name: item_name });
                         to_appends[item_name] = '';
                     }

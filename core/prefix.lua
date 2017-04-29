@@ -6,7 +6,6 @@ function module()
 end
 
 game = {}
-defines = {}
-defines.direction = {}
-util = {}
-util.multiplystripes = function() end
+defines = require 'defines'
+builder = require 'builder'
+util = require 'util'

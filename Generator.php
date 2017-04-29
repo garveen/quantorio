@@ -90,7 +90,7 @@ class FactorioGenerator
         }
         array_multisort($orders, $this->groups);
 
-        $this->writeJs('groups', $this->groups, true, true);
+        $this->writeJs('groups', $this->groups);
         $this->writeJs('machines', $this->machines);
 
         foreach ($this->categories as $category => $content) {
@@ -104,7 +104,7 @@ class FactorioGenerator
             }
             array_multisort($orders, $this->categories[$category]);
         }
-        $this->writeJs('categories', $this->categories, true, true);
+        $this->writeJs('categories', $this->categories);
         $this->writeJs('recipes', $this->recipes);
         $this->writeJs('resources', $this->resources);
         $this->writeJs('items', $this->items);
@@ -118,11 +118,11 @@ class FactorioGenerator
                     }
                 }
             }
-            $this->writeJs("translations/{$name}", $content, '', false);
+            $this->writeJs("translations/{$name}", $content, false, "translations['{$name}']=\n");
         }
         $this->languages = array_unique($this->languages);
         sort($this->languages);
-        $this->writeJs('translations/list', $this->languages, 'languages', true, false);
+        $this->writeJs('translations/list', $this->languages, true, "languages=\n");
         $this->writeData();
         if ($this->descPath != '.') {
             unlink($this->descPath . '/index.htm');
@@ -200,6 +200,7 @@ class FactorioGenerator
             'results',
         ]);
         $recipe['ingredients'] = [];
+        // var_dump($entity);exit;
         foreach ($entity['ingredients'] as $ingredient) {
             if (isset($ingredient['type'])) {
                 $recipe['ingredients'][$ingredient['name']] = $ingredient['amount'];
@@ -278,7 +279,7 @@ class FactorioGenerator
         $technology['order'] = preg_replace('~\[.*?\]~', '', $entity['order']);
         $firstOrder = preg_replace('~-.*~', '', $technology['order']);
         $technology['time'] = $entity['unit']['time'];
-        $technology['count'] = $entity['unit']['count'];
+        $technology['count'] = 1; //$entity['unit']['count'];
         $technology['category'] = 'lab';
         $this->technologys[$entity['name']] = $technology;
         // $this->subgroups["technology-{$firstOrder}"][$entity['name']] = true;
@@ -491,13 +492,16 @@ class FactorioGenerator
         return $target;
     }
 
-    protected function writeJs($name, $content, $prefix = true, $concat = true, $sort = true)
+    protected function writeJs($name, $content, $concat = true, $prefix = '', $postfix = '')
     {
         if ($sort) {
             ksort($content);
         }
 
-        $prefix = true === $prefix ? $name . "=\n" : ($prefix ? $prefix . " =\n" : '');
+        if($prefix === '') {
+            $prefix = "$name=\n";
+        }
+
         if ($concat) {
             $this->datastr .= $prefix . json_encode($content, JSON_UNESCAPED_UNICODE) . "\n";
         }
@@ -505,7 +509,7 @@ class FactorioGenerator
             mkdir(dirname("{$this->descPath}/{$name}"), 0755, true);
         }
         unlink("{$this->descPath}/{$name}.js");
-        file_put_contents("{$this->descPath}/{$name}.js", $prefix . json_encode($content, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n");
+        file_put_contents("{$this->descPath}/{$name}.js", $prefix . json_encode($content, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n") . $postfix;
         var_dump($name);
     }
 
