@@ -200,8 +200,13 @@ class FactorioGenerator
             'results',
         ]);
         $recipe['ingredients'] = [];
+        if (isset($entity['ingredients'])) {
+            $ingredients = $entity['ingredients'];
+        } elseif (isset($entity['normal']['ingredients'])) {
+            $ingredients = $entity['normal']['ingredients'];
+        }
         // var_dump($entity);exit;
-        foreach ($entity['ingredients'] as $ingredient) {
+        foreach ($ingredients as $ingredient) {
             if (isset($ingredient['type'])) {
                 $recipe['ingredients'][$ingredient['name']] = $ingredient['amount'];
 
@@ -498,7 +503,7 @@ class FactorioGenerator
             ksort($content);
         }
 
-        if($prefix === '') {
+        if ($prefix === '') {
             $prefix = "$name=\n";
         }
 
