@@ -196,7 +196,6 @@ class FactorioGenerator
         $recipe = $this->buildItem($entity, [
             'result_count' => 1,
             'category' => 'crafting',
-            'energy_required' => 0.5,
             'results',
         ]);
         $recipe['ingredients'] = [];
@@ -205,6 +204,8 @@ class FactorioGenerator
         } elseif (isset($entity['normal']['ingredients'])) {
             $ingredients = $entity['normal']['ingredients'];
         }
+        $recipe['energy_required'] = isset($ingredients['energy_required']) ? $ingredients['energy_required'] : 0.5;
+
         // var_dump($entity);exit;
         foreach ($ingredients as $ingredient) {
             if (isset($ingredient['type'])) {
