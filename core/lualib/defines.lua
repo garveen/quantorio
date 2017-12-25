@@ -254,13 +254,4 @@ rail_connection_direction =
   straight = 1,
   right = 2
 }
-difficulty_settings =
-{
-  recipe_difficulty = {
-  expensive=1,
-  },
-  technology_difficulty = {
-    expensive=1,
-  }
-}
-return { inventory = inventory,transport_line = transport_line,direction = direction,riding = riding,command = command,distraction = distraction,compoundcommandtype = compoundcommandtype,difficulty = difficulty,events = events,controllers = controllers,groupstate = groupstate,circuitconnector = circuitconnector,circuitconnectorid = circuitconnectorid,circuitconditionindex = circuitconditionindex,trainstate = trainstate,signal_state = signal_state,chain_signal_state = chain_signal_state,rail_direction = rail_direction,rail_connection_direction = rail_connection_direction, difficulty_settings=difficulty_settings,}
+return { inventory = inventory,transport_line = transport_line,direction = direction,riding = riding,command = command,distraction = distraction,compoundcommandtype = compoundcommandtype,difficulty = difficulty,events = events,controllers = controllers,groupstate = groupstate,circuitconnector = circuitconnector,circuitconnectorid = circuitconnectorid,circuitconditionindex = circuitconditionindex,trainstate = trainstate,signal_state = signal_state,chain_signal_state = chain_signal_state,rail_direction = rail_direction,rail_connection_direction = rail_connection_direction, }

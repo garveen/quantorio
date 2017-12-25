@@ -4,7 +4,7 @@
 Builder = {}
 
 function Builder:new(definition)
-  obj = {}
+  local obj = {}
   setmetatable(obj, self)
   self.__index = self
   obj.actions = {}
@@ -41,5 +41,4 @@ end
 for i = 1, 10 do
   builder:addbuild{tick=5, name="transport-belt", positionfunction=down, direction=defines.direction.south}
 end
-
 return { down = down,right = right,Builder = Builder,builder = builder, }
