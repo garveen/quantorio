@@ -48,7 +48,7 @@ var calcRequirements = function (max_depth) {
         var target = $this.find('.select-target').data('val');
         var recipe = recipes[target]
         requirements[target] = {
-            ratio: typeof recipe == 'undefined' ? 1 : 1 / recipes[target].result_count,
+            ratio: 1,
             // type:
             isBeExpanded: false,
             expanded: false,
@@ -315,7 +315,7 @@ var render = {
                 var recipe = recipes[name];
                 config.batchTime = recipe.energy_required / machine.crafting_speed;
 
-                var count = value / 60 * config.batchTime;
+                var count = value / 60 * config.batchTime / recipe.result_count;
 
             }
             if (typeof recipe != 'undefined' && (typeof recipe.type == 'undefined' || recipe.type != 'fluid')) {
