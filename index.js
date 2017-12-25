@@ -315,7 +315,7 @@ var render = {
                 var recipe = recipes[name];
                 config.batchTime = recipe.energy_required / machine.crafting_speed;
 
-                var count = value / 60 * config.batchTime / recipe.result_count;
+                var count = value / 60 * config.batchTime;
 
             }
             if (typeof recipe != 'undefined' && (typeof recipe.type == 'undefined' || recipe.type != 'fluid')) {
