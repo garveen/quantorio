@@ -132,6 +132,8 @@ var generateRow = function (user_config) {
         '<td rowspan="2"' + (config.hasAmountInput ? '' : ' class="td-amount"') + '>' + (config.hasAmountInput ?
             '<input type="text" class="form-control input-amount" value="1" />' : '') + (config.hasAmount !== false ? config.hasAmount : '') + '</td>' +
         '<td rowspan="2" class="td-assembling-select">' + config.hasAssemble + '</td>' +
+        '<td rowspan="2" class="td-productivity-bonus">' + '<input type="text" class="form-control col-xs-2 input-productivity-bonus" value="0" />' + '</td>' +
+        '<td rowspan="2" class="td-crafting-speed">' + '<input type="text" class="form-control  col-xs-2 input-crafting-speed" value="0" />' + '</td>' +
         '<td rowspan="2" class="machine-count"></td><td rowspan="2" class="machine-power"></td><td rowspan="2" class="machine-pollution"></td>' +
         getInserterTds(config.isBase) + '</tr><tr>' + (config.isBase ? '' : getInserterTds(config.isBase)) + '</tr>';
 };
@@ -227,7 +229,7 @@ var render = {
             var target = $this.find('.select-target').data('val');
             var needs = $this.find('.input-amount').val();
             render.calcRecursive(target, requirements[target], needs);
-            render.saves[target] = $this.find('.select-assembling').val() + ';' + needs;
+            render.saves[target] = $this.find('.select-assembling').val() + '@' + $this.find('.input-productivity-bonus').val() + '@' + $this.find('.input-crafting-speed').val() + ';' + needs;
         });
 
 
@@ -288,7 +290,7 @@ var render = {
         var machine_name = tr.find('.select-assembling').val();
         var machine = machines[machine_name];
         if (machine) {
-            render.saves[name] = machine_name;
+            render.saves[name] = machine_name + '@' + tr.find('.input-productivity-bonus').val() + '@' + tr.find('.input-crafting-speed').val();
             requirementMachines[name] = machine_name;
 
             saveHash('requirements', render.saves);
@@ -305,7 +307,8 @@ var render = {
 
             if (machine.type == 'mining-drill') {
                 var resource = resources[name];
-                var count = value / 60 * resource.mining_time / machine.mining_speed / (machine.mining_power - resource.hardness);
+                var count = value / 60 * resource.mining_time / machine.mining_speed / (machine.mining_power - resource.hardness) /
+                    (1 + parseInt(tr.find('.input-crafting-speed').val()) / 100) / (1 + parseInt(tr.find('.input-productivity-bonus').val()) / 100);
             } else if (machine.type == 'lab') {
                 var technology = technologys[name];
 
@@ -313,9 +316,10 @@ var render = {
                 console.log(count)
             } else {
                 var recipe = recipes[name];
-                config.batchTime = recipe.energy_required / machine.crafting_speed;
+                console.log(name, tr.find('.input-crafting-speed').val(),tr.find('.input-productivity-bonus').val())
+                config.batchTime = recipe.energy_required / machine.crafting_speed / (1 + parseInt(tr.find('.input-crafting-speed').val()) / 100);
 
-                var count = value / 60 * config.batchTime / recipe.result_count;
+                var count = value / 60 * config.batchTime / recipe.result_count / (1 + parseInt(tr.find('.input-productivity-bonus').val()) / 100);
 
             }
             if (typeof recipe != 'undefined' && (typeof recipe.type == 'undefined' || recipe.type != 'fluid')) {
@@ -337,7 +341,6 @@ var render = {
                     tr.next().find('.inserter-' + inserterName).html(inserterCount);
                 });
             }
-
             tr.find('.machine-count').html(Math.ceil(count * 100) / 100);
 
             var power = 0;
@@ -584,10 +587,10 @@ var loadTargetRequirement = function () {
             var line = v.split(':');
             var target = line[0];
             var info = line[1].split(';');
-            var machine = info[0];
+            var machine = info[0].split('@');
             var needs = info[1];
             var type;
-            if (machine == 'lab') {
+            if (machine[0] == 'lab') {
                 type = 'technology';
             } else {
                 type = 'recipe';
@@ -596,7 +599,11 @@ var loadTargetRequirement = function () {
             row.find('.input-amount').val(needs);
             row.attr('data-name', target);
             row.find('.td-assembling-select').html(getAssemblingSelectorEx(type, target)).find('.icon').each(getImage);
-            row.find('.select-assembling').val(machine);
+            row.find('.select-assembling').val(machine[0]);
+            if (machine.length > 1) {
+                row.find('.input-productivity-bonus').val(machine[1]);
+                row.find('.input-crafting-speed').val(machine[2]);
+            }
             row.attr('data-type', type);
             tbody.append(row);
 
@@ -610,9 +617,15 @@ var loadTargetRequirement = function () {
             $.each(requirementsBak.split(','), function (k, v) {
                 var line = v.split(':');
                 var name = line[0];
-                var machine = line[1];
-                tbody.find('tr[data-name=' + name + '] .select-assembling').val(machine).change();
-                requirementMachines[name] = machine;
+                var machine = line[1].split('@');
+                var tr = tbody.find('tr[data-name=' + name + ']')
+                if (machine.length > 1) {
+                    tr.find('.input-productivity-bonus').val(machine[1]);
+                    tr.find('.input-crafting-speed').val(machine[2]);
+                }
+                tr.find('.select-assembling').val(machine[0]).change();
+                requirementMachines[name] = machine[0];
+
             });
         }
         render.full();
@@ -976,6 +989,8 @@ $('#table-material').on('click', 'a.row-fold', function () {
 $('#select-translate').change(function () {
     changeLanguage($(this).val());
 });
+
+$('#container').on('keyup keydown keypress DOMAttrModified propertychange change', '.input-productivity-bonus, .input-crafting-speed', calcWithRequirements)
 
 $('#container').on('change', '.select-assembling', function () {
     var $this = $(this);
