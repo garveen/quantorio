@@ -176,18 +176,35 @@ var render = {
 
         if (!config.root) {
             if (typeof render.remainder[name] == 'undefined') {
-                render.remainder[name] = {
+                subconfig = render.remainder[name] = {
                     value: 0,
                     recipe: config.recipe,
                     version: render.remainderVersion,
                     sub: getUpstreamsRecursive(config.type, name, config),
                     ratio: 1 / (typeof recipes[name] != 'undefined' ? recipes[name].result_count : 1)
                 };
+
+                var row = $(generateRow({
+                    hasClass: 'base',
+                    isBase: true,
+                    hasName: name,
+                    hasExpand: true,
+                    hasAssemble: getAssemblingSelectorEx(subconfig.type, name),
+                    hasAmount: subconfig.value,
+                    hasTarget: '<div class="icon" data-icon="' + getIcon(subconfig.type, name) +
+                        '">&nbsp;</div> ' + translateEx(subconfig.type, name)
+                }));
+
+                row.data('config', subconfig);
+                $('#tbody-remainder').append(row);
+                render.remainder[name].row = row;
+
             }
             if (render.remainder[name].version != render.remainderVersion) {
                 render.remainder[name].version = render.remainderVersion;
                 render.remainder[name].value = 0;
             }
+            value /= (render.remainder[name].row.find('.input-productivity-bonus').val() / 100 + 1);
             if (!config.isBeExpanded) {
                 render.remainder[name].value += value;
             }
@@ -200,26 +217,6 @@ var render = {
         });
     },
 
-    calcRemainder: function () {
-        var recursive = function (name, config, needs) {
-            var value = needs * config.ratio;
-
-            if (config.isBeExpanded) {
-                render.remainder[name].value -= value;
-            }
-            config.value = value;
-            $.each(config.sub, function (k, v) {
-                recursive(k, v, value);
-
-            });
-        };
-
-        $.each(render.remainder, function (k, v) {
-            // trick
-            recursive(k, v, v.value / v.ratio);
-        });
-    },
-
     full: function () {
         render.init();
         render.remainderVersion++;
@@ -228,36 +225,17 @@ var render = {
             var $this = $(this);
             var target = $this.find('.select-target').data('val');
             var needs = $this.find('.input-amount').val();
-            render.calcRecursive(target, requirements[target], needs);
+            render.calcRecursive(target, requirements[target], needs / (1 + $this.find('.input-productivity-bonus').val() / 100));
             render.saves[target] = $this.find('.select-assembling').val() + '@' + $this.find('.input-productivity-bonus').val() + '@' + $this.find('.input-crafting-speed').val() + ';' + needs;
         });
 
 
         saveHash('targets', render.saves);
 
-        var html = $();
         if (render.remainderVersion == 1) {
-
-            $.each(render.remainder, function (name, config) {
-                var row = $(generateRow({
-                    hasClass: 'base',
-                    isBase: true,
-                    hasName: name,
-                    hasExpand: true,
-                    hasAssemble: getAssemblingSelectorEx(config.type, name),
-                    hasAmount: config.value,
-                    hasTarget: '<div class="icon" data-icon="' + getIcon(config.type, name) +
-                        '">&nbsp;</div> ' + translateEx(config.type, name)
-                }));
-
-                row.data('config', config);
-                html = html.add(row);
-            });
-
-            $('#tbody-remainder').html(html).find('.icon').each(getImage);
+            $('#tbody-remainder').find('.icon').each(getImage);
         }
-        render.calcRemainder();
-
+        console.log($('#tbody-remainder').length)
 
         $('#tbody-target tr.target,#tbody-remainder tr.base').each(function () {
             render.single($(this));
@@ -290,7 +268,8 @@ var render = {
         var machine_name = tr.find('.select-assembling').val();
         var machine = machines[machine_name];
         if (machine) {
-            render.saves[name] = machine_name + '@' + tr.find('.input-productivity-bonus').val() + '@' + tr.find('.input-crafting-speed').val();
+            var saveline = machine_name + '@' + tr.find('.input-productivity-bonus').val() + '@' + tr.find('.input-crafting-speed').val()
+            render.saves[name] = saveline;
             requirementMachines[name] = machine_name;
 
             saveHash('requirements', render.saves);
@@ -308,18 +287,16 @@ var render = {
             if (machine.type == 'mining-drill') {
                 var resource = resources[name];
                 var count = value / 60 * resource.mining_time / machine.mining_speed / (machine.mining_power - resource.hardness) /
-                    (1 + parseInt(tr.find('.input-crafting-speed').val()) / 100) / (1 + parseInt(tr.find('.input-productivity-bonus').val()) / 100);
+                    (1 + parseInt(tr.find('.input-crafting-speed').val()) / 100);
             } else if (machine.type == 'lab') {
                 var technology = technologys[name];
 
                 var count = value / 60 * technology.time * technology.count;
-                console.log(count)
             } else {
                 var recipe = recipes[name];
-                console.log(name, tr.find('.input-crafting-speed').val(),tr.find('.input-productivity-bonus').val())
                 config.batchTime = recipe.energy_required / machine.crafting_speed / (1 + parseInt(tr.find('.input-crafting-speed').val()) / 100);
 
-                var count = value / 60 * config.batchTime / recipe.result_count / (1 + parseInt(tr.find('.input-productivity-bonus').val()) / 100);
+                var count = value / 60 * config.batchTime / recipe.result_count;
 
             }
             if (typeof recipe != 'undefined' && (typeof recipe.type == 'undefined' || recipe.type != 'fluid')) {
@@ -990,7 +967,17 @@ $('#select-translate').change(function () {
     changeLanguage($(this).val());
 });
 
-$('#container').on('keyup keydown keypress DOMAttrModified propertychange change', '.input-productivity-bonus, .input-crafting-speed', calcWithRequirements)
+$('#container').on('keyup keydown keypress DOMAttrModified propertychange change', '.input-crafting-speed', function () {
+    var tr = $(this).closest('tr');
+    if(tr.hasClass('target')) {
+        render.full()
+    } else {
+        render.single(tr)
+    }
+})
+
+$('#container').on('keyup keydown keypress DOMAttrModified propertychange change', '.input-productivity-bonus', render.full)
+
 
 $('#container').on('change', '.select-assembling', function () {
     var $this = $(this);
@@ -999,10 +986,7 @@ $('#container').on('change', '.select-assembling', function () {
     if(tr.hasClass('target')) {
         render.full()
     } else {
-        var path = tr.data('name').split(nameDelimiter);
-        var name = path[path.length - 1];
         render.single(tr);
-
     }
 });
 
