@@ -294,7 +294,8 @@ var render = {
                 var count = value / 60 * technology.time * technology.count;
             } else {
                 var recipe = recipes[name];
-                config.batchTime = recipe.energy_required / machine.crafting_speed / (1 + parseInt(tr.find('.input-crafting-speed').val()) / 100);
+                var craft_multiple = 1 + tr.find('.input-crafting-speed').val() / 100;
+                config.batchTime = recipe.energy_required / machine.crafting_speed / craft_multiple;
 
                 var count = value / 60 * config.batchTime / recipe.result_count;
 
@@ -304,7 +305,7 @@ var render = {
                     if (typeof config.batchTime != 'undefined') {
                         var inserterName = inserterConfig.name;
                         var inserterCount = Math.ceil(recipe.result_count * 60 / config.batchTime / inserters[inserterName].turns_per_minute *
-                            100) / 100;
+                            100) / 100 * craft_multiple;
                         tr.find('.inserter-' + inserterName).html(inserterCount);
                     }
                 })
