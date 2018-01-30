@@ -16,6 +16,8 @@ class FactorioGenerator
     public $translations = [];
     public $technologys = [];
     public $inserters = [];
+    public $modules = [];
+    public $beacons = [];
 
     public $info = [];
 
@@ -91,6 +93,9 @@ class FactorioGenerator
         array_multisort($orders, $this->groups);
 
         $this->writeJs('groups', $this->groups);
+        foreach($this->machines as &$machine) {
+            $machine['order'] = $this->items[$machine['name']]['order'];
+        }
         $this->writeJs('machines', $this->machines);
 
         foreach ($this->categories as $category => $content) {
@@ -110,6 +115,8 @@ class FactorioGenerator
         $this->writeJs('items', $this->items);
         $this->writeJs('technologys', $this->technologys);
         $this->writeJs('inserters', $this->inserters);
+        $this->writeJs('modules', $this->modules);
+        $this->writeJs('beacons', $this->beacons);
         foreach ($this->translations as $name => $content) {
             foreach ($content as $k => &$v) {
                 if (is_array($v)) {
@@ -237,6 +244,11 @@ class FactorioGenerator
             'drain',
             'researching_speed',
         ]);
+        if (isset($entity['module_specification']) && isset($entity['module_specification']['module_slots'])) {
+            $machine['module_slots'] = $entity['module_specification']['module_slots'];
+        } else {
+            $machine['module_slots'] = 0;
+        }
         if (
             isset($machine['energy_source']) &&
             isset($machine['energy_source']['emissions']) &&
@@ -260,7 +272,22 @@ class FactorioGenerator
             }
         }
 
-        $this->machines[$entity['name']] = $machine;
+        $this->machines[] = $machine;
+
+    }
+
+    public function saveBeacon($entity)
+    {
+        $beacon = $this->buildItem($entity, [
+            'type',
+            'energy_usage',
+            'distribution_effectivity',
+        ]);
+        foreach ($entity['allowed_effects'] as $allowed_effect) {
+            $beacon['allowed_effects'][] = $allowed_effect;
+        }
+        $beacon['module_slots'] = $entity['module_specification']['module_slots'];
+        $this->beacons[$entity['name']] = $beacon;
 
     }
 
@@ -349,6 +376,17 @@ class FactorioGenerator
         $this->inserters[$entity['name']] = $inserter;
     }
 
+    public function saveModule($entity)
+    {
+        $module = $this->buildItem($entity, [
+            'type',
+            'effect',
+            'order',
+        ]);
+        $this->modules[] = $module;
+        $this->saveItem($entity);
+    }
+
     public function saveLanguage($path)
     {
 
@@ -424,10 +462,11 @@ class FactorioGenerator
                 }
                 break;
             case 'inserter':
-                $this->saveInserter($entity);
-                break;
             case 'technology':
-                $this->saveTechnology($entity);
+            case 'module':
+            case 'beacon':
+                $saver = "save{$entity['type']}";
+                $this->$saver($entity);
                 break;
             case 'lab':
                 $this->categories['lab'][] = $entity['name'];
@@ -499,6 +538,7 @@ class FactorioGenerator
                 $has_default and $target[$param] = $default;
             }
         }
+        $target['name'] = $source['name'];
         return $target;
     }
 
@@ -509,8 +549,9 @@ class FactorioGenerator
         }
 
         if ($prefix === '') {
-            $prefix = "$name=\n";
+            $prefix = "export default\n";
         }
+        $prefix = 'export default';
 
         if ($concat) {
             $this->datastr .= $prefix . json_encode($content, JSON_UNESCAPED_UNICODE) . "\n";
