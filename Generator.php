@@ -287,7 +287,7 @@ class FactorioGenerator
             $beacon['allowed_effects'][] = $allowed_effect;
         }
         $beacon['module_slots'] = $entity['module_specification']['module_slots'];
-        $this->beacons[$entity['name']] = $beacon;
+        $this->beacons[] = $beacon;
 
     }
 
