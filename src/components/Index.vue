@@ -19,18 +19,26 @@
     <el-table :data='tableData' :row-class-name="tableRowClassName">
       <el-table-column width='64' :render-header='renderHeaderOperation'>
         <template slot-scope="scope">
-          <el-button v-if='scope.row.type === "req"' class='operation' type="danger" size='small' @click='handleRemove(scope.$index, scope.row)'>-</el-button>
+          <div :style='{display: "flex", "flex-direction": "column"}'>
+            <el-button v-if='scope.row.type === "req"' class='operation' type="danger" size='small' @click='handleRemove(scope.$index, scope.row)'>-</el-button>
+            <el-button v-if='scope.row.expended' class='operation' type="warning" size='small' @click='scope.row.expended = false'>&lt;</el-button>
+            <el-button v-else-if='scope.row.canExpend' class='operation' type="primary" size='small' @click='scope.row.expended = true'>&gt;</el-button>
+          </div>
         </template>
       </el-table-column>
       <el-table-column :label="$t('name')">
         <template slot-scope="scope">
-          <div :style='{display: "flex"}'>
-            <img class='icon' :src='scope.row.icon' />
-            <span v-bind:style='{margin: "auto 0 auto 10px"}' v-t='scope.row.name'></span>
-          </div>
+          <el-row>
+            <el-col :offset='scope.row.indent'>
+              <div :style='{display: "flex"}'>
+                <img class='icon' :src='scope.row.icon' />
+                <span v-bind:style='{margin: "auto 0 auto 10px"}' v-t='scope.row.name'></span>
+              </div>
+            </el-col>
+          </el-row>
         </template>
       </el-table-column>
-      <el-table-column prop="amount" :label="$t('requirement-per-minute')">
+      <el-table-column prop="needs" :label="$t('requirement-per-minute')">
         <template slot-scope="scope">
           <el-input-number v-if='scope.row.type === "req"' v-model="scope.row.needs" :min=0 controls-position="right" size='small'></el-input-number>
         </template>
@@ -61,13 +69,13 @@
                     <img class='icon button' :src='items[scope.row.machine.name].icon'>
                   </span>
                 </el-popover>
-                <ModuleSelector v-for="index in scope.row.machine.module_slots" :key='index' :module.sync='scope.row.modules[index - 1]'></ModuleSelector>
+                <ModuleSelector ref="modulePopover" v-for="index in scope.row.machine.module_slots" :key='index' :module.sync='scope.row.modules[index - 1]'></ModuleSelector>
               </span>
             </div>
             <div>
               <span v-for="beacon in beacons" class='flex'>
                 <img class='icon' :src='icon(beacon)'>
-                <ModuleSelector v-for="index in beacon.module_slots" :key='index' :module.sync='scope.row.beacons[beacon.name].modules[index - 1]'></ModuleSelector>
+                <ModuleSelector ref="modulePopover" v-for="index in beacon.module_slots" :key='index' :module.sync='scope.row.beacons[beacon.name].modules[index - 1]'></ModuleSelector>
                 <el-input-number :min=0 controls-position="right" v-model='scope.row.beacons[beacon.name].count' size='small'></el-input-number>
               </span>
             </div>
@@ -115,6 +123,7 @@ import recipes from '../../public/recipes'
 import items from '../../public/items'
 import machines from '../../public/machines'
 import beacons from '../../public/beacons'
+import resources from '../../public/resources'
 import allModules from '../../public/modules'
 export default {
   components: {
@@ -135,12 +144,10 @@ export default {
       items: items,
       machines: machines,
       beacons: beacons,
+      resources: resources,
     }
   },
   methods: {
-    zzz (v) {
-      console.log(v)
-    },
     tableRowClassName ({
       row,
       rowIndex
@@ -149,9 +156,11 @@ export default {
         return 'success-row'
       }
     },
+
     handleAdd () {
       this.selectTargetDialogVisiable = true
     },
+
     handleRemove (index, row) {
       this.requirements.splice(index, 1)
     },
@@ -161,26 +170,40 @@ export default {
       let len = machine.module_slots ? machine.module_slots : 0
       row.modules.splice(len)
     },
+
     doAdd (name) {
-      let config = {
+      let config = this.buildRow(name, 'req', 0)
+      this.requirements.push(config)
+      this.selectTargetDialogVisiable = false
+    },
+
+    buildRow (name, type, indent, machine) {
+      let row = {
         name: name,
-        machine: this.machines.find((machine) => { return machine.name === 'player' }),
-        recipe: this.recipes[name],
-        icon: this.items[name].icon,
+        machine: machine || this.machines.find((machine) => { return machine.name === 'player' }),
+        recipe: type === 'resource' ? this.resources[name] : this.recipes[name],
+        icon: this.icon(name),
         modules: [],
         beacons: {},
-        type: 'req',
-        version: 0,
+        type: type,
+        sub: [],
+        canExpend: true,
+        expended: false,
+        indent: indent,
       }
       this.beacons.forEach((beacon) => {
-        config.beacons[beacon.name] = {
+        row.beacons[beacon.name] = {
           count: 0,
           modules: [],
         }
       })
-      this.requirements.push(config)
-      this.selectTargetDialogVisiable = false
+      if (type !== 'resource') {
+        row.sub = this.getUpstreamsRecursive(row)
+      }
+
+      return row
     },
+
     renderHeaderOperation (createElement, {
       column,
       $index
@@ -201,6 +224,42 @@ export default {
         },
       })
     },
+
+    getUpstreamsRecursive (row, maxDepth) {
+      let quantities = []
+      if (typeof maxDepth === 'undefined') maxDepth = -1
+      maxDepth = Math.ceil(maxDepth)
+      if (maxDepth === 0) {
+        return quantities
+      }
+      maxDepth--
+
+      if (!row.recipe) {
+        return quantities
+      }
+
+      let ingredients = row.recipe.ingredients
+      Object.keys(ingredients).forEach((ingredient) => {
+        let type = typeof this.resources[ingredient] !== 'undefined' ? 'resource' : ''
+        let subrow = this.buildRow(ingredient, type, row.indent + 1)
+
+        quantities.push(subrow)
+      })
+
+      return quantities
+    },
+
+    expends (row) {
+      let arr = []
+      row.sub.forEach((subrow) => {
+        arr.push(subrow)
+        if (subrow.expended) {
+          arr.push(...this.expends(subrow))
+        }
+      })
+      return arr
+    },
+
     sortByOrder: Helpers.sortByOrder,
     icon: Helpers.icon,
 
@@ -208,7 +267,6 @@ export default {
   mounted () {
     allModules.sort(Helpers.sortByOrder)
     allModules.unshift(null)
-    console.log(this.icon)
     this.machines.sort((a, b) => {
       // put player first
       if (a.name === 'player') {
@@ -258,7 +316,14 @@ export default {
   },
   computed: {
     tableData () {
-      return this.requirements.concat(this.remainders)
+      let data = []
+      this.requirements.filter((row, index) => {
+        data.push(row)
+        if (row.expended) {
+          data.push(...this.expends(row))
+        }
+      })
+      return data.concat(this.remainders)
     }
   },
   watch: {
@@ -266,7 +331,10 @@ export default {
       this.$i18n.locale = this.locale
     },
     requirements: {
-      handler: function (val, oldVal) {
+      handler: function () {
+        this.requirements.forEach((row) => {
+        })
+
         console.log('watching...')
       },
       deep: true
@@ -327,9 +395,14 @@ div.cell {
 }
 
 >>> .el-button.operation {
-  padding: 9px 14px;
   font-family: Courier, monospace;
-  font-weight: 900
+  font-weight: 900;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+  margin: 0
 }
 
 >>> .el-dialog__header {
