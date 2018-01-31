@@ -194,6 +194,10 @@ class FactorioGenerator
         ]);
         $resource['hardness'] = $entity['minable']['hardness'];
         $resource['mining_time'] = $entity['minable']['mining_time'];
+        if (isset($entity['minable']['required_fluid'])) {
+            $resource['fluid_amount'] = $entity['minable']['fluid_amount'];
+            $resource['required_fluid'] = $entity['minable']['required_fluid'];
+        }
         $this->resources[$entity['name']] = $resource;
 
     }
@@ -270,6 +274,9 @@ class FactorioGenerator
                     $this->categories[$category][] = $entity['name'];
                 }
             }
+        }
+        foreach ($entity['allowed_effects'] as $effect) {
+            $machine['allowed_effects'][] = $effect;
         }
 
         $this->machines[] = $machine;
@@ -526,6 +533,7 @@ class FactorioGenerator
             }
         }
         $target = [];
+        $target['name'] = $source['name'];
         foreach ($params as $param => $default) {
             $has_default = true;
             if (is_int($param)) {
@@ -538,7 +546,6 @@ class FactorioGenerator
                 $has_default and $target[$param] = $default;
             }
         }
-        $target['name'] = $source['name'];
         return $target;
     }
 
