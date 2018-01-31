@@ -35,4 +35,21 @@ export default {
     }
     return 0
   },
+  translate (i18n, ...names) {
+    let translation = false
+    names.some((name) => {
+      if (name && typeof name !== 'string') {
+        name = name.name
+      }
+      if (i18n.te(name + '.item-name')) {
+        translation = i18n.t(name + '.item-name')
+        return true
+      }
+      if (i18n.te(name)) {
+        translation = i18n.t(name)
+        return true
+      }
+    })
+    return translation
+  }
 }

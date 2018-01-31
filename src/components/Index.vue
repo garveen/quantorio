@@ -4,7 +4,7 @@
 
       <el-col :span='12'>
         <h1>
-        <span data-type='quantorio'>{{ $t('factorio-quantizative-tool') }}</span>
+        <span data-type='quantorio'>{{ translate('factorio-quantizative-tool') }}</span>
         </h1>
       </el-col>
       <el-col :span='8' :style='{"text-align": "end"}'>
@@ -25,7 +25,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('name')">
+      <el-table-column :label="translate('name')">
         <template slot-scope="scope">
           <el-row>
             <el-col :offset='scope.row.indent'>
@@ -37,13 +37,13 @@
           </el-row>
         </template>
       </el-table-column>
-      <el-table-column prop="needs" :label="$t('requirement-per-minute')">
+      <el-table-column prop="needs" :label="translate('requirement-per-minute')">
         <template slot-scope="scope">
           <el-input-number v-if='scope.row.type === "req"' v-model="scope.row.needs" :min=0 controls-position="right" size='small'></el-input-number>
           <span v-else>{{ scope.row.needs }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="made_in" :label="$t('made-in')">
+      <el-table-column prop="made_in" :label="translate('made-in')">
         <template slot-scope="scope">
           <el-popover placement="bottom" trigger='click' popper-class='machine-popper'>
             <div slot='reference'  class='flex button'>
@@ -84,32 +84,31 @@
           </el-popover>
         </template>
       </el-table-column>
-      <el-table-column prop="" :label="$t('machine-number')">
+      <el-table-column prop="" :label="translate('machine-number')">
         <template slot-scope="scope">
           {{ calcRowCount(scope.row) }}
         </template>
       </el-table-column>
       <!-- <el-table-column
           prop="power"
-          :label="$t('electric-consumption')">
+          :label="translate('electric-consumption')">
         </el-table-column>
         <el-table-column
           prop="pollution"
-          :label="$t('pollution')">
+          :label="translate('pollution')">
         </el-table-column> -->
     </el-table>
     <el-dialog :show-close='false' :visible.sync="selectTargetDialogVisiable">
-      <el-tabs type="border-card">
+      <el-tabs v-once type="border-card">
         <el-tab-pane v-for='group in groups' :key='group.name'>
           <span slot="label"><img :src='group.icon' class='group'></span>
           <div>
             <div v-for='subgroup in group.subgroupsWithItems'>
-              <abbr v-for='(item) in subgroup.items' :title="$te(item.name + '.item-name') ? $t(item.name + '.item-name') : $t(item.name)">
+              <abbr v-for='(item) in subgroup.items' :title="translate(item, items[item.name])">
                 <a @click='doAdd(item.name)'>
-                  <img class='icon icon-bordered' :src='item.icon'>
+                  <img class='icon icon-bordered' :src='icon(item)'>
                 </a>
               </abbr>
-              <!-- <img v-for='items in group.items' :src='items.icon'> -->
             </div>
           </div>
         </el-tab-pane>
@@ -340,11 +339,15 @@ export default {
       return Number((count).toFixed(2))
     },
 
+    translate (...names) {
+      return Helpers.translate(this.$i18n, ...names)
+    },
+
     sortByOrder: Helpers.sortByOrder,
     icon: Helpers.icon,
 
   },
-  mounted () {
+  created () {
     allModules.sort(Helpers.sortByOrder)
     allModules.unshift(null)
     this.machines.sort((a, b) => {
@@ -372,8 +375,12 @@ export default {
           let subgroupItems = []
           Object.keys(this.subgroups[subgroupName]).forEach((itemName) => {
             if (this.items[itemName] && this.recipes[itemName]) {
-              let item = this.items[itemName]
+              let item = {}
+              Object.keys(this.items[itemName]).forEach((k) => {
+                item[k] = items[itemName][k]
+              })
               item.name = itemName
+
               subgroupItems.push(item)
               itemCount++
             }
@@ -393,7 +400,9 @@ export default {
         delete this.groups[groupName]
       }
     })
+  },
 
+  mounted () {
     this.remaindersWatcherCallback = (opt) => {
       this.remaindersUnWatcher()
       this.remaindersUnWatcher = null

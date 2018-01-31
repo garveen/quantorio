@@ -174,7 +174,7 @@ class FactorioGenerator
         return 'graphics/' . $converted;
     }
 
-    public function saveItem($entity)
+    public function saveItem($entity, $name = false)
     {
         if (!isset($entity['icon']) || !isset($entity['order'])) {
             return;
@@ -183,6 +183,9 @@ class FactorioGenerator
             'order' => preg_replace('~\[.*?\]~', '', $entity['order']),
             'icon' => $this->saveIcon($entity['icon']),
         ];
+        if ($name) {
+            $item['name'] = $name;
+        }
 
         $this->items[$entity['name']] = $item;
     }
@@ -199,6 +202,7 @@ class FactorioGenerator
             $resource['required_fluid'] = $entity['minable']['required_fluid'];
         }
         $this->resources[$entity['name']] = $resource;
+        $this->saveItem($entity);
 
     }
 
@@ -216,7 +220,6 @@ class FactorioGenerator
         } elseif (isset($entity['normal']['ingredients'])) {
             $ingredients = $entity['normal']['ingredients'];
         }
-        // var_dump($entity);exit;
         foreach ($ingredients as $ingredient) {
             if (isset($ingredient['type'])) {
                 $recipe['ingredients'][$ingredient['name']] = $ingredient['amount'];
@@ -232,6 +235,14 @@ class FactorioGenerator
             unset($recipe['results']);
         }
         $this->recipes[$entity['name']] = $recipe;
+
+        if (isset($entity['results']) && count($entity['results']) == 1 && $entity['results'][1]['name'] != $entity['name']) {
+            $name = $entity['results'][1]['name'];
+        } else {
+            $name = false;
+        }
+
+        $this->saveItem($entity, $name);
     }
 
     public function saveMachine($entity)
@@ -417,7 +428,7 @@ class FactorioGenerator
             'fluid-name',
             'equipment-name',
             'recipe-name',
-            'technology-name',
+            // 'technology-name',
         ] as $groupName) {
             if (isset($locale[$groupName])) {
                 $group = $locale[$groupName];
@@ -479,9 +490,12 @@ class FactorioGenerator
                 $this->categories['lab'][] = $entity['name'];
                 $this->saveMachine($entity);
                 break;
-            case 'resource':
             case 'recipe':
-                $this->{"save{$entity['type']}"}($entity);
+                $this->saveRecipe($entity);
+                break;
+            case 'resource':
+                $this->saveResource($entity);
+                break;
             default:
                 $this->saveItem($entity);
                 break;
