@@ -39,7 +39,7 @@
       </el-table-column>
       <el-table-column prop="needs" :label="translate('requirement-per-minute')">
         <template slot-scope="scope">
-          <el-input-number v-if='scope.row.type === "req"' v-model="scope.row.needs" :min=0 controls-position="right" size='small'></el-input-number>
+          <el-input-number v-if='scope.row.type === "req"' v-model="scope.row.needs" :min=0 controls-position="right" size='small' @change='wtf()'></el-input-number>
           <span v-else>{{ scope.row.needs }}</span>
         </template>
       </el-table-column>
@@ -98,29 +98,15 @@
           :label="translate('pollution')">
         </el-table-column> -->
     </el-table>
-    <el-dialog :show-close='false' :visible.sync="selectTargetDialogVisiable">
-      <el-tabs v-once type="border-card">
-        <el-tab-pane v-for='group in groups' :key='group.name'>
-          <span slot="label"><img :src='group.icon' class='group'></span>
-          <div>
-            <div v-for='subgroup in group.subgroupsWithItems'>
-              <abbr v-for='(item) in subgroup.items' :title="translate(item, items[item.name])">
-                <a @click='doAdd(item.name)'>
-                  <img class='icon icon-bordered' :src='icon(item)'>
-                </a>
-              </abbr>
-            </div>
-          </div>
-        </el-tab-pane>
-      </el-tabs>
-    </el-dialog>
+    <RequirementSelector :visible.sync="selectTargetDialogVisiable" @select='doAdd' :key='locale'></RequirementSelector>
+
 
   </div>
 </template>
 <script>
 import ModuleSelector from './ModuleSelector'
 import Helpers from './Helpers'
-import Row from './Row'
+import RequirementSelector from './RequirementSelector'
 import languages from '../../public/translations/list'
 import groups from '../../public/groups'
 import subgroups from '../../public/subgroups'
@@ -134,14 +120,13 @@ import allModules from '../../public/modules'
 export default {
   components: {
     ModuleSelector,
-    Row,
+    RequirementSelector,
   },
   name: 'Index',
   data () {
     return {
       languages: languages,
       locale: 'zh-CN',
-      msg: 'Welcome to Your Vue.js App',
       selectTargetDialogVisiable: false,
       requirements: [],
       remainders: [],
@@ -163,6 +148,9 @@ export default {
     }
   },
   methods: {
+    wtf () {
+      alert(1)
+    },
     tableRowClassName ({
       row,
       rowIndex
@@ -213,8 +201,12 @@ export default {
         bonus: {},
       }
       if (!machine) {
+        if (!row.recipe) {
+          row.recipe = this.recipes.dummy
+        }
         row.machine = this.machines.find((machine) => { return machine.name === this.categories[row.recipe.category][0] })
       }
+
       this.beacons.forEach((beacon) => {
         row.beacons.push({
           count: 0,
@@ -348,6 +340,16 @@ export default {
 
   },
   created () {
+    let translateFallback = 'en'
+    let currentLanguage
+    let testLanguage = navigator.language || navigator.userLanguage
+    if (this.languages.indexOf(testLanguage) < 0) {
+      currentLanguage = translateFallback
+    } else {
+      currentLanguage = testLanguage
+    }
+    this.language = currentLanguage
+
     allModules.sort(Helpers.sortByOrder)
     allModules.unshift(null)
     this.machines.sort((a, b) => {
@@ -364,6 +366,16 @@ export default {
         return -1
       }
     })
+
+    this.recipes.dummy = {
+      'name': 'dummy',
+      'result_count': 1,
+      'category': 'crafting',
+      'energy_required': 0.5,
+      'ingredients': {
+      },
+      'ingredient_count': 0
+    }
 
     Object.keys(this.groups).forEach((groupName) => {
       let group = this.groups[groupName]
@@ -500,29 +512,33 @@ export default {
 .machine-popper .el-input-number {
   margin: auto 10px
 }
+
 .icon {
   width: 32px;
   height: 32px;
   padding: 2px;
   margin: 1px;
 }
+
 .button {
   cursor: pointer;
 }
+
 .icon-bordered {
   display: initial;
   background-color: #ddd;
   border: 1px solid #ccc;
 }
+
+a:hover {
+  cursor: pointer;
+}
+
 </style>
 <style scoped>
 .flex {
   display: flex;
   align-items: center;
-}
-
-a:hover {
-  cursor: pointer;
 }
 
 img.group {
@@ -533,14 +549,8 @@ img {
   padding: auto 0;
 }
 
-
-
 div.cell {
   padding: 10px auto
-}
-
->>> .el-dialog .el-input-number {
-  margin: auto 10px
 }
 
 >>> .success-row {
@@ -561,11 +571,4 @@ div.cell {
   margin: 0
 }
 
->>> .el-dialog__header {
-  display: none
-}
-
->>> .el-tabs__item {
-  height: 92px;
-}
 </style>

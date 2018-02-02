@@ -37,10 +37,12 @@ export default {
   },
   translate (i18n, ...names) {
     let translation = false
+    let first = false
     names.some((name) => {
       if (name && typeof name !== 'string') {
         name = name.name
       }
+      if (!first) first = name
       if (i18n.te(name + '.item-name')) {
         translation = i18n.t(name + '.item-name')
         return true
@@ -50,6 +52,10 @@ export default {
         return true
       }
     })
-    return translation
+    if (translation) {
+      return translation
+    } else {
+      return i18n.t(first, 'en')
+    }
   }
 }
