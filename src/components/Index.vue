@@ -1,6 +1,6 @@
 <template>
   <div class='container-fluid' id='container' type='flex'>
-    <el-row type='flex' justify='space-between' :style='{"align-items": "center"}'>
+    <el-row type='flex' justify='space-between'>
 
       <el-col :span='12'>
         <h1>
@@ -39,11 +39,11 @@
       </el-table-column>
       <el-table-column prop="needs" :label="translate('requirement-per-minute')">
         <template slot-scope="scope">
-          <el-input-number v-if='scope.row.type === "req"' v-model="scope.row.needs" :min=0 controls-position="right" size='small' @change='wtf()'></el-input-number>
+          <el-input-number v-if='scope.row.type === "req"' v-model="scope.row.needs" :min=0 controls-position="right" size='small'></el-input-number>
           <span v-else>{{ scope.row.needs }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="made_in" :label="translate('made-in')">
+      <el-table-column prop="made_in" :render-header='renderHeaderMachine'>
         <template slot-scope="scope">
           <el-popover placement="bottom" trigger='click' popper-class='machine-popper'>
             <div slot='reference'  class='flex button'>
@@ -86,7 +86,16 @@
       </el-table-column>
       <el-table-column prop="" :label="translate('machine-number')">
         <template slot-scope="scope">
-          {{ calcRowCount(scope.row) }}
+          {{ (scope.row.needs / calcResultPerMachinePerMinute(scope.row)).toFixed(2) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="" :render-header='renderHeaderInserter'>
+        <template slot-scope="scope">
+          <span class='flex around'>
+            <span v-for='inserter in inserters'>
+              {{ (calcResultPerMachinePerMinute(scope.row) / inserter.turns_per_minute).toFixed(2) }}
+            </span>
+          </span>
         </template>
       </el-table-column>
       <!-- <el-table-column
@@ -116,6 +125,7 @@ import machines from '../../public/machines'
 import beacons from '../../public/beacons'
 import resources from '../../public/resources'
 import categories from '../../public/categories'
+import inserters from '../../public/inserters'
 import allModules from '../../public/modules'
 export default {
   components: {
@@ -125,6 +135,7 @@ export default {
   name: 'Index',
   data () {
     return {
+      resetMachine: 'player',
       languages: languages,
       locale: 'zh-CN',
       selectTargetDialogVisiable: false,
@@ -140,6 +151,7 @@ export default {
       beacons: beacons,
       resources: resources,
       categories: categories,
+      inserters: inserters,
       requirementsUnWatcher: null,
       requirementsWatcherCallback: null,
       remaindersUnWatcher: null,
@@ -148,9 +160,6 @@ export default {
     }
   },
   methods: {
-    wtf () {
-      alert(1)
-    },
     tableRowClassName ({
       row,
       rowIndex
@@ -199,6 +208,7 @@ export default {
         isResource: isResource,
         indent: indent,
         bonus: {},
+        batchTime: 0.5,
       }
       if (!machine) {
         if (!row.recipe) {
@@ -224,25 +234,56 @@ export default {
       return row
     },
 
-    renderHeaderOperation (createElement, {
+    renderHeaderOperation (h, {
       column,
       $index
     }) {
-      return createElement('el-button', {
-        class: {
-          operation: true
-        },
-        props: {
-          type: 'success',
-          size: 'mini',
-        },
-        domProps: {
-          innerHTML: '+',
-        },
-        on: {
-          click: this.handleAdd,
-        },
+      return <el-button class="operation" type="success" size="mini" on-click={this.handleAdd}>+</el-button>
+      /* / */
+    },
+
+    renderHeaderInserter (h, {
+      column,
+      $index
+    }) {
+      let items = this.inserters.map((inserter, index) => {
+        return <img class="icon" src={this.icon(inserter)} />
       })
+      let row = <span class='flex around'>{items}</span>
+      /* / */
+      return row
+    },
+
+    renderHeaderMachine (h, {
+      column,
+      $index
+    }) {
+      let items = this.machines.map((machine, index) => {
+        return <el-option label={this.translate(machine)} value={machine.name}></el-option>
+        /* / */
+      })
+      let row = <el-select value='' placeholder={this.translate('made-in')} on-input={this.changeAllMachine}>{items}</el-select>
+      /* / */
+      return row
+    },
+
+    changeAllMachine (machineName) {
+      let machine = this.machines.find((machine) => {
+        return machine.name === machineName
+      })
+
+      let changeMachine
+      changeMachine = (row) => {
+        if (categories[row.recipe.category].includes(machineName)) {
+          row.machine = machine
+        }
+        row.sub.forEach((subrow) => {
+          changeMachine(subrow)
+        })
+      }
+
+      this.requirements.forEach(changeMachine)
+      this.remainders.forEach(changeMachine)
     },
 
     getUpstreamsRecursive (row, maxDepth) {
@@ -317,18 +358,19 @@ export default {
       return arr
     },
 
-    calcRowCount (row) {
+    calcResultPerMachinePerMinute (row) {
       let recipe = row.recipe
       let machine = row.machine
       let count
       if (row.isResource) {
-        count = row.needs * recipe.mining_time / machine.mining_speed / (machine.mining_power - recipe.hardness) / 60
+        count = 60 / (recipe.mining_time / machine.mining_speed / (machine.mining_power - recipe.hardness))
       } else {
-        count = row.needs * recipe.energy_required / machine.crafting_speed / recipe.result_count / 60
+        count = 60 / (recipe.energy_required / machine.crafting_speed) * recipe.result_count
       }
-      if (row.bonus.productivity) count /= (1 + row.bonus.productivity)
-      if (row.bonus.speed) count /= (1 + row.bonus.speed)
-      return Number((count).toFixed(2))
+
+      if (row.bonus.productivity) count *= (1 + row.bonus.productivity)
+      if (row.bonus.speed) count *= (1 + row.bonus.speed)
+      return count
     },
 
     translate (...names) {
@@ -352,6 +394,11 @@ export default {
 
     allModules.sort(Helpers.sortByOrder)
     allModules.unshift(null)
+
+    this.inserters.sort((a, b) => {
+      return Helpers.sortByOrder(this.items[a.name], this.items[b.name])
+    })
+
     this.machines.sort((a, b) => {
       // put player first
       if (a.name === 'player') {
@@ -536,9 +583,13 @@ a:hover {
 
 </style>
 <style scoped>
-.flex {
+>>>.flex {
   display: flex;
   align-items: center;
+}
+
+>>>.flex.around {
+  justify-content: space-around;
 }
 
 img.group {

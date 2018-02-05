@@ -389,9 +389,11 @@ class FactorioGenerator
         $delta_distance = abs($distances['pickup_position'] - $distances['insert_position']);
         $extension_turns_per_minute = $delta_distance / $entity['extension_speed'] * 60;
         $inserter['turns_per_minute'] = min($rotation_turns_per_minute, $extension_turns_per_minute);
+        $inserter['name'] = $entity['name'];
+        $inserter['stack'] = $entity['stack'] ?? false;
 
         // $inserter['icon'] = $this->saveIcon($entity['icon']);
-        $this->inserters[$entity['name']] = $inserter;
+        $this->inserters[] = $inserter;
     }
 
     public function saveModule($entity)

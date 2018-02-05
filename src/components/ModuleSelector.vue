@@ -34,19 +34,23 @@ export default {
     }
   },
   mounted () {
-    this.modules.forEach((module) => {
-      let allowed = true
-      if (module) {
-        Object.keys(module.effect).forEach((effect) => {
-          if (!this.allows.includes(effect)) {
-            allowed = false
-          }
-        })
-      }
-      if (allowed) {
-        this.allowedModules.push(module)
-      }
-    })
+    if (this.allowedModules.length) {
+      this.modules.forEach((module) => {
+        let allowed = true
+        if (module) {
+          Object.keys(module.effect).forEach((effect) => {
+            if (!this.allows.includes(effect)) {
+              allowed = false
+            }
+          })
+        }
+        if (allowed) {
+          this.allowedModules.push(module)
+        }
+      })
+    } else {
+      this.allowedModules = this.modules
+    }
   }
 }
 </script>
