@@ -1,5 +1,6 @@
 <template>
   <div class='container-fluid' id='container' type='flex'>
+    <vue-headful :title='translate("factorio-quantizative-tool")'></vue-headful>
     <el-row type='flex' justify='space-between'>
 
       <el-col :span='12'>

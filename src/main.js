@@ -5,6 +5,7 @@ import Vuex from 'vuex'
 import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 import VueI18n from 'vue-i18n'
+import vueHeadful from 'vue-headful'
 
 import list from '../public/translations/list'
 
@@ -12,6 +13,7 @@ Vue.config.productionTip = false
 Vue.use(Vuex)
 // Vue.use(ElementUI)
 Vue.use(VueI18n)
+Vue.component('vue-headful', vueHeadful)
 
 let all = {}
 list.forEach((lang) => {
