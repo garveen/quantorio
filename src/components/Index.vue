@@ -18,7 +18,7 @@
     </el-row>
     <el-table :data='tableData' :row-class-name="tableRowClassName">
       <el-table-column width='64' :render-header='renderHeaderOperation'>
-        <template slot-scope="scope">
+        <template slot-scope="scope" v-if='scope.row.type !== "sums"'>
           <div :style='{display: "flex", "flex-direction": "column"}'>
             <el-button v-if='scope.row.type === "req"' class='operation' type="danger" size='small' @click='handleRemove(scope.$index, scope.row)'>-</el-button>
             <el-button v-if='scope.row.expended' class='operation' type="warning" size='small' @click='scope.row.expended = false'>&lt;</el-button>
@@ -27,7 +27,7 @@
         </template>
       </el-table-column>
       <el-table-column :label="translate('name')">
-        <template slot-scope="scope">
+        <template slot-scope="scope" v-if='scope.row.type !== "sums"'>
           <el-row>
             <el-col :offset='scope.row.indent'>
               <div :style='{display: "flex"}'>
@@ -39,14 +39,14 @@
         </template>
       </el-table-column>
       <el-table-column prop="needs" :label="translate('requirement-per-minute')">
-        <template slot-scope="scope">
+        <template slot-scope="scope" v-if='scope.row.type !== "sums"'>
           <el-input-number v-if='scope.row.type === "req"' v-model="scope.row.needs" :min=0 controls-position="right" size='small'></el-input-number>
           <span v-else>{{ scope.row.needs }}</span>
         </template>
       </el-table-column>
       <el-table-column prop="made_in" :render-header='renderHeaderMachine'>
         <template slot-scope="scope">
-          <el-popover placement="bottom" trigger='click' popper-class='machine-popper'>
+          <el-popover v-if='scope.row.type !== "sums"' placement="bottom" trigger='click' popper-class='machine-popper'>
             <div slot='reference'  class='flex button'>
               <img :src='icon(scope.row.machine)' class='button icon'>
               <img v-for='module in scope.row.modules' v-if='module' class='icon' :src='icon(module)'>
@@ -83,18 +83,28 @@
               </span>
             </div>
           </el-popover>
+          <span v-else>
+            {{ scope.row.consumption }}
+          </span>
         </template>
       </el-table-column>
       <el-table-column prop="" :label="translate('machine-number')">
         <template slot-scope="scope">
-          {{ (scope.row.needs / calcResultPerMachinePerMinute(scope.row)).toFixed(2) }}
+          <template v-if='scope.row.type !== "sums"'>
+            {{ scope.row.machineCount().toFixed(2) }}
+          </template>
+          <template v-else>
+            <span v-for='machine in scope.row.machines' :style='{margin: "0 5px"}'>
+              <img :src='icon(machine)'>{{ machine.count }}
+            </span>
+          </template>
         </template>
       </el-table-column>
       <el-table-column prop="" :render-header='renderHeaderInserter'>
-        <template slot-scope="scope">
+        <template slot-scope="scope" v-if='scope.row.type !== "sums"'>
           <span class='flex around'>
             <span v-for='inserter in inserters'>
-              {{ (calcResultPerMachinePerMinute(scope.row) / inserter.turns_per_minute).toFixed(2) }}
+              {{ scope.row.inserterCount(inserter).toFixed(2) }}
             </span>
           </span>
         </template>
@@ -210,6 +220,29 @@ export default {
         indent: indent,
         bonus: {},
         batchTime: 0.5,
+        machineCount () {
+          return this.needs / this.calcResultPerMachinePerMinute()
+        },
+
+        inserterCount (inserter) {
+          return this.calcResultPerMachinePerMinute() / inserter.turns_per_minute
+        },
+
+        calcResultPerMachinePerMinute () {
+          let recipe = this.recipe
+          let machine = this.machine
+          let count
+          if (this.isResource) {
+            count = 60 / (recipe.mining_time / machine.mining_speed / (machine.mining_power - recipe.hardness))
+          } else {
+            count = 60 / (recipe.energy_required / machine.crafting_speed) * recipe.result_count
+          }
+
+          if (this.bonus.productivity) count *= (1 + this.bonus.productivity)
+          if (this.bonus.speed) count *= (1 + this.bonus.speed)
+          return count
+        },
+
       }
       if (!machine) {
         if (!row.recipe) {
@@ -357,21 +390,6 @@ export default {
         }
       })
       return arr
-    },
-
-    calcResultPerMachinePerMinute (row) {
-      let recipe = row.recipe
-      let machine = row.machine
-      let count
-      if (row.isResource) {
-        count = 60 / (recipe.mining_time / machine.mining_speed / (machine.mining_power - recipe.hardness))
-      } else {
-        count = 60 / (recipe.energy_required / machine.crafting_speed) * recipe.result_count
-      }
-
-      if (row.bonus.productivity) count *= (1 + row.bonus.productivity)
-      if (row.bonus.speed) count *= (1 + row.bonus.speed)
-      return count
     },
 
     translate (...names) {
@@ -523,6 +541,10 @@ export default {
 
   computed: {
     tableData () {
+      return this.shownData.concat(this.summaryData)
+    },
+
+    shownData () {
       let data = []
       this.requirements.forEach((row) => {
         data.push(row)
@@ -546,7 +568,35 @@ export default {
       })
       return data.concat(remainderData)
     },
+
+    summaryData () {
+      let sums = {}
+      let consumption = 0
+      let machines = []
+      this.shownData.forEach((row) => {
+        let machine = machines.find((machine) => {
+          return machine.name === row.machine.name
+        })
+        if (!machine) {
+          machine = {
+            name: row.machine.name,
+            count: 0,
+          }
+          machines.push(machine)
+        }
+        machine.count += parseInt(Math.ceil(row.machineCount()))
+        if (row.machine.energy_source.type === 'electric') {
+          consumption += row.machine.energy_usage * (1 + row.bonus.consumption) * row.machineCount()
+        }
+      })
+
+      sums.type = 'sums'
+      sums.consumption = '' + consumption + 'W'
+      sums.machines = machines
+      return [sums]
+    },
   },
+
   watch: {
     locale () {
       this.$i18n.locale = this.locale
