@@ -545,20 +545,10 @@ export default {
     },
 
     shownData () {
-      let data = []
-      this.requirements.forEach((row) => {
-        data.push(row)
-        if (row.expended) {
-          data.push(...this.expends(row))
-        }
-      })
-      let remainderData = []
-      this.remainders.forEach((row) => {
-        remainderData.push(row)
-        if (row.expended) {
-          remainderData.push(...this.expends(row))
-        }
-      })
+      let data = this.expends({sub: this.requirements})
+
+      let remainderData = this.expends({sub: this.remainders})
+
       remainderData.forEach((row) => {
         this.recipeConfigs[row.name] = [
           { k: 'machine', v: row.machine },
