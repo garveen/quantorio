@@ -18,35 +18,41 @@
     </el-row>
     <el-table :data='tableData' :row-class-name="tableRowClassName">
       <el-table-column width='64' :render-header='renderHeaderOperation'>
-        <template slot-scope="scope" v-if='scope.row.type !== "sums"'>
-          <div :style='{display: "flex", "flex-direction": "column"}'>
-            <el-button v-if='scope.row.type === "req"' class='operation' type="danger" size='small' @click='handleRemove(scope.$index, scope.row)'>-</el-button>
-            <el-button v-if='scope.row.expended' class='operation' type="warning" size='small' @click='scope.row.expended = false'>&lt;</el-button>
-            <el-button v-else-if='scope.row.canExpend' class='operation' type="primary" size='small' @click='scope.row.expended = true'>&gt;</el-button>
-          </div>
+        <template slot-scope="scope">
+          <template v-if='scope.row.isData'>
+            <div :style='{display: "flex", "flex-direction": "column"}'>
+              <el-button v-if='scope.row.type === "req"' class='operation' type="danger" size='small' @click='handleRemove(scope.$index, scope.row)'>-</el-button>
+              <el-button v-if='scope.row.expended' class='operation' type="warning" size='small' @click='scope.row.expended = false'>&lt;</el-button>
+              <el-button v-else-if='scope.row.canExpend' class='operation' type="primary" size='small' @click='scope.row.expended = true'>&gt;</el-button>
+            </div>
+          </template>
         </template>
       </el-table-column>
       <el-table-column :label="translate('name')">
-        <template slot-scope="scope" v-if='scope.row.type !== "sums"'>
-          <el-row>
-            <el-col :offset='scope.row.indent'>
-              <div :style='{display: "flex"}'>
-                <img class='icon' :src='scope.row.icon' />
-                <span v-bind:style='{margin: "auto 0 auto 10px"}' v-t='scope.row.name'></span>
-              </div>
-            </el-col>
-          </el-row>
+        <template slot-scope="scope">
+          <template v-if='scope.row.isData'>
+            <el-row>
+              <el-col :offset='scope.row.indent'>
+                <div :style='{display: "flex"}'>
+                  <img class='icon' :src='scope.row.icon' />
+                  <span v-bind:style='{margin: "auto 0 auto 10px"}' v-t='scope.row.name'></span>
+                </div>
+              </el-col>
+            </el-row>
+          </template>
         </template>
       </el-table-column>
       <el-table-column prop="needs" :label="translate('requirement-per-minute')">
-        <template slot-scope="scope" v-if='scope.row.type !== "sums"'>
-          <el-input-number v-if='scope.row.type === "req"' v-model="scope.row.needs" :min=0 controls-position="right" size='small'></el-input-number>
-          <span v-else>{{ scope.row.needs }}</span>
+        <template slot-scope="scope">
+          <template v-if='scope.row.isData'>
+            <el-input-number v-if='scope.row.type === "req"' v-model="scope.row.needs" :min=0 controls-position="right" size='small'></el-input-number>
+            <span v-else>{{ scope.row.needs }}</span>
+          </template>
         </template>
       </el-table-column>
       <el-table-column prop="made_in" :render-header='renderHeaderMachine'>
         <template slot-scope="scope">
-          <el-popover v-if='scope.row.type !== "sums"' placement="bottom" trigger='click' popper-class='machine-popper'>
+          <el-popover v-if='scope.row.isData' placement="bottom" trigger='click' popper-class='machine-popper'>
             <div slot='reference'  class='flex button'>
               <img :src='icon(scope.row.machine)' class='button icon'>
               <img v-for='module in scope.row.modules' v-if='module' class='icon' :src='icon(module)'>
@@ -83,17 +89,17 @@
               </span>
             </div>
           </el-popover>
-          <span v-else>
+          <span v-if='scope.row.type === "sums"'>
             {{ scope.row.consumption }}
           </span>
         </template>
       </el-table-column>
       <el-table-column prop="" :label="translate('machine-number')">
         <template slot-scope="scope">
-          <template v-if='scope.row.type !== "sums"'>
+          <template v-if='scope.row.isData'>
             {{ scope.row.machineCount().toFixed(2) }}
           </template>
-          <template v-else>
+          <template v-if='scope.row.type === "sums"'>
             <span v-for='machine in scope.row.machines' :style='{margin: "0 5px"}'>
               <img :src='icon(machine)'>{{ machine.count }}
             </span>
@@ -101,12 +107,14 @@
         </template>
       </el-table-column>
       <el-table-column prop="" :render-header='renderHeaderInserter'>
-        <template slot-scope="scope" v-if='scope.row.type !== "sums"'>
-          <span class='flex around'>
-            <span v-for='inserter in inserters'>
-              {{ scope.row.inserterCount(inserter).toFixed(2) }}
+        <template slot-scope="scope">
+          <template v-if='scope.row.isData'>
+            <span class='flex around'>
+              <span v-for='inserter in inserters'>
+                {{ scope.row.inserterCount(inserter).toFixed(2) }}
+              </span>
             </span>
-          </span>
+          </template>
         </template>
       </el-table-column>
       <!-- <el-table-column
@@ -124,8 +132,10 @@
   </div>
 </template>
 <script>
+import throttle from 'lodash/throttle'
 import ModuleSelector from './ModuleSelector'
 import Helpers from './Helpers'
+import Row from './Row'
 import RequirementSelector from './RequirementSelector'
 import languages from '../../public/translations/list'
 import groups from '../../public/groups'
@@ -133,7 +143,6 @@ import subgroups from '../../public/subgroups'
 import recipes from '../../public/recipes'
 import items from '../../public/items'
 import machines from '../../public/machines'
-import beacons from '../../public/beacons'
 import resources from '../../public/resources'
 import categories from '../../public/categories'
 import inserters from '../../public/inserters'
@@ -152,14 +161,12 @@ export default {
       selectTargetDialogVisiable: false,
       requirements: [],
       remainders: [],
-      recipeConfigs: {},
-      originRemainders: {},
+      remainderSources: {},
       groups: groups,
       subgroups: subgroups,
       recipes: recipes,
       items: items,
       machines: machines,
-      beacons: beacons,
       resources: resources,
       categories: categories,
       inserters: inserters,
@@ -168,6 +175,7 @@ export default {
       remaindersUnWatcher: null,
       remaindersWatcherCallback: null,
       window: window,
+      rowIdIncrement: 1,
     }
   },
   methods: {
@@ -179,6 +187,8 @@ export default {
         return 'success-row'
       } else if (row.type === 'remainder') {
         return 'warning-row'
+      } else if (row.type === 'split' && this.requirements.length) {
+        return 'blue-row'
       }
     },
 
@@ -197,75 +207,10 @@ export default {
     },
 
     doAdd (name) {
-      let config = this.buildRow(name, 'req', 0, false)
-      config.needs = 1
-      this.requirements.push(config)
+      let row = new Row(name, 'req', 0, false)
+      row.needs = 1
+      this.requirements.push(row)
       this.selectTargetDialogVisiable = false
-    },
-
-    buildRow (name, type, indent, isResource, machine) {
-      let row = {
-        name: name,
-        machine: machine,
-        recipe: isResource ? this.resources[name] : this.recipes[name],
-        icon: this.icon(name),
-        needs: 0,
-        modules: [],
-        beacons: [],
-        type: type,
-        sub: [],
-        canExpend: true,
-        expended: false,
-        isResource: isResource,
-        indent: indent,
-        bonus: {},
-        batchTime: 0.5,
-        machineCount () {
-          return this.needs / this.calcResultPerMachinePerMinute()
-        },
-
-        inserterCount (inserter) {
-          return this.calcResultPerMachinePerMinute() / inserter.turns_per_minute
-        },
-
-        calcResultPerMachinePerMinute () {
-          let recipe = this.recipe
-          let machine = this.machine
-          let count
-          if (this.isResource) {
-            count = 60 / (recipe.mining_time / machine.mining_speed / (machine.mining_power - recipe.hardness))
-          } else {
-            count = 60 / (recipe.energy_required / machine.crafting_speed) * recipe.result_count
-          }
-
-          if (this.bonus.productivity) count *= (1 + this.bonus.productivity)
-          if (this.bonus.speed) count *= (1 + this.bonus.speed)
-          return count
-        },
-
-      }
-      if (!machine) {
-        if (!row.recipe) {
-          row.recipe = this.recipes.dummy
-        }
-        row.machine = this.machines.find((machine) => { return machine.name === this.categories[row.recipe.category][0] })
-      }
-
-      this.beacons.forEach((beacon) => {
-        row.beacons.push({
-          count: 0,
-          modules: [],
-          beacon: beacon
-        })
-      })
-
-      if (this.recipeConfigs[name]) {
-        this.recipeConfigs[name].forEach((config) => {
-          row[config.k] = config.v
-        })
-      }
-
-      return row
     },
 
     renderHeaderOperation (h, {
@@ -320,67 +265,6 @@ export default {
       this.remainders.forEach(changeMachine)
     },
 
-    getUpstreamsRecursive (row, maxDepth) {
-      let subrows = row.sub
-
-      row.bonus = {
-        productivity: 0,
-        speed: 0,
-        consumption: 0,
-        pollution: 0,
-      }
-
-      Object.keys(row.bonus).forEach((name) => {
-        let moduleFilter = (module) => {
-          if (module && module.effect[name]) {
-            row.bonus[name] += module.effect[name].bonus
-          }
-        }
-
-        row.modules.forEach(moduleFilter)
-
-        row.beacons.forEach((beaconConfig) => {
-          beaconConfig.modules.forEach((module) => {
-            if (module && module.effect[name]) {
-              row.bonus[name] += module.effect[name].bonus * beaconConfig.count * beaconConfig.beacon.distribution_effectivity
-            }
-          })
-        })
-      })
-
-      if (typeof maxDepth === 'undefined') maxDepth = -1
-      maxDepth = Math.ceil(maxDepth)
-      if (maxDepth === 0) {
-        return subrows
-      }
-      maxDepth--
-
-      if (row.isResource) {
-        return subrows
-      }
-
-      let recipe = row.recipe
-
-      let ingredients = recipe.ingredients
-      Object.keys(ingredients).forEach((ingredient) => {
-        let value = ingredients[ingredient]
-        let subrow = row.sub.find((subrow) => {
-          return subrow.name === ingredient
-        })
-        if (!subrow) {
-          subrow = this.buildRow(ingredient, 'sub', row.indent + 1, ingredient in this.resources)
-          subrows.push(subrow)
-        }
-        subrow.needs = row.needs / recipe.result_count * value / (1 + row.bonus.productivity)
-
-        if (typeof this.resources[ingredient] === 'undefined') {
-          subrow.sub = this.getUpstreamsRecursive(subrow)
-        }
-      })
-
-      return subrows
-    },
-
     expends (row) {
       let arr = []
       row.sub.forEach((subrow) => {
@@ -414,9 +298,7 @@ export default {
     allModules.sort(Helpers.sortByOrder)
     allModules.unshift(null)
 
-    this.inserters.sort((a, b) => {
-      return Helpers.sortByOrder(this.items[a.name], this.items[b.name])
-    })
+    this.inserters.sort((a, b) => Helpers.sortByOrder(this.items[a.name], this.items[b.name]))
 
     this.machines.sort((a, b) => {
       // put player first
@@ -481,62 +363,6 @@ export default {
   },
 
   mounted () {
-    this.remaindersWatcherCallback = (opt) => {
-      this.remaindersUnWatcher()
-      this.remaindersUnWatcher = null
-
-      let remainders
-
-      remainders = Object.values(this.originRemainders)
-
-      remainders.forEach((row) => {
-        row.sub = this.getUpstreamsRecursive(row)
-      })
-      this.remainders = remainders
-
-      if (!this.remaindersUnWatcher) {
-        this.remaindersUnWatcher = this.$watch('remainders', this.remaindersWatcherCallback, {deep: true})
-      }
-    }
-    this.remaindersUnWatcher = this.$watch('remainders', this.remaindersWatcherCallback, {deep: true})
-
-    this.requirementsWatcherCallback = () => {
-      this.requirementsUnWatcher()
-      this.requirementsUnWatcher = null
-      this.requirements.forEach((row) => {
-        row.sub = this.getUpstreamsRecursive(row)
-      })
-
-      let res
-      let originRemainders = {}
-      this.remainders = []
-      res = (row, expended) => {
-        if (!row.expended) {
-          expended = false
-        }
-
-        row.sub.filter((subrow) => {
-          if (!expended) {
-            if (!originRemainders[subrow.name]) {
-              originRemainders[subrow.name] = this.buildRow(subrow.name, 'remainder', 0, subrow.isResource)
-            }
-            originRemainders[subrow.name].needs += subrow.needs
-          }
-          res(subrow, expended)
-        })
-      }
-      this.requirements.forEach((row) => {
-        res(row, row.expended)
-      })
-
-      this.originRemainders = originRemainders
-
-      this.remaindersWatcherCallback('plain')
-      if (!this.requirementsUnWatcher) {
-        this.requirementsUnWatcher = this.$watch('requirements', this.requirementsWatcherCallback, {deep: true})
-      }
-    }
-    this.requirementsUnWatcher = this.$watch('requirements', this.requirementsWatcherCallback, {deep: true})
   },
 
   computed: {
@@ -546,15 +372,23 @@ export default {
 
     shownData () {
       let data = this.expends({sub: this.requirements})
+      data.push({
+        type: 'split',
+      })
 
       let remainderData = this.expends({sub: this.remainders})
 
-      remainderData.forEach((row) => {
-        this.recipeConfigs[row.name] = [
-          { k: 'machine', v: row.machine },
-          { k: 'beacons', v: row.beacons },
-          { k: 'modules', v: row.modules },
-        ]
+      let removing = []
+
+      remainderData.forEach((row, index) => {
+        row.saveRecipeConfig()
+        if (Math.abs(row.needs) < 0.0001) {
+          removing.push(index)
+        }
+      })
+
+      removing.sort((a, b) => { return b - a }).forEach((index) => {
+        remainderData.splice(index, 1)
       })
       return data.concat(remainderData)
     },
@@ -564,6 +398,7 @@ export default {
       let consumption = 0
       let machines = []
       this.shownData.forEach((row) => {
+        if (!row.isData) return
         let machine = machines.find((machine) => {
           return machine.name === row.machine.name
         })
@@ -591,7 +426,58 @@ export default {
     locale () {
       this.$i18n.locale = this.locale
     },
-    // requirements watcher is at mounted()
+
+    requirements: {
+      handler: throttle(function () {
+        this.requirements.forEach(row => row.update())
+        this.remainders = []
+      }, 50, {
+        trailing: false,
+      }),
+      deep: true,
+    },
+
+    remainders: {
+      handler: throttle(function () {
+        let res
+        let remainders = this.remainders
+        remainders.forEach(row => { row.sources = [] })
+
+        res = (row) => {
+          row.sub.forEach((subrow) => {
+            if (!row.expended) {
+              let remainder = remainders.find((remainder) => { return remainder.name === subrow.name })
+              if (!remainder) {
+                remainder = new Row(subrow.name, 'remainder', 0, subrow.isResource)
+                remainders.push(remainder)
+              }
+              if (!remainder.sources.find(source => source.id === subrow.id)) {
+                remainder.sources.push(subrow)
+              }
+            } else {
+              res(subrow)
+            }
+          })
+        }
+
+        this.requirements.forEach(res)
+
+        remainders.forEach((row) => {
+          row.needs = row.sources.reduce((acc, cur) => acc + cur.needs, 0)
+          row.update()
+        })
+
+        remainders.forEach(res)
+
+        remainders.forEach((row) => {
+          row.needs = row.sources.reduce((acc, cur) => acc + cur.needs, 0)
+          row.update()
+        })
+      }, 50, {
+        trailing: false,
+      }),
+      deep: true,
+    },
   }
 }
 </script>
@@ -650,6 +536,10 @@ div.cell {
 }
 >>> .warning-row {
   background-color: oldlace;
+}
+
+>>> .blue-row {
+  background-color: #ecf5ff;
 }
 
 >>> .el-button.operation {
