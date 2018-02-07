@@ -15,7 +15,7 @@ Vue.use(VueI18n)
 Vue.component('vue-headful', vueHeadful)
 
 let all = {}
-list.forEach((lang) => {
+list.forEach(lang => {
   try {
     all[lang] = require('../public/translations/' + lang).default
     all[lang].el = require('element-ui/lib/locale/lang/' + lang).default.el

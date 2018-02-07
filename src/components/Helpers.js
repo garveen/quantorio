@@ -47,7 +47,7 @@ export default {
   translate (i18n, ...names) {
     let translation = false
     let first = false
-    names.some((name) => {
+    names.some(name => {
       if (name && typeof name !== 'string') {
         name = name.name
       }

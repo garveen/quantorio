@@ -35,10 +35,10 @@ export default {
   },
   mounted () {
     if (this.allowedModules.length) {
-      this.modules.forEach((module) => {
+      this.modules.forEach(module => {
         let allowed = true
         if (module) {
-          Object.keys(module.effect).forEach((effect) => {
+          Object.keys(module.effect).forEach(effect => {
             if (!this.allows.includes(effect)) {
               allowed = false
             }

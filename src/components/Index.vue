@@ -247,16 +247,14 @@ export default {
     },
 
     changeAllMachine (machineName) {
-      let machine = this.machines.find((machine) => {
-        return machine.name === machineName
-      })
+      let machine = this.machines.find(machine => machine.name === machineName)
 
       let changeMachine
-      changeMachine = (row) => {
+      changeMachine = row => {
         if (categories[row.recipe.category].includes(machineName)) {
           row.machine = machine
         }
-        row.sub.forEach((subrow) => {
+        row.sub.forEach(subrow => {
           changeMachine(subrow)
         })
       }
@@ -267,7 +265,7 @@ export default {
 
     expends (row) {
       let arr = []
-      row.sub.forEach((subrow) => {
+      row.sub.forEach(subrow => {
         arr.push(subrow)
         if (subrow.expended) {
           arr.push(...this.expends(subrow))
@@ -325,7 +323,7 @@ export default {
       'ingredient_count': 0
     }
 
-    Object.keys(this.groups).forEach((groupName) => {
+    Object.keys(this.groups).forEach(groupName => {
       let group = this.groups[groupName]
       if (!group.subgroups) {
         delete this.groups[groupName]
@@ -333,14 +331,14 @@ export default {
       }
       group.subgroupsWithItems = []
       let itemCount = 0
-      Object.keys(group.subgroups).forEach((subgroupName) => {
+      Object.keys(group.subgroups).forEach(subgroupName => {
         if (this.subgroups[subgroupName]) {
           // foreach the subgroup
           let subgroupItems = []
-          Object.keys(this.subgroups[subgroupName]).forEach((itemName) => {
+          Object.keys(this.subgroups[subgroupName]).forEach(itemName => {
             if (this.items[itemName] && this.recipes[itemName]) {
               let item = {}
-              Object.keys(this.items[itemName]).forEach((k) => {
+              Object.keys(this.items[itemName]).forEach(k => {
                 item[k] = items[itemName][k]
               })
               item.name = itemName
@@ -391,7 +389,7 @@ export default {
         }
       })
 
-      removing.sort((a, b) => { return b - a }).forEach((index) => {
+      removing.sort((a, b) => { return b - a }).forEach(index => {
         remainderData.splice(index, 1)
       })
       return data.concat(remainderData)
@@ -401,9 +399,9 @@ export default {
       let sums = {}
       let consumption = 0
       let machines = []
-      this.shownData.forEach((row) => {
+      this.shownData.forEach(row => {
         if (!row.isData) return
-        let machine = machines.find((machine) => {
+        let machine = machines.find(machine => {
           return machine.name === row.machine.name
         })
         if (!machine) {
@@ -447,10 +445,10 @@ export default {
         let remainders = this.remainders
         remainders.forEach(row => { row.sources = [] })
 
-        res = (row) => {
-          row.sub.forEach((subrow) => {
+        res = row => {
+          row.sub.forEach(subrow => {
             if (!row.expended) {
-              let remainder = remainders.find((remainder) => { return remainder.name === subrow.name })
+              let remainder = remainders.find(remainder => { return remainder.name === subrow.name })
               if (!remainder) {
                 remainder = new Row(subrow.name, 'remainder', 0, subrow.isResource)
                 remainders.push(remainder)
@@ -466,14 +464,14 @@ export default {
 
         this.requirements.forEach(res)
 
-        remainders.forEach((row) => {
+        remainders.forEach(row => {
           row.needs = row.sources.reduce((acc, cur) => acc + cur.needs, 0)
           row.update()
         })
 
         remainders.forEach(res)
 
-        remainders.forEach((row) => {
+        remainders.forEach(row => {
           row.needs = row.sources.reduce((acc, cur) => acc + cur.needs, 0)
           row.update()
         })

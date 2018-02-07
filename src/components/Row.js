@@ -33,10 +33,10 @@ class Row {
       if (!this.recipe) {
         this.recipe = recipes.dummy
       }
-      this.machine = machines.find((machine) => { return machine.name === categories[this.recipe.category][0] })
+      this.machine = machines.find(machine => machine.name === categories[this.recipe.category][0])
     }
 
-    beacons.forEach((beacon) => {
+    beacons.forEach(beacon => {
       this.beacons.push({
         count: 0,
         modules: [],
@@ -45,7 +45,7 @@ class Row {
     })
 
     if (recipeConfigs[name]) {
-      recipeConfigs[name].forEach((config) => {
+      recipeConfigs[name].forEach(config => {
         this[config.k] = config.v
       })
     }
@@ -93,8 +93,8 @@ class Row {
       pollution: 0,
     }
 
-    Object.keys(this.bonus).forEach((name) => {
-      let moduleFilter = (module) => {
+    Object.keys(this.bonus).forEach(name => {
+      let moduleFilter = module => {
         if (module && module.effect[name]) {
           this.bonus[name] += module.effect[name].bonus
         }
@@ -102,8 +102,8 @@ class Row {
 
       this.modules.forEach(moduleFilter)
 
-      this.beacons.forEach((beaconConfig) => {
-        beaconConfig.modules.forEach((module) => {
+      this.beacons.forEach(beaconConfig => {
+        beaconConfig.modules.forEach(module => {
           if (module && module.effect[name]) {
             this.bonus[name] += module.effect[name].bonus * beaconConfig.count * beaconConfig.beacon.distribution_effectivity
           }
@@ -118,9 +118,9 @@ class Row {
     let recipe = this.recipe
 
     let ingredients = recipe.ingredients
-    Object.keys(ingredients).forEach((ingredient) => {
+    Object.keys(ingredients).forEach(ingredient => {
       let value = ingredients[ingredient]
-      let subrow = this._sub.find((subrow) => {
+      let subrow = this._sub.find(subrow => {
         return subrow.name === ingredient
       })
       if (!subrow) {
