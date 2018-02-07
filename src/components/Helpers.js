@@ -21,18 +21,16 @@ export default {
     }
     let aOrders = a.order.split('-')
     let bOrders = b.order.split('-')
-    let result = 0
-    aOrders.forEach((aa, index) => {
-      if (bOrders[index] === undefined) {
-        result = 1
+    for (let i = 0; i < Math.max(aOrders.length, bOrders.length); i++) {
+      if (aOrders[i] === undefined) {
+        return -1
       }
-      if (aOrders[index] !== bOrders[index]) {
-        result = aOrders[index] > bOrders[index] ? 1 : -1
+      if (bOrders[i] === undefined) {
+        return 1
       }
-    })
-    if (result) return result
-    if (bOrders.length > aOrders.length) {
-      return -1
+      if (aOrders[i] !== bOrders[i]) {
+        return aOrders[i] > bOrders[i] ? 1 : -1
+      }
     }
     let aName = parseInt(a.name.replace(/^.*-/, ''))
     let bName = parseInt(b.name.replace(/^.*-/, ''))
