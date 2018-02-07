@@ -9,7 +9,7 @@
         </h1>
       </el-col>
       <el-col :span='8' :style='{"text-align": "end"}'>
-        <el-button type='primary' plain @click="window.location.href = 'https://github.com/acabin/quantorio'">View on GitHub</el-button>
+        <el-button type='primary' plain @click="window.location.href = 'https://github.com/garveen/quantorio'">View on GitHub</el-button>
         <el-select v-model='locale' filterable default-first-option>
           <el-option v-for="item in languages" :key="item" :label="item" :value="item">
           </el-option>
@@ -327,6 +327,10 @@ export default {
 
     Object.keys(this.groups).forEach((groupName) => {
       let group = this.groups[groupName]
+      if (!group.subgroups) {
+        delete this.groups[groupName]
+        return
+      }
       group.subgroupsWithItems = []
       let itemCount = 0
       Object.keys(group.subgroups).forEach((subgroupName) => {

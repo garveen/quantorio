@@ -180,7 +180,7 @@ class FactorioGenerator
             return;
         }
         $item = [
-            'order' => preg_replace('~\[.*?\]~', '', $entity['order']),
+            'order' => $entity['order'],
             'icon' => $this->saveIcon($entity['icon']),
         ];
         if ($name) {
@@ -456,11 +456,22 @@ class FactorioGenerator
         };
         $ksort_recursive($entity);
 
-        $checkGroup = function ($entity) {
-        };
         if (!isset($entity['type'])) {
             return;
         }
+
+        if ($entity['icon']) {
+            $forbids = [
+                'achievement',
+                'technology',
+            ];
+            foreach ($forbids as $forbid) {
+                if (strpos($entity['icon'], $forbid !== false)) {
+                    return;
+                }
+            }
+        }
+
         switch ($entity['type']) {
             case 'item-group':
             case 'item-subgroup':
@@ -482,7 +493,6 @@ class FactorioGenerator
                 }
                 break;
             case 'inserter':
-            case 'technology':
             case 'module':
             case 'beacon':
                 $saver = "save{$entity['type']}";
@@ -497,6 +507,8 @@ class FactorioGenerator
                 break;
             case 'resource':
                 $this->saveResource($entity);
+                break;
+            case 'technology':
                 break;
             default:
                 $this->saveItem($entity);
