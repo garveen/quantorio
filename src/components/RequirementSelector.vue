@@ -61,5 +61,8 @@ export default {
 
 >>> .el-tabs__item {
   height: 92px;
+  display: inline-flex;
+  align-items: center;
+  line-height: normal;
 }
 </style>

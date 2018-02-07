@@ -19,19 +19,28 @@ export default {
     } else if (!b) {
       return 1
     }
-    if (a.order > b.order) {
-      return 1
-    } else if (a.order < b.order) {
-      return -1
-    } else {
-      let aName = parseInt(a.name.replace(/^.*-/, ''))
-      let bName = parseInt(b.name.replace(/^.*-/, ''))
-
-      if (aName > bName) {
-        return 1
-      } else if (aName < bName) {
-        return -1
+    let aOrders = a.order.split('-')
+    let bOrders = b.order.split('-')
+    let result = 0
+    aOrders.forEach((aa, index) => {
+      if (bOrders[index] === undefined) {
+        result = 1
       }
+      if (aOrders[index] !== bOrders[index]) {
+        result = aOrders[index] > bOrders[index] ? 1 : -1
+      }
+    })
+    if (result) return result
+    if (bOrders.length > aOrders.length) {
+      return -1
+    }
+    let aName = parseInt(a.name.replace(/^.*-/, ''))
+    let bName = parseInt(b.name.replace(/^.*-/, ''))
+
+    if (aName > bName) {
+      return 1
+    } else if (aName < bName) {
+      return -1
     }
     return 0
   },
