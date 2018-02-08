@@ -32,7 +32,7 @@ class Row {
     this.expended = false
     this.isResource = isResource
     this.indent = indent
-    this.bonus = bonus
+    this.bonus = Object.assign({}, bonus)
     this.batchTime = 0.5
     this.sources = []
     this.isData = true
@@ -92,7 +92,7 @@ class Row {
       this._sub = []
     }
 
-    this.bonus = bonus
+    this.bonus = Object.assign({}, bonus)
 
     Object.keys(this.bonus).forEach(name => {
       let moduleFilter = module => {
