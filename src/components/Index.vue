@@ -21,7 +21,7 @@
         <template slot-scope="scope">
           <template v-if='scope.row.isData'>
             <div :style='{display: "flex", "flex-direction": "column"}'>
-              <el-button v-if='scope.row.type === "req"' class='operation' type="danger" size='small' @click='handleRemove(scope.$index, scope.row)'>-</el-button>
+              <el-button v-if='scope.row.type === "requirement"' class='operation' type="danger" size='small' @click='handleRemove(scope.$index, scope.row)'>-</el-button>
               <el-button v-if='scope.row.expended' class='operation' type="warning" size='small' @click='scope.row.expended = false'>&lt;</el-button>
               <el-button v-else-if='scope.row.canExpend' class='operation' type="primary" size='small' @click='scope.row.expended = true'>&gt;</el-button>
             </div>
@@ -45,7 +45,7 @@
       <el-table-column prop="needs" :label="translate('requirement-per-minute')">
         <template slot-scope="scope">
           <template v-if='scope.row.isData'>
-            <el-input-number v-if='scope.row.type === "req"' v-model="scope.row.needs" :min=0 controls-position="right" size='small'></el-input-number>
+            <el-input-number v-if='scope.row.type === "requirement"' v-model="scope.row.needs" :min=0 controls-position="right" size='small'></el-input-number>
             <span v-else>{{ scope.row.needs }}</span>
           </template>
         </template>
@@ -111,7 +111,7 @@
           <template v-if='scope.row.isData'>
             <span class='flex around'>
               <span v-for='inserter in inserters'>
-                {{ scope.row.inserterCount(inserter).toFixed(2) }}
+                {{ format(scope.row.inserterCount(inserter)) }}
               </span>
             </span>
           </template>
@@ -170,10 +170,6 @@ export default {
       resources: resources,
       categories: categories,
       inserters: inserters,
-      requirementsUnWatcher: null,
-      requirementsWatcherCallback: null,
-      remaindersUnWatcher: null,
-      remaindersWatcherCallback: null,
       window: window,
       rowIdIncrement: 1,
     }
@@ -183,7 +179,7 @@ export default {
       row,
       rowIndex
     }) {
-      if (row.type === 'req') {
+      if (row.type === 'requirement') {
         return 'success-row'
       } else if (row.type === 'remainder') {
         return 'warning-row'
@@ -207,7 +203,7 @@ export default {
     },
 
     doAdd (name) {
-      let row = new Row(name, 'req', 0, false)
+      let row = new Row(name, 'requirement')
       row.needs = 1
       this.requirements.push(row)
       this.selectTargetDialogVisiable = false
@@ -272,6 +268,127 @@ export default {
         }
       })
       return arr
+    },
+
+    saveHash () {
+      let strings = []
+      // let remainders = []
+      let str
+      this.shownData.forEach(row => {
+        switch (row.type) {
+          case 'requirement':
+            str = 'T'
+            break
+          case 'remainder':
+            str = 'R'
+            break
+          case 'sub':
+            str = 'S'
+            break
+          default:
+            return
+        }
+
+        if (Math.abs(row.needs) < 0.0001) return
+        str += '/' + /* 1 */ row.name + '/' + /* 2 */ (row.type === 'requirement' ? row.needs : 0) + '/' + /* 3 */ row.machine.name + '/'
+        let modules = []
+        row.modules.forEach(module => {
+          if (module) {
+            modules.push(module.name)
+          }
+        })
+        str += /* 4 */ modules.join('~') + '/'
+        let beacons = []
+        row.beacons.forEach(beaconConfig => {
+          // if (!beaconConfig.count) return
+          let modules = []
+          beaconConfig.modules.forEach(module => {
+            if (module) {
+              modules.push(module.name)
+            }
+          })
+          beacons.push(beaconConfig.beacon.name + '=' + beaconConfig.count + '=' + modules.join('~'))
+        })
+        str += /* 5 */ beacons.join(':') + '/' + /* 6 */ (row.expended ? 'T' : 'F') + '/' + /* 7 */ row.indent
+        strings.push(str)
+      })
+      window.history.pushState(null, null, '/#' + strings.join('&'))
+    },
+
+    loadHash () {
+      if (!window.location.hash) return
+      let rows = window.location.hash.substring(1).split('&')
+      let map = {
+        T: 'requirement',
+        R: 'remainder',
+        S: 'sub',
+      }
+      let requirements = []
+      let remainders = []
+      let path = []
+      rows.forEach((rowConfigStr, index) => {
+        let rowConfig = rowConfigStr.split('/')
+        let indent = Number(rowConfig[7])
+        let row = new Row(rowConfig[1], map[rowConfig[0]])
+        if (indent === 0) {
+          path = [row]
+          if (rowConfig[0] === 'T') {
+            requirements.push(row)
+          } else if (rowConfig[0] === 'R') {
+            remainders.push(row)
+          }
+        } else {
+          row.indent = indent
+          if (indent > path.length - 1) {
+            path[path.length - 1]._sub.push(row)
+            path.push(row)
+          } else {
+            while (indent !== path.length) {
+              path.pop()
+            }
+            path[path.length - 1].sub.push(row)
+          }
+        }
+        row.needs = Number(rowConfig[2])
+        row.machine = this.machines.find(machine => machine.name === rowConfig[3])
+        rowConfig[4].split('~').forEach(moduleName => {
+          row.modules.push(allModules.find(module => module && (module.name === moduleName)))
+        })
+        rowConfig[5].split(':').forEach(beaconConfigStr => {
+          if (!beaconConfigStr) return
+          let newBeaconConfig = beaconConfigStr.split('=')
+          let beaconConfig = row.beacons.find(b => b.beacon.name === newBeaconConfig[0])
+          beaconConfig.count = Number(newBeaconConfig[1])
+          newBeaconConfig[2].split('~').forEach(moduleName => {
+            beaconConfig.modules.push(allModules.find(module => module && (module.name === moduleName)))
+          })
+        })
+        row.expended = rowConfig[6] === 'T'
+        row._sub = []
+      })
+      remainders.forEach(row => row.update())
+      requirements.forEach(row => row.update())
+      this.remainders = remainders
+      this.requirements = requirements
+    },
+
+    format (number) {
+      let prefixes = [
+        'k',
+        'M',
+        'G',
+        'T',
+      ]
+      let level = 0
+      while (number > 1000 && level < 3) {
+        number /= 1000
+        level++
+      }
+      number = '' + number.toFixed(2) + ' '
+      if (level) {
+        number += prefixes[level]
+      }
+      return number
     },
 
     translate (...names) {
@@ -362,6 +479,7 @@ export default {
         delete this.groups[groupName]
       }
     })
+    this.loadHash()
   },
 
   mounted () {
@@ -381,6 +499,18 @@ export default {
       let remainderData = this.expends({sub: this.remainders})
 
       let removing = []
+
+      data.forEach((row, index) => {
+        if (Math.abs(row.needs) < 0.0001) {
+          removing.push(index)
+        }
+      })
+
+      removing.sort((a, b) => { return b - a }).forEach(index => {
+        data.splice(index, 1)
+      })
+
+      removing = []
 
       remainderData.forEach((row, index) => {
         row.saveRecipeConfig()
@@ -418,9 +548,13 @@ export default {
       })
 
       sums.type = 'sums'
-      sums.consumption = '' + consumption + 'W'
+      sums.consumption = '' + this.format(consumption) + 'W'
       sums.machines = machines
       return [sums]
+    },
+
+    remainderTrigger () {
+      return [this.requirements, this.remainders]
     },
   },
 
@@ -432,14 +566,13 @@ export default {
     requirements: {
       handler: throttle(function () {
         this.requirements.forEach(row => row.update())
-        this.remainders = []
       }, 50, {
         trailing: false,
       }),
       deep: true,
     },
 
-    remainders: {
+    remainderTrigger: {
       handler: throttle(function () {
         let res
         let remainders = this.remainders
@@ -450,7 +583,7 @@ export default {
             if (!row.expended) {
               let remainder = remainders.find(remainder => { return remainder.name === subrow.name })
               if (!remainder) {
-                remainder = new Row(subrow.name, 'remainder', 0, subrow.isResource)
+                remainder = new Row(subrow.name, 'remainder')
                 remainders.push(remainder)
               }
               if (!remainder.sources.find(source => source.id === subrow.id)) {
@@ -475,6 +608,8 @@ export default {
           row.needs = row.sources.reduce((acc, cur) => acc + cur.needs, 0)
           row.update()
         })
+
+        this.saveHash()
       }, 50, {
         trailing: false,
       }),

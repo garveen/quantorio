@@ -7,12 +7,20 @@ import Helpers from './Helpers'
 
 let rowIdIncrement = 1
 let recipeConfigs = {}
+let bonus = {
+  productivity: 0,
+  speed: 0,
+  consumption: 0,
+  pollution: 0,
+}
 
 class Row {
-  constructor (name, type, indent, isResource, machine) {
+  constructor (name, type, indent) {
+    let isResource = Boolean(resources[name])
+    indent || (indent = 0)
     this.id = rowIdIncrement++
     this.name = name
-    this.machine = machine
+    this.machine = null
     this.recipe = isResource ? resources[name] : recipes[name]
     this.icon = Helpers.icon(name)
     this.needs = 0
@@ -24,17 +32,15 @@ class Row {
     this.expended = false
     this.isResource = isResource
     this.indent = indent
-    this.bonus = {}
+    this.bonus = bonus
     this.batchTime = 0.5
     this.sources = []
     this.isData = true
 
-    if (!machine) {
-      if (!this.recipe) {
-        this.recipe = recipes.dummy
-      }
-      this.machine = machines.find(machine => machine.name === categories[this.recipe.category][0])
+    if (!this.recipe) {
+      this.recipe = recipes.dummy
     }
+    this.machine = machines.find(machine => machine.name === categories[this.recipe.category][0])
 
     beacons.forEach(beacon => {
       this.beacons.push({
@@ -86,12 +92,7 @@ class Row {
       this._sub = []
     }
 
-    this.bonus = {
-      productivity: 0,
-      speed: 0,
-      consumption: 0,
-      pollution: 0,
-    }
+    this.bonus = bonus
 
     Object.keys(this.bonus).forEach(name => {
       let moduleFilter = module => {
@@ -124,7 +125,7 @@ class Row {
         return subrow.name === ingredient
       })
       if (!subrow) {
-        subrow = new Row(ingredient, 'sub', this.indent + 1, ingredient in resources)
+        subrow = new Row(ingredient, 'sub', this.indent + 1)
         this._sub.push(subrow)
       }
       subrow.needs = this.needs / recipe.result_count * value / (1 + this.bonus.productivity)
