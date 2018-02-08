@@ -34,7 +34,7 @@
             <el-row>
               <el-col :offset='scope.row.indent'>
                 <div :style='{display: "flex"}'>
-                  <img class='icon' :src='scope.row.icon' />
+                  <img class='icon' :src='icon(scope.row)' />
                   <span v-bind:style='{margin: "auto 0 auto 10px"}' v-t='scope.row.name'></span>
                 </div>
               </el-col>
@@ -71,11 +71,11 @@
                   trigger="hover">
                   <div>
                     <template v-for='machine in machines' v-if='categories[scope.row.recipe.category].includes(machine.name)'>
-                      <img :src='items[machine.name].icon' @click='selectMachine(scope.row, machine)' class='button icon icon-bordered'>
+                      <img :src='icon(items[machine.name])' @click='selectMachine(scope.row, machine)' class='button icon icon-bordered'>
                     </template>
                   </div>
                   <span slot='reference'>
-                    <img class='icon button' :src='items[scope.row.machine.name].icon'>
+                    <img class='icon button' :src='icon(scope.row.machine)'>
                   </span>
                 </el-popover>
                 <ModuleSelector ref="modulePopover" v-for="index in scope.row.machine.module_slots" :key='index' :allows='scope.row.machine.allowed_effects' :module.sync='scope.row.modules[index - 1]'></ModuleSelector>

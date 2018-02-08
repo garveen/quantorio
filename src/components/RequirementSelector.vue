@@ -2,7 +2,7 @@
   <el-dialog :show-close='false' :visible.sync="_visible">
     <el-tabs type="border-card" v-once>
       <el-tab-pane v-for='group in groups' :key='group.name'>
-        <span slot="label"><img :src='group.icon' class='group'></span>
+        <span slot="label"><img :src='icon(group)' class='group'></span>
         <div>
           <div v-for='subgroup in group.subgroupsWithItems'>
             <abbr v-for='(item) in subgroup.items' :title="translate(item, items[item.name])">

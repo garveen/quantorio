@@ -5,17 +5,19 @@ export default {
     let ret
     if (typeof item === 'string' && items[item]) {
       ret = items[item].icon
-    }
-    if (item && item.name && items[item.name]) {
+    } else if (item && item.name && items[item.name]) {
       ret = items[item.name].icon
-    }
-    switch (defaults) {
-      case 'module':
-        ret = 'core/slot-icon-module.png'
+    } else if (item && item.icon) {
+      ret = item.icon
     }
     if (ret) {
       return '/public/' + ret
     }
+    switch (defaults) {
+      case 'module':
+        return 'core/slot-icon-module.png'
+    }
+    console.log(item)
   },
   sortByOrder (a, b) {
     if (!a) {
