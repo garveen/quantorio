@@ -2,15 +2,19 @@ import items from '../../public/items'
 
 export default {
   icon (item, defaults) {
+    let ret
     if (typeof item === 'string' && items[item]) {
-      return items[item].icon
+      ret = items[item].icon
     }
     if (item && item.name && items[item.name]) {
-      return items[item.name].icon
+      ret = items[item.name].icon
     }
     switch (defaults) {
       case 'module':
-        return 'core/slot-icon-module.png'
+        ret = 'core/slot-icon-module.png'
+    }
+    if (ret) {
+      return '/public/' + ret
     }
   },
   sortByOrder (a, b) {
