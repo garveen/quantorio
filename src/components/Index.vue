@@ -317,6 +317,7 @@ export default {
 
     loadHash () {
       if (!window.location.hash) return
+
       let rows = window.location.hash.substring(1).split('&')
       let map = {
         T: 'requirement',
@@ -328,6 +329,7 @@ export default {
       let path = []
       rows.forEach((rowConfigStr, index) => {
         let rowConfig = rowConfigStr.split('/')
+        if (rowConfig.length < 8) return
         let indent = Number(rowConfig[7])
         let row = new Row(rowConfig[1], map[rowConfig[0]])
         if (indent === 0) {
@@ -343,7 +345,7 @@ export default {
             path[path.length - 1]._sub.push(row)
             path.push(row)
           } else {
-            while (indent !== path.length) {
+            while (indent !== path.length && path.length !== 0) {
               path.pop()
             }
             path[path.length - 1].sub.push(row)
