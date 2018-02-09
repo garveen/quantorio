@@ -46,7 +46,9 @@ if (class_exists('lua')) {
     $lua->registerCallback('php_findfile', function ($path) use (&$mod) {
         $ret = null;
         $path = str_replace('.', '/', $path);
-        if (is_file("core/lualib/{$path}.lua")) {
+        if (is_file("core/{$path}.lua")) {
+            $ret = "core/$path";
+        } elseif (is_file("core/lualib/{$path}.lua")) {
             $ret = "core/lualib/$path";
         } elseif (is_file("{$mod}/{$path}.lua")) {
             $ret = "{$mod}/{$path}";
@@ -57,7 +59,7 @@ if (class_exists('lua')) {
         }
         return $ret;
     });
-    $lua->include('core/prefix.lua');
+    $lua->include('core/php-prefix.lua');
     foreach ([
         'dataloader',
     ] as $luafile) {
