@@ -403,20 +403,6 @@ export default {
 
   },
   created () {
-    var l = new LuaVM.Lua.State()
-
-    let a = l.execute(`
-local obj = js.global:Object()
-local t = {name=1,type=2}
-for k,v in pairs(t) do
-obj[k] = v
-end
-return t, obj, 2
-
-      `)
-    console.log(l.lua_to_js(a[0]))
-    console.log(l)
-
     let translateFallback = 'en'
     let currentLanguage
     let testLanguage = navigator.language || navigator.userLanguage
@@ -565,7 +551,7 @@ return t, obj, 2
       })
 
       sums.type = 'sums'
-      sums.consumption = '' + this.format(consumption) + 'W'
+      sums.consumption = '' + this.format(consumption) + 'W (' + this.$t('beacons-not-included') + ')'
       sums.machines = machines
       return [sums]
     },
