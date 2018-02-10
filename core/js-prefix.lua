@@ -10,16 +10,18 @@ table.insert(package.searchers, function(name)
 	}
 	for _, path in ipairs(paths) do
 
-		path = path .. "/"..name:gsub("%.", "/")..".lua"
+		path = path .. "/"..name:gsub("%.", "/") .. ".lua"
 		-- js.global.console:log('find ' .. path)
 		if fs:existsSync(path) then
 			local contents = fs:readFileSync(path, "utf8")
-			local loaded = load(contents, "@"..path), path
-			-- js.global.console:log('Loaded')
-			return loaded
+			local loaded, err = load(contents, "@"..path)
+			if (err) then
+				error(err)
+			end
+			return loaded, path
 		end
 	end
-	-- js.global.console:log('Loading ' .. name .. ' FAILED')
+	-- print('Loading ' .. name .. ' FAILED')
 
 end)
 
