@@ -5,23 +5,30 @@ local path = js.global.process.mainModule:require("path")
 local meta = {
 	groups = {},
 	subgroups = {},
+	items = {},
+	icons = {},
+	icons_to_copy = {},
 	inserters = {},
 	recipes = {},
 	modules = {},
-	items = {},
-	icons = {},
+	beacons = {},
+	resources = {},
+	categories = {},
+	machines = {},
 }
 
-function dump (o)
-	print(dkjson.encode(o, {indent = true}))
+function dump(...)
+	local info = debug.getinfo(2, 'Sl')
+	print(info.short_src .. ':' .. info.currentline .. ': ' .. dkjson.encode(..., {indent = true}))
 end
 
 function is_int(n)
-  return n == math.floor(n)
+	if type(n) ~= 'number' then return false end
+	return n == math.floor(n)
 end
 
 
-function Set (list)
+function Set(list)
 	local set = {}
 	for _, l in ipairs(list) do
 		set[l] = true
@@ -48,39 +55,46 @@ function buildItem(source, params)
 end
 
 function saveItem(entity, name)
+	if not (entity.icon or entity.icons) or not entity.order then return end
+	local item = {
+		order = entity.order,
+		icon = saveIcon(entity),
+	}
+	if name then
+		item.name = name
+	end
+	meta.items[entity.name] = item
 end
 
-function saveIcon (entity)
-	local icon  = entity.icon
-	if (icon:find('__core__')) then
-		return
-	end
-	local icon  = entity.icon
-	if (icon:find('__core__')) then
-		return
+function saveIcon(entity)
+	local icon = entity.icon
+
+	if (entity.icons) then
+		icon = entity.icons[1].icon
 	end
 
-	local origin = icon:gsub('^__base__', 'data/base')
-	local save = icon:gsub('^__base__', 'graphics/base')
+	local origin = icon:gsub('^__(%w+)__', 'data/%1')
+	local save = icon:gsub('^__(%w+)__', 'graphics/%1')
 	local remote = 'public/' .. save
 	if not fs:existsSync(origin) then
-		print(origin)
+		dump(origin)
 		error()
 	end
 	meta.icons[entity.name] = {
-		origin,
-		save,
-		remote,
+		origin = origin,
+		save = save,
+		remote = remote,
 	}
 	return save
 
 end
 
-function copyIcons ()
-	for _, setup in pairs(meta.icons) do
-		local origin, save, remote = setup
+function copyIcons()
+	for name in pairs(meta.icons_to_copy) do
+		local setup = meta.icons[name]
+		local origin, save, remote = setup.origin, setup.save, setup.remote
 		if not fs:existsSync(origin) then
-			print(origin)
+			dump(name)
 			error()
 		end
 		if not fs:existsSync(path:dirname(remote)) then
@@ -90,7 +104,7 @@ function copyIcons ()
 	end
 end
 
-function saveGroup (entity)
+function saveGroup(entity)
 	local checkGroup = function (groupName)
 		if not meta.groups[groupName] then
 			meta.groups[groupName] = {
@@ -104,6 +118,7 @@ function saveGroup (entity)
 	if (entity.type == 'item-group') then
 		checkGroup(entity.name)
 		meta.groups[entity.name].icon = saveIcon(entity)
+		meta.icons_to_copy[entity.name] = true
 		meta.groups[entity.name].order = entity.order
 	else
 		checkGroup(entity.group)
@@ -111,7 +126,7 @@ function saveGroup (entity)
 	end
 end
 
-function saveInserter (entity)
+function saveInserter(entity)
 	local inserter = {}
 	local angles = {}
 	local distances = {}
@@ -147,25 +162,162 @@ function saveInserter (entity)
 	table.insert(meta.inserters, inserter)
 end
 
-function saveModule (entity)
+function saveModule(entity)
 	local module = buildItem(entity, {
 		'type',
 		'effect',
 		'order',
 	})
 	table.insert(meta.modules, module)
-	saveItem(entity)
+
+end
+
+function saveBeacon(entity)
+	local beacon = buildItem(entity, {
+		'type',
+		'energy_usage',
+		'distribution_effectivity',
+	})
+	beacon.allowed_effects = {}
+	for _, effect in pairs(entity.allowed_effects) do
+		table.insert(beacon.allowed_effects, effect)
+	end
+	beacon.module_slots = entity.module_specification.module_slots
+	table.insert(meta.beacons, beacon)
+end
+
+function saveResource(entity)
+	local resource = buildItem(entity, {
+		category = 'basic-solid',
+	})
+	resource.hardness = entity.minable.hardness
+	resource.mining_time = entity.minable.mining_time
+	if entity.minable.required_fluid then
+		resource.fluid_amount = entity.minable.fluid_amount
+		resource.required_fluid = entity.minable.required_fluid
+	end
+	meta.resources[entity.name] = resource
+	meta.icons_to_copy[entity.name] = true
+
+end
+
+function saveRecipe(entity)
+	local recipe = buildItem(entity, {
+		result_count = 1,
+		category = 'crafting',
+		energy_required = 0.5,
+		results,
+	})
+
+	local all
+
+	if entity.ingredients then
+		all = {
+			normal = entity
+		}
+	else
+		all = {
+			normal = entity.normal,
+			expensive = entity.expensive,
+		}
+	end
+
+	for difficulty, config in pairs(all) do
+		recipe[difficulty] = {
+			ingredients = {},
+		}
+		local count = 0
+		for _, ingredient in pairs(config.ingredients) do
+			count = count + 1
+			if ingredient.type then
+				recipe[difficulty].ingredients[ingredient.name] = ingredient.amount
+			else
+				recipe[difficulty].ingredients[ingredient[1]] = ingredient[2]
+			end
+		end
+		recipe[difficulty].ingredient_count = count
+		local results = {}
+		if config.result then
+			results[config.result] = config.result_count or 1
+		else
+			results = config.results
+		end
+		recipe[difficulty].results = results
+	end
+
+	meta.recipes[entity.name] = recipe
+
+	if recipe.normal.results and recipe.normal.result_count == 1 and recipe.normal.results[1].name ~= recipe.name then
+		name = recipe.normal.results[1].name
+	else
+		name = nil
+	end
+
+	meta.icons_to_copy[entity.name] = true
+
+	saveItem(entity, name)
+end
+
+function saveMachine(entity)
+
+	local machine = buildItem(entity, {
+		type,
+		crafting_speed = 1,
+		mining_speed,
+		mining_power,
+		ingredient_count,
+		energy_source = {},
+		energy_usage = 0,
+		drain,
+		researching_speed,
+	})
+	if entity.module_specification and entity.module_specification.module_slots then
+		machine.module_slots = entity.module_specification.module_slots
+	else
+		machine.module_slots = 0
+	end
+
+
+	machine.energy_usage = tonumber(string.sub(machine.energy_usage, 0, -3)) or 0
+
+	machine.energy_source.smoke = nil
+	machine.energy_source.fuel_inventory_size = nil
+	machine.energy_source.usage_priority = nil
+	machine.energy_source.type = machine.energy_source.type or 'biologic'
+	machine.energy_source.emissions = machine.energy_source.emissions or 0
+
+	for _, category_group in pairs({'resource_categories', 'crafting_categories'}) do
+		if entity[category_group] then
+			for _, category in pairs(entity[category_group]) do
+				if not meta.categories[category] then
+					meta.categories[category] = {}
+				end
+				table.insert(meta.categories[category], entity.name)
+			end
+		end
+	end
+	machine.allowed_effects = {}
+	if entity.allowed_effects then
+		for _, effect in pairs(entity.allowed_effects) do
+			table.insert(machine.allowed_effects, effect)
+		end
+	end
+	table.insert(meta.machines, machine)
+	meta.icons_to_copy[entity.name] = true
 end
 
 for type, entities in pairs(data.raw) do
 	for _, entity in pairs(entities) do
+		saveItem(entity)
 		local type = entity.type
 		if type == 'item-group' or type == 'item-subgroup' then saveGroup(entity) end
 		if type == 'inserter' then saveInserter(entity) end
 		if type == 'module' then saveModule(entity) end
-		-- if type == 'beacon' then saveBeacon(entity) end
-		-- if type == 'recipe' then saveRecipe(entity) end
-		-- if type == 'resource' then saveResource(entity) end
+		if type == 'beacon' then saveBeacon(entity) end
+		if type == 'resource' then saveResource(entity) end
+		if type == 'recipe' then saveRecipe(entity) end
+
+		if type == 'fluid' then meta.icons_to_copy[entity.name] = true end
 
 		if (entity.subgroup) then
 			if not meta.subgroups[entity.subgroup] then
@@ -174,10 +326,13 @@ for type, entities in pairs(data.raw) do
 			meta.subgroups[entity.subgroup][entity.name] = true
 		end
 
-		-- if entity.crafting_categories or entity.resource_categories then
-		--	 saveMachine(entity)
-		-- end
+		if entity.crafting_categories or entity.resource_categories then
+			saveMachine(entity)
+		end
 	end
 end
 
-dump(meta.modules)
+copyIcons()
+
+-- dump(meta.items)
+-- dump(meta.machines)
