@@ -33,7 +33,12 @@ try {
   l.execute(fs.readFileSync('core/js-prefix.lua', "utf8"))
   l.execute('require "dataloader"')
   l.execute('require "data"')
-  l.execute('require "parser"')
+  l.execute('require "generator"')
+
+  l.execute('parse(data.raw)')
+  l.execute('copyIcons()')
+  l.execute('writeFiles("public")')
+
   console.log('done')
 } catch(error) {
   console.log(error.lua_stack)

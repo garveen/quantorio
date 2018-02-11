@@ -35,12 +35,16 @@ Vue.use(ElementUI, {
 
 const store = new Vuex.Store({
   state: {
-    count: 0
+    difficulty: 'normal',
+    groups: {},
   },
   mutations: {
-    increment (state) {
-      state.count++
-    }
+    setDifficulty (state, v) {
+      state.difficulty = v
+    },
+    setGroups (state, v) {
+      state.groups = v
+    },
   }
 })
 

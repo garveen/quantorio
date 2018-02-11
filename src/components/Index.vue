@@ -70,7 +70,7 @@
                   placement="bottom"
                   trigger="hover">
                   <div>
-                    <template v-for='machine in machines' v-if='categories[scope.row.recipe.category].includes(machine.name)'>
+                    <template v-for='machine in machines' v-if='categories[scope.row.recipe.category].includes(machine.name) && (!machine.ingredient_count || machine.ingredient_count >= scope.row.recipe[difficulty].ingredient_count)'>
                       <img :src='icon(items[machine.name])' @click='selectMachine(scope.row, machine)' class='button icon icon-bordered'>
                     </template>
                   </div>
@@ -132,7 +132,7 @@
   </div>
 </template>
 <script>
-import LuaVM from 'lua.vm.js'
+// import LuaVM from 'lua.vm.js'
 import throttle from 'lodash/throttle'
 import ModuleSelector from './ModuleSelector'
 import Helpers from './Helpers'
@@ -144,7 +144,6 @@ import subgroups from '../../public/subgroups'
 import recipes from '../../public/recipes'
 import items from '../../public/items'
 import machines from '../../public/machines'
-import resources from '../../public/resources'
 import categories from '../../public/categories'
 import inserters from '../../public/inserters'
 import allModules from '../../public/modules'
@@ -168,7 +167,6 @@ export default {
       recipes: recipes,
       items: items,
       machines: machines,
-      resources: resources,
       categories: categories,
       inserters: inserters,
       window: window,
@@ -204,7 +202,7 @@ export default {
     },
 
     doAdd (name) {
-      let row = new Row(name, 'requirement')
+      let row = new Row.Row(name, 'requirement')
       row.needs = 1
       this.requirements.push(row)
       this.selectTargetDialogVisiable = false
@@ -332,7 +330,7 @@ export default {
         let rowConfig = rowConfigStr.split('/')
         if (rowConfig.length < 8) return
         let indent = Number(rowConfig[7])
-        let row = new Row(rowConfig[1], map[rowConfig[0]])
+        let row = new Row.Row(rowConfig[1], map[rowConfig[0]])
         if (indent === 0) {
           path = [row]
           if (rowConfig[0] === 'T') {
@@ -482,6 +480,7 @@ export default {
         delete this.groups[groupName]
       }
     })
+    this.$store.commit('setGroups', Object.values(this.groups).sort(this.sortByOrder))
     this.loadHash()
   },
 
@@ -489,6 +488,10 @@ export default {
   },
 
   computed: {
+    difficulty () {
+      return this.$store.state.difficulty
+    },
+
     tableData () {
       return this.shownData.concat(this.summaryData)
     },
@@ -586,7 +589,7 @@ export default {
             if (!row.expended) {
               let remainder = remainders.find(remainder => { return remainder.name === subrow.name })
               if (!remainder) {
-                remainder = new Row(subrow.name, 'remainder')
+                remainder = new Row.Row(subrow.name, 'remainder')
                 remainders.push(remainder)
               }
               if (!remainder.sources.find(source => source.id === subrow.id)) {

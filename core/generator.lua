@@ -6,8 +6,6 @@ local meta = {
 	groups = {},
 	subgroups = {},
 	items = {},
-	icons = {},
-	icons_to_copy = {},
 	inserters = {},
 	recipes = {},
 	modules = {},
@@ -17,9 +15,16 @@ local meta = {
 	machines = {},
 }
 
+local icons = {}
+local icons_to_copy = {}
+
 function dump(...)
 	local info = debug.getinfo(2, 'Sl')
-	print(info.short_src .. ':' .. info.currentline .. ': ' .. dkjson.encode(..., {indent = true}))
+	local line = info.short_src .. ':' .. info.currentline .. ':'
+	for _, v in ipairs({...}) do
+		line = line .. ' ' .. dkjson.encode(v, {indent = true})
+	end
+	print(line)
 end
 
 function is_int(n)
@@ -27,6 +32,11 @@ function is_int(n)
 	return n == math.floor(n)
 end
 
+function size(T)
+  local count = 0
+  for _ in pairs(T) do count = count + 1 end
+  return count
+end
 
 function Set(list)
 	local set = {}
@@ -80,7 +90,7 @@ function saveIcon(entity)
 		dump(origin)
 		error()
 	end
-	meta.icons[entity.name] = {
+	icons[entity.name] = {
 		origin = origin,
 		save = save,
 		remote = remote,
@@ -90,8 +100,8 @@ function saveIcon(entity)
 end
 
 function copyIcons()
-	for name in pairs(meta.icons_to_copy) do
-		local setup = meta.icons[name]
+	for name in pairs(icons_to_copy) do
+		local setup = icons[name]
 		local origin, save, remote = setup.origin, setup.save, setup.remote
 		if not fs:existsSync(origin) then
 			dump(name)
@@ -104,11 +114,19 @@ function copyIcons()
 	end
 end
 
+function writeFiles(prefix)
+	if prefix then
+		prefix = prefix .. '/'
+	end
+	for name, content in pairs(meta) do
+		fs:writeFileSync(prefix .. name .. '.js', 'export default ' .. dkjson.encode(content, {indent = true}))
+	end
+end
+
 function saveGroup(entity)
 	local checkGroup = function (groupName)
 		if not meta.groups[groupName] then
 			meta.groups[groupName] = {
-				icon = '',
 				order = '',
 				subgroups = {},
 			}
@@ -118,7 +136,7 @@ function saveGroup(entity)
 	if (entity.type == 'item-group') then
 		checkGroup(entity.name)
 		meta.groups[entity.name].icon = saveIcon(entity)
-		meta.icons_to_copy[entity.name] = true
+		icons_to_copy[entity.name] = true
 		meta.groups[entity.name].order = entity.order
 	else
 		checkGroup(entity.group)
@@ -197,29 +215,24 @@ function saveResource(entity)
 		resource.required_fluid = entity.minable.required_fluid
 	end
 	meta.resources[entity.name] = resource
-	meta.icons_to_copy[entity.name] = true
-
+	icons_to_copy[entity.name] = true
 end
 
 function saveRecipe(entity)
 	local recipe = buildItem(entity, {
-		result_count = 1,
 		category = 'crafting',
-		energy_required = 0.5,
-		results,
+		'results',
 	})
 
-	local all
+	local all = {
+		normal = entity
+	}
 
-	if entity.ingredients then
-		all = {
-			normal = entity
-		}
-	else
-		all = {
-			normal = entity.normal,
-			expensive = entity.expensive,
-		}
+	if entity.normal then
+		all.normal = entity.normal
+	end
+	if entity.expensive then
+		all.expensive = entity.expensive
 	end
 
 	for difficulty, config in pairs(all) do
@@ -240,20 +253,23 @@ function saveRecipe(entity)
 		if config.result then
 			results[config.result] = config.result_count or 1
 		else
-			results = config.results
+			for _, result in pairs(config.results) do
+				results[result.name] = result.amount
+			end
 		end
+		results.type = nil
 		recipe[difficulty].results = results
+		recipe[difficulty].energy_required = config.energy_required or 0.5
 	end
 
 	meta.recipes[entity.name] = recipe
 
-	if recipe.normal.results and recipe.normal.result_count == 1 and recipe.normal.results[1].name ~= recipe.name then
-		name = recipe.normal.results[1].name
-	else
-		name = nil
+	local name
+	if next(recipe.normal.results) ~= name and size(recipe.normal.results) == 1 then
+		name = next(recipe.normal.results)
 	end
 
-	meta.icons_to_copy[entity.name] = true
+	icons_to_copy[entity.name] = true
 
 	saveItem(entity, name)
 end
@@ -261,15 +277,15 @@ end
 function saveMachine(entity)
 
 	local machine = buildItem(entity, {
-		type,
+		'type',
 		crafting_speed = 1,
-		mining_speed,
-		mining_power,
-		ingredient_count,
+		'mining_speed',
+		'mining_power',
+		'ingredient_count',
 		energy_source = {},
 		energy_usage = 0,
-		drain,
-		researching_speed,
+		'drain',
+		'researching_speed',
 	})
 	if entity.module_specification and entity.module_specification.module_slots then
 		machine.module_slots = entity.module_specification.module_slots
@@ -303,36 +319,33 @@ function saveMachine(entity)
 		end
 	end
 	table.insert(meta.machines, machine)
-	meta.icons_to_copy[entity.name] = true
+	icons_to_copy[entity.name] = true
 end
 
-for type, entities in pairs(data.raw) do
-	for _, entity in pairs(entities) do
-		saveItem(entity)
-		local type = entity.type
-		if type == 'item-group' or type == 'item-subgroup' then saveGroup(entity) end
-		if type == 'inserter' then saveInserter(entity) end
-		if type == 'module' then saveModule(entity) end
-		if type == 'beacon' then saveBeacon(entity) end
-		if type == 'resource' then saveResource(entity) end
-		if type == 'recipe' then saveRecipe(entity) end
+function parse(data)
+	for type, entities in pairs(data) do
+		for _, entity in pairs(entities) do
+			saveItem(entity)
+			local type = entity.type
+			if type == 'item-group' or type == 'item-subgroup' then saveGroup(entity) end
+			if type == 'inserter' then saveInserter(entity) end
+			if type == 'module' then saveModule(entity) end
+			if type == 'beacon' then saveBeacon(entity) end
+			if type == 'resource' then saveResource(entity) end
+			if type == 'recipe' then saveRecipe(entity) end
 
-		if type == 'fluid' then meta.icons_to_copy[entity.name] = true end
+			if type == 'fluid' then icons_to_copy[entity.name] = true end
 
-		if (entity.subgroup) then
-			if not meta.subgroups[entity.subgroup] then
-				meta.subgroups[entity.subgroup] = {}
+			if (entity.subgroup) then
+				if not meta.subgroups[entity.subgroup] then
+					meta.subgroups[entity.subgroup] = {}
+				end
+				meta.subgroups[entity.subgroup][entity.name] = true
 			end
-			meta.subgroups[entity.subgroup][entity.name] = true
-		end
 
-		if entity.crafting_categories or entity.resource_categories then
-			saveMachine(entity)
+			if entity.crafting_categories or entity.resource_categories then
+				saveMachine(entity)
+			end
 		end
 	end
 end
-
-copyIcons()
-
--- dump(meta.items)
--- dump(meta.machines)

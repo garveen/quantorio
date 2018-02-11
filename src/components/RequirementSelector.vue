@@ -19,12 +19,10 @@
 <script>
 import Helpers from './Helpers'
 import items from '../../public/items'
-import groups from '../../public/groups'
 export default {
   props: ['visible'],
   data () {
     return {
-      groups: groups,
       items: items,
     }
   },
@@ -46,7 +44,10 @@ export default {
       set: function (val) {
         this.$emit('update:visible', val)
       }
-    }
+    },
+    groups () {
+      return this.$store.state.groups
+    },
   },
 }
 </script>

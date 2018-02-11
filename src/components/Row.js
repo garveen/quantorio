@@ -13,6 +13,7 @@ let bonus = {
   consumption: 0,
   pollution: 0,
 }
+let difficulty = 'normal'
 
 class Row {
   constructor (name, type, indent) {
@@ -64,6 +65,14 @@ class Row {
     return this._sub
   }
 
+  // eslint-disable-next-line camelcase
+  get result_count () {
+    if (this.isResource) {
+      return 1
+    }
+    return this.recipe[difficulty].results[Object.keys(this.recipe[difficulty].results)[0]]
+  }
+
   machineCount () {
     return this.needs / this.calcResultPerMachinePerMinute()
   }
@@ -79,7 +88,7 @@ class Row {
     if (this.isResource) {
       count = 60 / (recipe.mining_time / machine.mining_speed / (machine.mining_power - recipe.hardness))
     } else {
-      count = 60 / (recipe.energy_required / machine.crafting_speed) * recipe.result_count
+      count = 60 / (recipe[difficulty].energy_required / machine.crafting_speed) * this.result_count
     }
 
     if (this.bonus.productivity) count *= (1 + this.bonus.productivity)
@@ -116,7 +125,7 @@ class Row {
       return
     }
 
-    let recipe = this.recipe
+    let recipe = this.recipe[difficulty]
 
     let ingredients = recipe.ingredients
     Object.keys(ingredients).forEach(ingredient => {
@@ -128,7 +137,7 @@ class Row {
         subrow = new Row(ingredient, 'sub', this.indent + 1)
         this._sub.push(subrow)
       }
-      subrow.needs = this.needs / recipe.result_count * value / (1 + this.bonus.productivity)
+      subrow.needs = this.needs / this.result_count * value / (1 + this.bonus.productivity)
 
       if (typeof resources[ingredient] === 'undefined') {
         subrow.update()
@@ -145,4 +154,7 @@ class Row {
   }
 }
 
-export default Row
+export default {
+  Row: Row,
+  difficulty: difficulty
+}
