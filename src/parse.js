@@ -3,6 +3,7 @@
 let LuaVM = require('lua.vm.js')
 
 let l = new LuaVM.Lua.State()
+
 let fs = require('fs')
 
 let path = require('path')
@@ -29,10 +30,12 @@ global.mkDirByPathSync = (targetDir, {isRelativeToScript = false} = {}) => {
   }, initDir);
 }
 
+let originPath = process.cwd()
 try {
   l.execute(fs.readFileSync('core/js-prefix.lua', "utf8"))
   l.execute('require "dataloader"')
-  l.execute('require "data"')
+  l.execute('modules = {"core", "base"}')
+  l.execute('loadModules()')
   l.execute('require "generator"')
 
   l.execute('parse(data.raw)')

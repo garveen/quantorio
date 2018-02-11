@@ -1,7 +1,4 @@
 
-function module()
-end
-
 game = {}
 defines = require 'defines'
 builder = require 'builder'

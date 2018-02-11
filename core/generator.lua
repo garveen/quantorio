@@ -102,6 +102,7 @@ end
 function copyIcons()
 	for name in pairs(icons_to_copy) do
 		local setup = icons[name]
+		if not setup then goto continue end
 		local origin, save, remote = setup.origin, setup.save, setup.remote
 		if not fs:existsSync(origin) then
 			dump(name)
@@ -111,6 +112,7 @@ function copyIcons()
 			js.global:mkDirByPathSync(path:dirname(remote))
 		end
 		fs:copyFileSync(origin, remote)
+		::continue::
 	end
 end
 
@@ -219,6 +221,7 @@ function saveResource(entity)
 end
 
 function saveRecipe(entity)
+	if entity.subgroup == 'empty-barrel' or entity.subgroup == 'fill-barrel' then return end
 	local recipe = buildItem(entity, {
 		category = 'crafting',
 		'results',
@@ -275,6 +278,7 @@ function saveRecipe(entity)
 end
 
 function saveMachine(entity)
+	if entity.name == 'default' and entity.type == 'god-controller' then return end
 
 	local machine = buildItem(entity, {
 		'type',
