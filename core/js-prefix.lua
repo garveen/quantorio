@@ -18,6 +18,14 @@ function log(...)
 end
 
 function loadModules()
+	local old_require = require
+	local to_be_removed = {}
+	require = function (name)
+		if not package.loaded[name] then
+			to_be_removed[name] = true
+		end
+		return old_require(name)
+	end
 	for _, name in pairs({'data', 'data-updates', 'data-final-fixes'}) do
 		for _, module in pairs(modules) do
 			local path = originPath .. '/data/' .. module
@@ -26,10 +34,16 @@ function loadModules()
 			if loaded then
 				print(module, name)
 				require(name)
-				package.loaded[name] = nil
+				for name in pairs(to_be_removed) do
+					package.loaded[name] = nil
+				end
+				to_be_removed = {}
 			end
 		end
 	end
+
+
+	require = old_require
 	js.global.process:chdir(originPath)
 end
 
