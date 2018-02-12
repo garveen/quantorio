@@ -410,6 +410,16 @@ export default {
     }
     this.language = currentLanguage
 
+    let languages = {}
+    let languagesList = Object.keys(this.languages).sort((a, b) => {
+      return this.languages[a].localeCompare(this.languages[b])
+    })
+    for (let i in languagesList) {
+      let name = languagesList[i]
+      languages[name] = this.languages[name]
+    }
+    this.languages = languages
+
     allModules.sort(Helpers.sortByOrder)
     allModules.unshift(null)
 
