@@ -430,16 +430,6 @@ export default {
       }
     })
 
-    this.recipes.dummy = {
-      'name': 'dummy',
-      'result_count': 1,
-      'category': 'crafting',
-      'energy_required': 0.5,
-      'ingredients': {
-      },
-      'ingredient_count': 0
-    }
-
     Object.keys(this.groups).forEach(groupName => {
       let group = this.groups[groupName]
       if (!group.subgroups) {

@@ -70,7 +70,7 @@ class Row {
     if (this.isResource) {
       return 1
     }
-    return this.recipe[difficulty].results[Object.keys(this.recipe[difficulty].results)[0]]
+    return this.recipe[difficulty].results[Object.keys(this.recipe[difficulty].results)[0]] || 1
   }
 
   machineCount () {

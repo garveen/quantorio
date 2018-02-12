@@ -103,7 +103,18 @@ function writeFiles(prefix)
 	if prefix then
 		prefix = prefix .. '/'
 	end
-	dump(prefix)
+
+	meta.recipes.dummy = {
+	  name = 'dummy',
+	  category = 'crafting',
+	  normal = {
+			energy_required = 0.5,
+			results = {},
+			ingredients = {},
+			ingredient_count = 0,
+		}
+	}
+
 	for name, content in pairs(meta) do
 		if name == 'translations' then
 			js.global:mkDirByPathSync(prefix .. 'translations')
