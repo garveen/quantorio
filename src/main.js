@@ -6,7 +6,7 @@ import 'element-ui/lib/theme-chalk/index.css'
 import VueI18n from 'vue-i18n'
 import vueHeadful from 'vue-headful'
 
-import list from '../public/translations/list'
+import list from '../public/languages'
 
 Vue.config.productionTip = false
 Vue.use(Vuex)
@@ -14,8 +14,16 @@ Vue.use(Vuex)
 Vue.use(VueI18n)
 Vue.component('vue-headful', vueHeadful)
 
+let languages = {}
+let languagesList = Object.keys(list).sort((a, b) => {
+  return list[a].localeCompare(list[b])
+})
+languagesList.forEach((name) => {
+  languages[name] = list[name]
+})
+
 let all = {}
-list.forEach(lang => {
+languagesList.forEach(lang => {
   try {
     all[lang] = require('../public/translations/' + lang).default
     all[lang].el = require('element-ui/lib/locale/lang/' + lang).default.el
@@ -37,6 +45,7 @@ const store = new Vuex.Store({
   state: {
     difficulty: 'normal',
     groups: {},
+    languages: languages,
   },
   mutations: {
     setDifficulty (state, v) {

@@ -131,13 +131,11 @@
   </div>
 </template>
 <script>
-// import LuaVM from 'lua.vm.js'
 import throttle from 'lodash/throttle'
 import ModuleSelector from './ModuleSelector'
 import Helpers from './Helpers'
 import Row from './Row'
 import RequirementSelector from './RequirementSelector'
-import languages from '../../public/languages'
 import groups from '../../public/groups'
 import subgroups from '../../public/subgroups'
 import recipes from '../../public/recipes'
@@ -155,7 +153,6 @@ export default {
   data () {
     return {
       resetMachine: 'player',
-      languages: languages,
       locale: 'zh-CN',
       selectTargetDialogVisiable: false,
       requirements: [],
@@ -169,7 +166,6 @@ export default {
       categories: categories,
       inserters: inserters,
       window: window,
-      rowIdIncrement: 1,
     }
   },
   methods: {
@@ -410,16 +406,6 @@ export default {
     }
     this.language = currentLanguage
 
-    let languages = {}
-    let languagesList = Object.keys(this.languages).sort((a, b) => {
-      return this.languages[a].localeCompare(this.languages[b])
-    })
-    for (let i in languagesList) {
-      let name = languagesList[i]
-      languages[name] = this.languages[name]
-    }
-    this.languages = languages
-
     allModules.sort(Helpers.sortByOrder)
     allModules.unshift(null)
 
@@ -489,6 +475,10 @@ export default {
   computed: {
     difficulty () {
       return this.$store.state.difficulty
+    },
+
+    languages () {
+      return this.$store.state.languages
     },
 
     tableData () {
