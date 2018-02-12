@@ -1,3 +1,5 @@
+module(..., package.seeall)
+
 local dkjson = require 'dkjson'
 local fs = js.global.process.mainModule:require("fs")
 local path = js.global.process.mainModule:require("path")
@@ -13,38 +15,12 @@ local meta = {
 	resources = {},
 	categories = {},
 	machines = {},
+	languages = {},
+	translations = {},
 }
 
 local icons = {}
 local icons_to_copy = {}
-
-function dump(...)
-	local info = debug.getinfo(2, 'Sl')
-	local line = info.short_src .. ':' .. info.currentline .. ':'
-	for _, v in ipairs({...}) do
-		line = line .. ' ' .. dkjson.encode(v, {indent = true})
-	end
-	print(line)
-end
-
-function is_int(n)
-	if type(n) ~= 'number' then return false end
-	return n == math.floor(n)
-end
-
-function size(T)
-  local count = 0
-  for _ in pairs(T) do count = count + 1 end
-  return count
-end
-
-function Set(list)
-	local set = {}
-	for _, l in ipairs(list) do
-		set[l] = true
-	end
-	return set
-end
 
 function buildItem(source, params)
 	target = {}
@@ -85,7 +61,13 @@ function saveIcon(entity)
 
 	local origin = icon:gsub('^__(%w+)__', 'data/%1')
 	local save = icon:gsub('^__(%w+)__', 'graphics/%1')
-	local remote = 'public/' .. save
+	local prefix = js.global.prefix
+	if prefix then
+		prefix = prefix .. '/'
+	else
+		prefix = ''
+	end
+	local remote = prefix .. save
 	if not fs:existsSync(origin) then
 		dump(origin)
 		error()
@@ -117,12 +99,63 @@ function copyIcons()
 end
 
 function writeFiles(prefix)
+	prefix = prefix or js.global.prefix or ''
 	if prefix then
 		prefix = prefix .. '/'
 	end
+	dump(prefix)
 	for name, content in pairs(meta) do
-		fs:writeFileSync(prefix .. name .. '.js', 'export default ' .. dkjson.encode(content, {indent = true}))
+		if name == 'translations' then
+			js.global:mkDirByPathSync(prefix .. 'translations')
+			for language, data in pairs(meta.translations) do
+				fs:writeFileSync(prefix .. 'translations/' .. language .. '.js', 'export default ' .. dkjson.encode(data, {indent = true}))
+			end
+		else
+			fs:writeFileSync(prefix .. name .. '.js', 'export default ' .. dkjson.encode(content, {indent = true}))
+		end
 	end
+end
+
+function saveLanguages()
+	-- Will be called when parsing a mod
+	-- The working directory is different
+	for _, language in js.ipairs(fs:readdirSync('locale')) do
+		for _, filename in js.ipairs(fs:readdirSync('locale/' .. language)) do
+			if filename == 'info.json' then
+				local name = dkjson.decode(fs:readFileSync('locale/' .. language .. '/' .. filename, 'utf8'))['language-name']
+				meta.languages[language] = name
+			elseif filename:sub(-4) == '.cfg' then
+				local ini = loadINI('locale/' .. language .. '/' .. filename)
+				meta.translations[language] = meta.translations[language] or {}
+				for _, groupName in pairs({
+						'item-name',
+						'entity-name',
+						'fluid-name',
+						'equipment-name',
+						'recipe-name',
+						-- 'technology-name',
+						}) do
+					if ini[groupName] then
+					    local group = ini[groupName]
+					    for k, v in pairs(group) do
+					    	meta.translations[language][k] = v
+					    end
+					end
+				end
+			end
+		end
+	end
+
+	for _, file in js.ipairs(fs:readdirSync(root .. '/locale')) do
+		local language = file:match('(.-)%.')
+		local ini = loadINI(root .. '/locale/' .. file)
+		for _, group in pairs(ini) do
+			for k, v in pairs(group) do
+				meta.translations[language][k] = v
+			end
+		end
+	end
+
 end
 
 function saveGroup(entity)

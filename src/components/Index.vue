@@ -11,8 +11,7 @@
       <el-col :span='8' :style='{"text-align": "end"}'>
         <el-button type='primary' plain @click="window.location.href = 'https://github.com/garveen/quantorio'">View on GitHub</el-button>
         <el-select v-model='locale' filterable default-first-option>
-          <el-option v-for="item in languages" :key="item" :label="item" :value="item">
-          </el-option>
+          <el-option v-for="long, short in languages" :key="short" :label="long" :value="short"></el-option>
         </el-select>
       </el-col>
     </el-row>
@@ -138,7 +137,7 @@ import ModuleSelector from './ModuleSelector'
 import Helpers from './Helpers'
 import Row from './Row'
 import RequirementSelector from './RequirementSelector'
-import languages from '../../public/translations/list'
+import languages from '../../public/languages'
 import groups from '../../public/groups'
 import subgroups from '../../public/subgroups'
 import recipes from '../../public/recipes'
@@ -404,7 +403,7 @@ export default {
     let translateFallback = 'en'
     let currentLanguage
     let testLanguage = navigator.language || navigator.userLanguage
-    if (this.languages.indexOf(testLanguage) < 0) {
+    if (this.languages[testLanguage]) {
       currentLanguage = translateFallback
     } else {
       currentLanguage = testLanguage
@@ -554,7 +553,7 @@ export default {
       })
 
       sums.type = 'sums'
-      sums.consumption = '' + this.format(consumption) + 'W (' + this.$t('beacons-not-included') + ')'
+      sums.consumption = '' + this.format(consumption) + 'W (' + this.translate('beacons-not-included') + ')'
       sums.machines = machines
       return [sums]
     },

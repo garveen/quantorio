@@ -8,7 +8,15 @@ let fs = require('fs')
 
 let path = require('path')
 
-global.mkDirByPathSync = (targetDir, {isRelativeToScript = false} = {}) => {
+let _global
+if (typeof window == 'undefined') {
+  _global = global
+} else {
+  _global = window
+}
+
+
+_global.mkDirByPathSync = (targetDir, {isRelativeToScript = false} = {}) => {
   const sep = path.sep;
   const initDir = path.isAbsolute(targetDir) ? sep : '';
   const baseDir = isRelativeToScript ? __dirname : '.';
@@ -32,16 +40,9 @@ global.mkDirByPathSync = (targetDir, {isRelativeToScript = false} = {}) => {
 
 let originPath = process.cwd()
 try {
-  l.execute(fs.readFileSync('core/js-prefix.lua', "utf8"))
-  l.execute('require "dataloader"')
   l.execute('modules = {"core", "base"}')
-  l.execute('loadModules()')
-  l.execute('require "generator"')
-
-  l.execute('parse(data.raw)')
-  l.execute('copyIcons()')
-  l.execute('writeFiles("public")')
-
+  _global.prefix = 'public'
+  l.execute(fs.readFileSync('core/quantorio.lua', "utf8"))
   console.log('done')
 } catch(error) {
   console.log(error.lua_stack)
