@@ -1,8 +1,8 @@
-import resources from '../../public/resources'
-import recipes from '../../public/recipes'
-import machines from '../../public/machines'
-import categories from '../../public/categories'
-import beacons from '../../public/beacons'
+import resources from '../data/resources'
+import recipes from '../data/recipes'
+import machines from '../data/machines'
+import categories from '../data/categories'
+import beacons from '../data/beacons'
 import Helpers from './Helpers'
 
 let rowIdIncrement = 1

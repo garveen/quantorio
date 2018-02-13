@@ -14,7 +14,7 @@
 </template>
 <script>
 import Helpers from './Helpers'
-import modules from '../../public/modules'
+import modules from '../data/modules'
 export default {
   props: ['module', 'allows'],
   data () {

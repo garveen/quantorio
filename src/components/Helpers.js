@@ -1,4 +1,4 @@
-import items from '../../public/items'
+import items from '../data/items'
 
 export default {
   icon (item, defaults) {

@@ -136,14 +136,14 @@ import ModuleSelector from './ModuleSelector'
 import Helpers from './Helpers'
 import Row from './Row'
 import RequirementSelector from './RequirementSelector'
-import groups from '../../public/groups'
-import subgroups from '../../public/subgroups'
-import recipes from '../../public/recipes'
-import items from '../../public/items'
-import machines from '../../public/machines'
-import categories from '../../public/categories'
-import inserters from '../../public/inserters'
-import allModules from '../../public/modules'
+import groups from '../data/groups'
+import subgroups from '../data/subgroups'
+import recipes from '../data/recipes'
+import items from '../data/items'
+import machines from '../data/machines'
+import categories from '../data/categories'
+import inserters from '../data/inserters'
+import allModules from '../data/modules'
 export default {
   components: {
     ModuleSelector,
@@ -153,7 +153,7 @@ export default {
   data () {
     return {
       resetMachine: 'player',
-      locale: 'zh-CN',
+      locale: 'en',
       selectTargetDialogVisiable: false,
       requirements: [],
       remainders: [],
@@ -400,11 +400,11 @@ export default {
     let currentLanguage
     let testLanguage = navigator.language || navigator.userLanguage
     if (this.languages[testLanguage]) {
-      currentLanguage = translateFallback
-    } else {
       currentLanguage = testLanguage
+    } else {
+      currentLanguage = translateFallback
     }
-    this.language = currentLanguage
+    this.locale = currentLanguage
 
     allModules.sort(Helpers.sortByOrder)
     allModules.unshift(null)

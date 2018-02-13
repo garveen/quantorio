@@ -6,7 +6,7 @@ import 'element-ui/lib/theme-chalk/index.css'
 import VueI18n from 'vue-i18n'
 import vueHeadful from 'vue-headful'
 
-import list from '../public/languages'
+import list from './data/languages'
 
 Vue.config.productionTip = false
 Vue.use(Vuex)
@@ -25,14 +25,15 @@ languagesList.forEach((name) => {
 let all = {}
 languagesList.forEach(lang => {
   try {
-    all[lang] = require('../public/translations/' + lang).default
+    all[lang] = require('./data/translations/' + lang).default
     all[lang].el = require('element-ui/lib/locale/lang/' + lang).default.el
   } catch (ex) {
   }
 })
 
+// import messages from '@/translations'
 const i18n = new VueI18n({
-  locale: 'zh-CN',
+  locale: 'en',
   fallbackLocale: 'en',
   messages: all
 })

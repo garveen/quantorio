@@ -41,7 +41,7 @@ _global.mkDirByPathSync = (targetDir, {isRelativeToScript = false} = {}) => {
 let originPath = process.cwd()
 try {
   l.execute('modules = {"core", "base"}')
-  _global.prefix = 'public'
+  _global.prefix = 'src/data'
   l.execute(fs.readFileSync('core/quantorio.lua', "utf8"))
   console.log('done')
 } catch(error) {

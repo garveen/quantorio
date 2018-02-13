@@ -18,7 +18,7 @@
 </template>
 <script>
 import Helpers from './Helpers'
-import items from '../../public/items'
+import items from '../data/items'
 export default {
   props: ['visible'],
   data () {
