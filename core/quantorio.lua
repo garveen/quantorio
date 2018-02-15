@@ -1,7 +1,27 @@
-local fs = js.global.process.mainModule:require("fs")
-
 root = js.global.process:cwd()
+
 print(root)
+
+function readFile(filename)
+	local fp = io.open(filename)
+	if (fp) then
+		local content = fp:read('*a')
+		fp:close()
+		return content
+	end
+	if js.global.window then
+		-- browser
+	else
+		-- node
+		local fs = js.global.process.mainModule:require("fs")
+		if fs:existsSync(filename) then
+			return fs:readFileSync(filename, 'utf8')
+		else
+			return false
+		end
+	end
+end
+
 function split(inputstr, sep)
         if sep == nil then
                 sep = "%s"
@@ -46,10 +66,12 @@ function Set(list)
 	return set
 end
 
-function loadModules()
+function loadModules(modules)
 	local old_require = require
 	local to_be_removed = {}
 	local generator = require('generator')
+	require('util')
+
 	require = function (name)
 		if not package.loaded[name] then
 			to_be_removed[name] = true
@@ -57,21 +79,29 @@ function loadModules()
 		return old_require(name)
 	end
 	for _, name in pairs({'data', 'data-updates', 'data-final-fixes'}) do
-		for _, module in pairs(modules) do
-			local path = root .. '/data/' .. module
-			js.global.process:chdir(path)
-			local loaded = findfile(path .. '/' .. name .. '.lua')
+
+		for i = 1, modules.length do
+			local moduleName = modules[i]
+			currentModule = moduleName
+			table.insert(originPaths, 1, 'data/' .. moduleName .. '/?.lua')
+			originPathsLength = originPathsLength + 1
+			local loaded = findfile(name)
 			if loaded then
 				require(name)
+
 				for name in pairs(to_be_removed) do
 					package.loaded[name] = nil
 				end
 				to_be_removed = {}
 			end
+			originPathsLength = originPathsLength - 1
+			table.remove(originPaths, 1)
 		end
 	end
-	for _, module in pairs(modules) do
-		local path = root .. '/data/' .. module
+	for i = 1, modules.length do
+		local moduleName = modules[i]
+		currentModule = moduleName
+		local path = root .. '/data/' .. moduleName
 		js.global.process:chdir(path)
 		generator.saveLanguages()
 	end
@@ -80,15 +110,22 @@ function loadModules()
 	js.global.process:chdir(root)
 end
 
-function findfile(path)
-	if fs:existsSync(path) then
-		local contents = fs:readFileSync(path, "utf8")
-		local loaded, err = load(contents, "@"..path)
-		if (err) then
-			error(err)
+function findfile(filename)
+	for i = 1, originPathsLength do
+		path = originPaths[i]
+		filename = filename:gsub('%.', '/')
+		local fullname = path:gsub('%?', filename)
+		local content = readFile(fullname)
+		if content then
+			loaded, err = load(content, '@' .. fullname)
+			if (loaded) then
+				return loaded, fullname
+			else
+				print(err)
+			end
 		end
-		return loaded
 	end
+	return false
 end
 
 function loadINI(file)
@@ -96,7 +133,7 @@ function loadINI(file)
 	local data = {}
 	data[section] = {}
 	local testSection
-	local str = fs:readFileSync(file, "utf8") .. '\n'
+	local str = readFile(file, "utf8") .. '\n'
 	for line in str:gmatch('(.-)\r?\n') do
 		testSection = line:match('^%[([^%[%]]+)%]$')
 		if testSection then
@@ -149,26 +186,19 @@ do -- Create js.ipairs and js.pairs functions. attach as __pairs and __ipairs on
 end
 
 table.insert(package.searchers, function(name)
-
-	local paths = {
-		'.',
-		root .. '/core',
-		root .. '/data/core/lualib',
-	}
-	for _, path in ipairs(split(package.path, ';')) do
-		path = string.gsub(path, '%?', name)
-		local loaded = findfile(path)
-		if loaded then return loaded, path end
-	end
-
-	for _, path in ipairs(paths) do
-		path = path .. "/"..name:gsub("%.", "/") .. ".lua"
-		local loaded = findfile(path)
-		if loaded then return loaded, path end
-	end
-	-- print('Loading ' .. name .. ' FAILED')
-
+	local loaded, path = findfile(name)
+	if loaded then return loaded, path end
 end)
+
+
+originPaths = {
+	"?.lua",
+	"core/?.lua",
+	"core/lualib/?.lua",
+}
+originPathsLength = 3
+
+currentModule = nil
 
 defines = require 'defines'
 
@@ -183,10 +213,9 @@ defines.difficulty_settings = {
 
 dkjson = require 'dkjson'
 require "dataloader"
-loadModules()
+loadModules(modules)
 
 generator = require "generator"
 generator.parse(data.raw)
-generator.copyIcons()
 generator.writeFiles()
 

@@ -11,7 +11,7 @@ export default {
       ret = item.icon
     }
     if (ret) {
-      return '/public/' + ret
+      return require('../assets/' + ret)
     }
     switch (defaults) {
       case 'module':
@@ -19,6 +19,7 @@ export default {
     }
     console.log(item)
   },
+
   sortByOrder (a, b) {
     if (!a) {
       return -1
@@ -48,6 +49,7 @@ export default {
     }
     return 0
   },
+
   translate (i18n, ...names) {
     let translation = false
     let first = false

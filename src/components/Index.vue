@@ -404,7 +404,7 @@ export default {
     } else {
       currentLanguage = translateFallback
     }
-    this.locale = currentLanguage
+    this.$i18n.locale = this.locale = currentLanguage
 
     allModules.sort(Helpers.sortByOrder)
     allModules.unshift(null)

@@ -24,10 +24,11 @@ languagesList.forEach((name) => {
 
 let all = {}
 languagesList.forEach(lang => {
+  all[lang] = require('./data/translations/' + lang).default
   try {
-    all[lang] = require('./data/translations/' + lang).default
     all[lang].el = require('element-ui/lib/locale/lang/' + lang).default.el
   } catch (ex) {
+
   }
 })
 

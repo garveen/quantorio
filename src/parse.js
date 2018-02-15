@@ -40,10 +40,25 @@ _global.mkDirByPathSync = (targetDir, {isRelativeToScript = false} = {}) => {
 
 let originPath = process.cwd()
 try {
-  l.execute('modules = {"core", "base"}')
-  _global.prefix = 'src/data'
-  l.execute(fs.readFileSync('core/quantorio.lua', "utf8"))
+  let e = LuaVM.emscripten
+  e.FS_createFolder('/', 'core', true, true)
+  e.FS_createFolder('/core', 'lualib', true, true)
+  fs.readdirSync('./core').forEach(filename => {
+    e.FS_createDataFile('/core', filename, fs.readFileSync('core/' + filename, "utf8"), true, false)
+  })
+  fs.readdirSync('./data/core/lualib').forEach(filename => {
+    e.FS_createDataFile('/core/lualib', filename, fs.readFileSync('./data/core/lualib/' + filename, "utf8"), true, false)
+  })
+
+  l.execute('modules = {"core", "base", length=2}')
+  _global.dataPrefix = 'src/data'
+  _global.iconPrefix = 'src/assets'
+  l.execute('require "core.quantorio"')
   console.log('done')
 } catch(error) {
-  console.log(error.lua_stack)
+  if (error.lua_stack) {
+    console.log(error.lua_stack)
+  } else {
+    console.log(error)
+  }
 }

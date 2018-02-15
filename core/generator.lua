@@ -42,17 +42,10 @@ end
 
 function saveItem(entity, name)
 	if not (entity.icon or entity.icons) or not entity.order then return end
-	local item = {
-		order = entity.order,
-		icon = saveIcon(entity),
-	}
-	if name then
-		item.name = name
-	end
-	meta.items[entity.name] = item
+	prepareCopyIcon(entity, name)
 end
 
-function saveIcon(entity)
+function prepareCopyIcon(entity, name)
 	local icon = entity.icon
 
 	if (entity.icons) then
@@ -61,48 +54,93 @@ function saveIcon(entity)
 
 	local origin = icon:gsub('^__(%w+)__', 'data/%1')
 	local save = icon:gsub('^__(%w+)__', 'graphics/%1')
-	local prefix = js.global.prefix
-	if prefix then
-		prefix = prefix .. '/'
-	else
-		prefix = ''
-	end
-	local remote = prefix .. save
+
 	if not fs:existsSync(origin) then
 		dump(origin)
 		error()
 	end
-	icons[entity.name] = {
+	icons[entity.name] = icons[entity.name] or {}
+	icons[entity.name][entity.type] = {
 		origin = origin,
 		save = save,
-		remote = remote,
+		order = entity.order,
+		name = name,
 	}
+
 	return save
 
 end
 
-function copyIcons()
+function copyIcon(entity)
+	if(not entity.name) then
+		dump(entity)
+	end
+	icons_to_copy[entity.name] = true
+end
+
+function copyIcons(prefix)
+	local legalTypes = {
+		'item',
+		'armor',
+		'ammo',
+		'capsule',
+		'fluid',
+		'gun',
+		'item-group',
+		'item-with-entity-data',
+		'mining-tool',
+		'module',
+		'player',
+		'rail-planner',
+		'recipe',
+		'repair-tool',
+		'resource',
+		'technology',
+		'tool',
+
+	}
+	typesLength = 17
+
 	for name in pairs(icons_to_copy) do
-		local setup = icons[name]
-		if not setup then goto continue end
-		local origin, save, remote = setup.origin, setup.save, setup.remote
-		if not fs:existsSync(origin) then
+		local setup
+		for i = 1, typesLength do
+			setup = icons[name][legalTypes[i]]
+			if setup then
+				break
+			end
+		end
+		if not setup then
+			error()
+		end
+		if not fs:existsSync(setup.origin) then
 			dump(name)
 			error()
 		end
+		meta.items[name] = {
+			order = setup.order,
+			icon = setup.save,
+			name = setup.name,
+		}
+		local remote = prefix .. setup.save
 		if not fs:existsSync(path:dirname(remote)) then
 			js.global:mkDirByPathSync(path:dirname(remote))
 		end
-		fs:copyFileSync(origin, remote)
+		fs:copyFileSync(setup.origin, remote)
 		::continue::
 	end
 end
 
-function writeFiles(prefix)
-	prefix = prefix or js.global.prefix or ''
+function writeFiles(dataPrefix, iconPrefix)
+	prefix = dataPrefix or js.global.dataPrefix or ''
 	if prefix then
 		prefix = prefix .. '/'
 	end
+
+	iconPrefix = iconPrefix or js.global.iconPrefix or ''
+	if iconPrefix then
+		iconPrefix = iconPrefix .. '/'
+	end
+	copyIcons(iconPrefix)
 
 	meta.recipes.dummy = {
 	  name = 'dummy',
@@ -181,8 +219,8 @@ function saveGroup(entity)
 	local groupName
 	if (entity.type == 'item-group') then
 		checkGroup(entity.name)
-		meta.groups[entity.name].icon = saveIcon(entity)
-		icons_to_copy[entity.name] = true
+		meta.groups[entity.name].icon = prepareCopyIcon(entity)
+		copyIcon(entity)
 		meta.groups[entity.name].order = entity.order
 	else
 		checkGroup(entity.group)
@@ -261,7 +299,7 @@ function saveResource(entity)
 		resource.required_fluid = entity.minable.required_fluid
 	end
 	meta.resources[entity.name] = resource
-	icons_to_copy[entity.name] = true
+	copyIcon(entity)
 end
 
 function saveRecipe(entity)
@@ -316,7 +354,7 @@ function saveRecipe(entity)
 		name = next(recipe.normal.results)
 	end
 
-	icons_to_copy[entity.name] = true
+	copyIcon(entity)
 
 	saveItem(entity, name)
 end
@@ -367,7 +405,7 @@ function saveMachine(entity)
 		end
 	end
 	table.insert(meta.machines, machine)
-	icons_to_copy[entity.name] = true
+	copyIcon(entity)
 end
 
 function parse(data)
@@ -382,7 +420,7 @@ function parse(data)
 			if type == 'resource' then saveResource(entity) end
 			if type == 'recipe' then saveRecipe(entity) end
 
-			if type == 'fluid' then icons_to_copy[entity.name] = true end
+			if type == 'fluid' then copyIcon(entity) end
 
 			if (entity.subgroup) then
 				if not meta.subgroups[entity.subgroup] then
