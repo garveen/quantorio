@@ -1,26 +1,4 @@
-root = js.global.process:cwd()
-
-print(root)
-
-function readFile(filename)
-	local fp = io.open(filename)
-	if (fp) then
-		local content = fp:read('*a')
-		fp:close()
-		return content
-	end
-	if js.global.window then
-		-- browser
-	else
-		-- node
-		local fs = js.global.process.mainModule:require("fs")
-		if fs:existsSync(filename) then
-			return fs:readFileSync(filename, 'utf8')
-		else
-			return false
-		end
-	end
-end
+fs = require 'core.fs'
 
 function split(inputstr, sep)
         if sep == nil then
@@ -41,6 +19,7 @@ end
 function dump(...)
 	local info = debug.getinfo(2, 'Sl')
 	local line = info.short_src .. ':' .. info.currentline .. ':'
+	local dkjson = require 'dkjson'
 	for _, v in ipairs({...}) do
 		line = line .. ' ' .. dkjson.encode(v, {indent = true})
 	end
@@ -101,13 +80,10 @@ function loadModules(modules)
 	for i = 1, modules.length do
 		local moduleName = modules[i]
 		currentModule = moduleName
-		local path = root .. '/data/' .. moduleName
-		js.global.process:chdir(path)
-		generator.saveLanguages()
+		generator.saveLanguages(moduleName)
 	end
 
 	require = old_require
-	js.global.process:chdir(root)
 end
 
 function findfile(filename)
@@ -115,7 +91,7 @@ function findfile(filename)
 		path = originPaths[i]
 		filename = filename:gsub('%.', '/')
 		local fullname = path:gsub('%?', filename)
-		local content = readFile(fullname)
+		local content = fs.readFile(fullname)
 		if content then
 			loaded, err = load(content, '@' .. fullname)
 			if (loaded) then
@@ -133,7 +109,7 @@ function loadINI(file)
 	local data = {}
 	data[section] = {}
 	local testSection
-	local str = readFile(file, "utf8") .. '\n'
+	local str = fs.readFile(file, "utf8") .. '\n'
 	for line in str:gmatch('(.-)\r?\n') do
 		testSection = line:match('^%[([^%[%]]+)%]$')
 		if testSection then
@@ -211,7 +187,6 @@ defines.difficulty_settings = {
 	}
 }
 
-dkjson = require 'dkjson'
 require "dataloader"
 loadModules(modules)
 

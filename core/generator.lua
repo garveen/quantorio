@@ -1,8 +1,8 @@
-module(..., package.seeall)
+if generator then return generator end
 
+local fs = require 'fs'
 local dkjson = require 'dkjson'
-local fs = js.global.process.mainModule:require("fs")
-local path = js.global.process.mainModule:require("path")
+local generator = {}
 
 local meta = {
 	groups = {},
@@ -22,7 +22,7 @@ local meta = {
 local icons = {}
 local icons_to_copy = {}
 
-function buildItem(source, params)
+local function buildItem(source, params)
 	target = {}
 	target.name = source.name
 	for param, default in pairs(params) do
@@ -40,12 +40,7 @@ function buildItem(source, params)
 	return target
 end
 
-function saveItem(entity, name)
-	if not (entity.icon or entity.icons) or not entity.order then return end
-	prepareCopyIcon(entity, name)
-end
-
-function prepareCopyIcon(entity, name)
+local function prepareCopyIcon(entity, name)
 	local icon = entity.icon
 
 	if (entity.icons) then
@@ -55,7 +50,7 @@ function prepareCopyIcon(entity, name)
 	local origin = icon:gsub('^__(%w+)__', 'data/%1')
 	local save = icon:gsub('^__(%w+)__', 'graphics/%1')
 
-	if not fs:existsSync(origin) then
+	if not fs.exists(origin) then
 		dump(origin)
 		error()
 	end
@@ -68,17 +63,21 @@ function prepareCopyIcon(entity, name)
 	}
 
 	return save
-
 end
 
-function copyIcon(entity)
+local function saveItem(entity, name)
+	if not (entity.icon or entity.icons) or not entity.order then return end
+	prepareCopyIcon(entity, name)
+end
+
+local function copyIcon(entity)
 	if(not entity.name) then
 		dump(entity)
 	end
 	icons_to_copy[entity.name] = true
 end
 
-function copyIcons(prefix)
+local function copyIcons(prefix)
 	local legalTypes = {
 		'item',
 		'armor',
@@ -112,7 +111,7 @@ function copyIcons(prefix)
 		if not setup then
 			error()
 		end
-		if not fs:existsSync(setup.origin) then
+		if not fs.exists(setup.origin) then
 			dump(name)
 			error()
 		end
@@ -122,15 +121,15 @@ function copyIcons(prefix)
 			name = setup.name,
 		}
 		local remote = prefix .. setup.save
-		if not fs:existsSync(path:dirname(remote)) then
-			js.global:mkDirByPathSync(path:dirname(remote))
+		if not fs.exists(fs.dirname(remote)) then
+			js.global:mkDirByPathSync(fs.dirname(remote))
 		end
-		fs:copyFileSync(setup.origin, remote)
+		fs.copyFile(setup.origin, remote)
 		::continue::
 	end
 end
 
-function writeFiles(dataPrefix, iconPrefix)
+local function writeFiles(dataPrefix, iconPrefix)
 	prefix = dataPrefix or js.global.dataPrefix or ''
 	if prefix then
 		prefix = prefix .. '/'
@@ -157,24 +156,25 @@ function writeFiles(dataPrefix, iconPrefix)
 		if name == 'translations' then
 			js.global:mkDirByPathSync(prefix .. 'translations')
 			for language, data in pairs(meta.translations) do
-				fs:writeFileSync(prefix .. 'translations/' .. language .. '.js', 'export default ' .. dkjson.encode(data, {indent = true}))
+				fs.writeFile(prefix .. 'translations/' .. language .. '.js', 'export default ' .. dkjson.encode(data, {indent = true}))
 			end
 		else
-			fs:writeFileSync(prefix .. name .. '.js', 'export default ' .. dkjson.encode(content, {indent = true}))
+			fs.writeFile(prefix .. name .. '.js', 'export default ' .. dkjson.encode(content, {indent = true}))
 		end
 	end
 end
 
-function saveLanguages()
+local function saveLanguages(moduleName)
 	-- Will be called when parsing a mod
 	-- The working directory is different
-	for _, language in js.ipairs(fs:readdirSync('locale')) do
-		for _, filename in js.ipairs(fs:readdirSync('locale/' .. language)) do
+	for _, language in pairs(fs.readDir('data/' .. moduleName .. '/locale')) do
+		for _, filename in pairs(fs.readDir('data/' .. moduleName .. '/locale/' .. language)) do
 			if filename == 'info.json' then
-				local name = dkjson.decode(fs:readFileSync('locale/' .. language .. '/' .. filename, 'utf8'))['language-name']
+				local content = fs.readFile('data/' .. moduleName .. '/locale/' .. language .. '/' .. filename)
+				local name = dkjson.decode(content)['language-name']
 				meta.languages[language] = name
 			elseif filename:sub(-4) == '.cfg' then
-				local ini = loadINI('locale/' .. language .. '/' .. filename)
+				local ini = loadINI('data/' .. moduleName .. '/locale/' .. language .. '/' .. filename)
 				meta.translations[language] = meta.translations[language] or {}
 				for _, groupName in pairs({
 						'item-name',
@@ -195,9 +195,9 @@ function saveLanguages()
 		end
 	end
 
-	for _, file in js.ipairs(fs:readdirSync(root .. '/locale')) do
+	for _, file in pairs(fs.readDir('locale')) do
 		local language = file:match('(.-)%.')
-		local ini = loadINI(root .. '/locale/' .. file)
+		local ini = loadINI('locale/' .. file)
 		for _, group in pairs(ini) do
 			for k, v in pairs(group) do
 				meta.translations[language][k] = v
@@ -207,7 +207,7 @@ function saveLanguages()
 
 end
 
-function saveGroup(entity)
+local function saveGroup(entity)
 	local checkGroup = function (groupName)
 		if not meta.groups[groupName] then
 			meta.groups[groupName] = {
@@ -228,7 +228,7 @@ function saveGroup(entity)
 	end
 end
 
-function saveInserter(entity)
+local function saveInserter(entity)
 	local inserter = {}
 	local angles = {}
 	local distances = {}
@@ -264,7 +264,7 @@ function saveInserter(entity)
 	table.insert(meta.inserters, inserter)
 end
 
-function saveModule(entity)
+local function saveModule(entity)
 	local module = buildItem(entity, {
 		'type',
 		'effect',
@@ -274,7 +274,7 @@ function saveModule(entity)
 
 end
 
-function saveBeacon(entity)
+local function saveBeacon(entity)
 	local beacon = buildItem(entity, {
 		'type',
 		'energy_usage',
@@ -288,7 +288,7 @@ function saveBeacon(entity)
 	table.insert(meta.beacons, beacon)
 end
 
-function saveResource(entity)
+local function saveResource(entity)
 	local resource = buildItem(entity, {
 		category = 'basic-solid',
 	})
@@ -302,7 +302,7 @@ function saveResource(entity)
 	copyIcon(entity)
 end
 
-function saveRecipe(entity)
+local function saveRecipe(entity)
 	if entity.subgroup == 'empty-barrel' or entity.subgroup == 'fill-barrel' then return end
 	local recipe = buildItem(entity, {
 		category = 'crafting',
@@ -359,7 +359,7 @@ function saveRecipe(entity)
 	saveItem(entity, name)
 end
 
-function saveMachine(entity)
+local function saveMachine(entity)
 	if entity.name == 'default' and entity.type == 'god-controller' then return end
 
 	local machine = buildItem(entity, {
@@ -408,7 +408,7 @@ function saveMachine(entity)
 	copyIcon(entity)
 end
 
-function parse(data)
+local function parse(data)
 	for type, entities in pairs(data) do
 		for _, entity in pairs(entities) do
 			saveItem(entity)
@@ -435,3 +435,10 @@ function parse(data)
 		end
 	end
 end
+
+generator = {
+	parse = parse,
+	writeFiles = writeFiles,
+	saveLanguages = saveLanguages,
+}
+return generator
