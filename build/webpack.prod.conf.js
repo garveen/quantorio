@@ -86,6 +86,7 @@ const webpackConfig = merge(baseWebpackConfig, {
     new webpack.optimize.CommonsChunkPlugin({
       name: 'vendor',
       minChunks (module) {
+        console.log(module.resource)
         // any required modules inside node_modules are extracted to vendor
         return (
           module.resource &&

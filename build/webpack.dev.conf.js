@@ -11,6 +11,8 @@ const portfinder = require('portfinder')
 const HOST = process.env.HOST
 const PORT = process.env.PORT && Number(process.env.PORT)
 
+const WebpackShellPlugin = require('webpack-shell-plugin')
+
 const devWebpackConfig = merge(baseWebpackConfig, {
   module: {
     rules: utils.styleLoaders({ sourceMap: config.dev.cssSourceMap, usePostCSS: true })
@@ -49,6 +51,10 @@ const devWebpackConfig = merge(baseWebpackConfig, {
       filename: 'index.html',
       template: 'src/index.html',
       inject: true
+    }),
+    new WebpackShellPlugin({
+      onBuildStart: ['node src/parse.js'],
+      dev: false,
     }),
   ]
 })

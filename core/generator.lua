@@ -1,5 +1,3 @@
-if generator then return generator end
-
 local fs = require 'fs'
 local dkjson = require 'dkjson'
 local generator = {}
@@ -9,7 +7,18 @@ local meta = {
 	subgroups = {},
 	items = {},
 	inserters = {},
-	recipes = {},
+	recipes = {
+		dummy = {
+		  name = 'dummy',
+		  category = 'crafting',
+		  normal = {
+				energy_required = 0.5,
+				results = {},
+				ingredients = {},
+				ingredient_count = 0,
+			}
+		},
+	},
 	modules = {},
 	beacons = {},
 	resources = {},
@@ -48,12 +57,8 @@ local function prepareCopyIcon(entity, name)
 	end
 
 	local origin = icon:gsub('^__(%w+)__', 'data/%1')
-	local save = icon:gsub('^__(%w+)__', 'graphics/%1')
+	local save = icon:gsub('^__(%w+)__', 'data/%1')
 
-	if not fs.exists(origin) then
-		dump(origin)
-		error()
-	end
 	icons[entity.name] = icons[entity.name] or {}
 	icons[entity.name][entity.type] = {
 		origin = origin,
@@ -65,11 +70,6 @@ local function prepareCopyIcon(entity, name)
 	return save
 end
 
-local function saveItem(entity, name)
-	if not (entity.icon or entity.icons) or not entity.order then return end
-	prepareCopyIcon(entity, name)
-end
-
 local function copyIcon(entity)
 	if(not entity.name) then
 		dump(entity)
@@ -77,7 +77,27 @@ local function copyIcon(entity)
 	icons_to_copy[entity.name] = true
 end
 
-local function copyIcons(prefix)
+local function saveItem(entity, name)
+	if not (entity.icon or entity.icons) or not entity.order then return end
+	if entity.minable and entity.minable.result then
+		local tmp = {
+			icon = entity.icon,
+			name = entity.minable.result,
+			type = entity.type,
+			order = entity.order,
+		}
+		prepareCopyIcon(tmp, name)
+		copyIcon(tmp)
+	end
+	prepareCopyIcon(entity, name)
+end
+
+local function copyIcons(iconPrefix, dry)
+	iconPrefix = iconPrefix or js.global.iconPrefix or ''
+	if iconPrefix then
+		iconPrefix = iconPrefix .. '/'
+	end
+
 	local legalTypes = {
 		'item',
 		'armor',
@@ -96,22 +116,25 @@ local function copyIcons(prefix)
 		'resource',
 		'technology',
 		'tool',
-
 	}
 	typesLength = 17
 
+	local files = {}
 	for name in pairs(icons_to_copy) do
 		local setup
 		for i = 1, typesLength do
+			if not icons[name] then break end
 			setup = icons[name][legalTypes[i]]
 			if setup then
 				break
 			end
 		end
 		if not setup then
+			dump(icons)
+			dump(name)
 			error()
 		end
-		if not fs.exists(setup.origin) then
+		if not fs.exists(setup.origin) and not js.global.window then
 			dump(name)
 			error()
 		end
@@ -120,13 +143,18 @@ local function copyIcons(prefix)
 			icon = setup.save,
 			name = setup.name,
 		}
-		local remote = prefix .. setup.save
-		if not fs.exists(fs.dirname(remote)) then
-			js.global:mkDirByPathSync(fs.dirname(remote))
+		if (dry) then
+			files[setup.origin] = true
+		else
+			local remote = iconPrefix .. setup.save
+			if not fs.exists(fs.dirname(remote)) then
+				js.global:mkDirByPathSync(fs.dirname(remote))
+			end
+			fs.copyFile(setup.origin, remote)
 		end
-		fs.copyFile(setup.origin, remote)
 		::continue::
 	end
+	return files
 end
 
 local function writeFiles(dataPrefix, iconPrefix)
@@ -140,17 +168,6 @@ local function writeFiles(dataPrefix, iconPrefix)
 		iconPrefix = iconPrefix .. '/'
 	end
 	copyIcons(iconPrefix)
-
-	meta.recipes.dummy = {
-	  name = 'dummy',
-	  category = 'crafting',
-	  normal = {
-			energy_required = 0.5,
-			results = {},
-			ingredients = {},
-			ingredient_count = 0,
-		}
-	}
 
 	for name, content in pairs(meta) do
 		if name == 'translations' then
@@ -169,12 +186,15 @@ local function saveLanguages(moduleName)
 	-- The working directory is different
 	for _, language in pairs(fs.readDir('data/' .. moduleName .. '/locale')) do
 		for _, filename in pairs(fs.readDir('data/' .. moduleName .. '/locale/' .. language)) do
+			local fullname = 'data/' .. moduleName .. '/locale/' .. language .. '/' .. filename
 			if filename == 'info.json' then
-				local content = fs.readFile('data/' .. moduleName .. '/locale/' .. language .. '/' .. filename)
+				zipIt(fullname)
+				local content = fs.readFile(fullname)
 				local name = dkjson.decode(content)['language-name']
 				meta.languages[language] = name
 			elseif filename:sub(-4) == '.cfg' then
-				local ini = loadINI('data/' .. moduleName .. '/locale/' .. language .. '/' .. filename)
+				zipIt(fullname)
+				local ini = loadINI(fullname)
 				meta.translations[language] = meta.translations[language] or {}
 				for _, groupName in pairs({
 						'item-name',
@@ -204,7 +224,6 @@ local function saveLanguages(moduleName)
 			end
 		end
 	end
-
 end
 
 local function saveGroup(entity)
@@ -436,9 +455,12 @@ local function parse(data)
 	end
 end
 
-generator = {
+return {
 	parse = parse,
 	writeFiles = writeFiles,
+	copyIcons = copyIcons,
 	saveLanguages = saveLanguages,
+	getMeta = function ()
+		return meta
+	end,
 }
-return generator

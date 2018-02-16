@@ -18,14 +18,8 @@
 </template>
 <script>
 import Helpers from './Helpers'
-import items from '../data/items'
 export default {
   props: ['visible'],
-  data () {
-    return {
-      items: items,
-    }
-  },
   methods: {
     translate (...names) {
       return Helpers.translate(this.$i18n, ...names)
@@ -46,7 +40,10 @@ export default {
       }
     },
     groups () {
-      return this.$store.state.groups
+      return this.$store.state.meta.groups
+    },
+    items () {
+      return this.$store.state.meta.items
     },
   },
 }

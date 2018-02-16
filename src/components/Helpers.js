@@ -1,17 +1,16 @@
-import items from '../data/items'
-
 export default {
   icon (item, defaults) {
     let ret
-    if (typeof item === 'string' && items[item]) {
-      ret = items[item].icon
-    } else if (item && item.name && items[item.name]) {
-      ret = items[item.name].icon
+    if (typeof item === 'string' && window.items[item]) {
+      ret = window.items[item].icon
+    } else if (item && item.name && window.items[item.name]) {
+      ret = window.items[item.name].icon
     } else if (item && item.icon) {
       ret = item.icon
     }
     if (ret) {
-      return require('../assets/' + ret)
+      ret.replace(/.*\./, '')
+      return 'data:image/' + ret.replace(/.*\./, '') + ';base64,' + window.files[ret]
     }
     switch (defaults) {
       case 'module':
@@ -57,6 +56,7 @@ export default {
       if (name && typeof name !== 'string') {
         name = name.name
       }
+
       if (!first) first = name
       if (i18n.te(name + '.item-name')) {
         translation = i18n.t(name + '.item-name')

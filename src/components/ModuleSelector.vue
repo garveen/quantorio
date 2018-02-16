@@ -14,12 +14,10 @@
 </template>
 <script>
 import Helpers from './Helpers'
-import modules from '../data/modules'
 export default {
   props: ['module', 'allows'],
   data () {
     return {
-      modules: modules,
       allowedModules: [],
       selectedModule: module,
       visiable: false,
@@ -51,6 +49,11 @@ export default {
     } else {
       this.allowedModules = this.modules
     }
-  }
+  },
+  computed: {
+    modules () {
+      return this.$store.state.meta.modules
+    }
+  },
 }
 </script>

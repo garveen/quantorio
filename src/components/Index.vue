@@ -10,6 +10,7 @@
       </el-col>
       <el-col :span='8' :style='{"text-align": "end"}'>
         <el-button type='primary' plain @click="window.location.href = 'https://github.com/garveen/quantorio'">View on GitHub</el-button>
+        <el-button type='primary' plain @click="handleMod">Mod</el-button>
         <el-select v-model='locale' filterable default-first-option>
           <el-option v-for="long, short in languages" :key="short" :label="long" :value="short"></el-option>
         </el-select>
@@ -126,28 +127,26 @@
         </el-table-column> -->
     </el-table>
     <RequirementSelector :visible.sync="selectTargetDialogVisiable" @select='doAdd' :key='locale'></RequirementSelector>
+    <Mods :visible.sync="ModsDialogVisiable"></Mods>
 
 
   </div>
 </template>
 <script>
+import LuaLoader from './LuaLoader'
 import throttle from 'lodash/throttle'
 import ModuleSelector from './ModuleSelector'
+import Mods from './Mods'
 import Helpers from './Helpers'
 import Row from './Row'
 import RequirementSelector from './RequirementSelector'
-import groups from '../data/groups'
-import subgroups from '../data/subgroups'
-import recipes from '../data/recipes'
-import items from '../data/items'
-import machines from '../data/machines'
-import categories from '../data/categories'
-import inserters from '../data/inserters'
-import allModules from '../data/modules'
+import Data from './data'
 export default {
   components: {
     ModuleSelector,
     RequirementSelector,
+    Mods,
+    LuaLoader,
   },
   name: 'Index',
   data () {
@@ -155,17 +154,13 @@ export default {
       resetMachine: 'player',
       locale: 'en',
       selectTargetDialogVisiable: false,
+      ModsDialogVisiable: false,
       requirements: [],
       remainders: [],
       remainderSources: {},
-      groups: groups,
-      subgroups: subgroups,
-      recipes: recipes,
-      items: items,
-      machines: machines,
-      categories: categories,
-      inserters: inserters,
       window: window,
+      zips: {},
+      fs: {},
     }
   },
   methods: {
@@ -184,6 +179,10 @@ export default {
 
     handleAdd () {
       this.selectTargetDialogVisiable = true
+    },
+
+    handleMod () {
+      this.ModsDialogVisiable = true
     },
 
     handleRemove (index, row) {
@@ -228,7 +227,7 @@ export default {
       $index
     }) {
       let items = this.machines.map((machine, index) => {
-        return <el-option label={this.translate(machine)} value={machine.name}></el-option>
+        return <el-option label={this.translate(machine.name)} value={machine.name}></el-option>
         /* / */
       })
       let row = <el-select value='' placeholder={this.translate('made-in')} on-input={this.changeAllMachine}>{items}</el-select>
@@ -241,7 +240,7 @@ export default {
 
       let changeMachine
       changeMachine = row => {
-        if (categories[row.recipe.category].includes(machineName)) {
+        if (this.categories[row.recipe.category].includes(machineName)) {
           row.machine = machine
         }
         row.sub.forEach(subrow => {
@@ -348,7 +347,7 @@ export default {
         row.needs = Number(rowConfig[2])
         row.machine = this.machines.find(machine => machine.name === rowConfig[3])
         rowConfig[4].split('~').forEach(moduleName => {
-          row.modules.push(allModules.find(module => module && (module.name === moduleName)))
+          row.modules.push(this.modules.find(module => module && (module.name === moduleName)))
         })
         rowConfig[5].split(':').forEach(beaconConfigStr => {
           if (!beaconConfigStr) return
@@ -356,7 +355,7 @@ export default {
           let beaconConfig = row.beacons.find(b => b.beacon.name === newBeaconConfig[0])
           beaconConfig.count = Number(newBeaconConfig[1])
           newBeaconConfig[2].split('~').forEach(moduleName => {
-            beaconConfig.modules.push(allModules.find(module => module && (module.name === moduleName)))
+            beaconConfig.modules.push(this.modules.find(module => module && (module.name === moduleName)))
           })
         })
         row.expended = rowConfig[6] === 'T'
@@ -366,6 +365,10 @@ export default {
       requirements.forEach(row => row.update())
       this.remainders = remainders
       this.requirements = requirements
+    },
+
+    translate (...names) {
+      return Helpers.translate(this.$i18n, ...names)
     },
 
     format (number) {
@@ -387,92 +390,38 @@ export default {
       return number
     },
 
-    translate (...names) {
-      return Helpers.translate(this.$i18n, ...names)
-    },
-
-    sortByOrder: Helpers.sortByOrder,
     icon: Helpers.icon,
 
   },
   created () {
-    let translateFallback = 'en'
-    let currentLanguage
-    let testLanguage = navigator.language || navigator.userLanguage
-    if (this.languages[testLanguage]) {
-      currentLanguage = testLanguage
-    } else {
-      currentLanguage = translateFallback
-    }
-    this.$i18n.locale = this.locale = currentLanguage
-
-    allModules.sort(Helpers.sortByOrder)
-    allModules.unshift(null)
-
-    this.inserters.sort((a, b) => Helpers.sortByOrder(this.items[a.name], this.items[b.name]))
-
-    this.machines.sort((a, b) => {
-      // put player first
-      if (a.name === 'player') {
-        return -1
-      } else if (b.name === 'player') {
-        return 1
-      }
-
-      if (a.name > b.name) {
-        return 1
+    Data.then(data => {
+      let translateFallback = 'en'
+      let currentLanguage
+      let testLanguage = navigator.language || navigator.userLanguage
+      if (this.languages[testLanguage]) {
+        currentLanguage = testLanguage
       } else {
-        return -1
+        currentLanguage = translateFallback
       }
-    })
+      this.$i18n.locale = this.locale = currentLanguage
 
-    Object.keys(this.groups).forEach(groupName => {
-      let group = this.groups[groupName]
-      if (!group.subgroups) {
-        delete this.groups[groupName]
-        return
-      }
-      group.subgroupsWithItems = []
-      let itemCount = 0
-      Object.keys(group.subgroups).forEach(subgroupName => {
-        if (this.subgroups[subgroupName]) {
-          // foreach the subgroup
-          let subgroupItems = []
-          Object.keys(this.subgroups[subgroupName]).forEach(itemName => {
-            if (this.items[itemName] && this.recipes[itemName]) {
-              let item = {}
-              Object.keys(this.items[itemName]).forEach(k => {
-                item[k] = items[itemName][k]
-              })
-              item.name = itemName
-
-              subgroupItems.push(item)
-              itemCount++
-            }
-            subgroupItems.sort(this.sortByOrder)
-          })
-          let subgroup = {
-            order: group.subgroups[subgroupName],
-            items: subgroupItems,
-            name: subgroupName
-          }
-          group.subgroupsWithItems.push(subgroup)
-        }
-      })
-      if (itemCount !== 0) {
-        group.subgroupsWithItems.sort(this.sortByOrder)
-      } else {
-        delete this.groups[groupName]
-      }
+      this.loadHash()
     })
-    this.$store.commit('setGroups', Object.values(this.groups).sort(this.sortByOrder))
-    this.loadHash()
   },
 
   mounted () {
   },
 
   computed: {
+    groups () { return this.$store.state.meta.groups },
+    subgroups () { return this.$store.state.meta.subgroups },
+    recipes () { return this.$store.state.meta.recipes },
+    items () { return this.$store.state.meta.items },
+    machines () { return this.$store.state.meta.machines },
+    categories () { return this.$store.state.meta.categories },
+    inserters () { return this.$store.state.meta.inserters },
+    modules () { return this.$store.state.meta.modules },
+
     difficulty () {
       return this.$store.state.difficulty
     },

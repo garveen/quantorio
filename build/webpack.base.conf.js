@@ -73,6 +73,14 @@ module.exports = {
           limit: 10000,
           name: utils.assetsPath('fonts/[name].[hash:7].[ext]')
         }
+      },
+      {
+        test: /\.(lua?.*)?$/,
+        loader: 'url-loader',
+        options: {
+          limit: 0,
+          name: utils.assetsPath('lua/[name].[hash:7].[ext]')
+        }
       }
     ]
   },

@@ -38,22 +38,69 @@ _global.mkDirByPathSync = (targetDir, {isRelativeToScript = false} = {}) => {
   }, initDir);
 }
 
+_global.zipStockFiles = (files) => {
+  let JSZip = require("jszip")
+  let zips = {
+    core: new JSZip(),
+    base: new JSZip(),
+    lualib: new JSZip(),
+    quantorio: new JSZip(),
+  }
+
+  files.forEach(file => {
+    let zip
+    let zipname
+    if (file.substring(0, 10) === 'data/core/') {
+      zip = zips.core
+      zipname = file
+    } else if (file.substring(0, 10) === 'data/base/') {
+      zip = zips.base
+      zipname = file
+    } else {
+      // lualib
+      zip = zips.lualib
+      zipname = file
+      file = 'data/core/' + file
+    }
+    zip.file(zipname, fs.readFileSync(file))
+  })
+
+  fs.readdirSync('./core').forEach(filename => {
+    zips.quantorio.file(filename, fs.readFileSync('core/' + filename))
+  })
+  fs.readdirSync('./locale').forEach(filename => {
+    zips.quantorio.file('locale/' + filename, fs.readFileSync('./locale/' + filename))
+  })
+
+  let names = ['core', 'base', 'lualib', 'quantorio']
+  names.forEach((name) => {
+    zips[name]
+    .generateNodeStream({type:'nodebuffer',streamFiles:true})
+    .pipe(fs.createWriteStream('public/' + name + '.zip'))
+    .on('finish', () => {
+        console.log(name + ".zip written.")
+    })
+  })
+}
+
 let originPath = process.cwd()
 try {
   let e = LuaVM.emscripten
-  e.FS_createFolder('/', 'core', true, true)
-  e.FS_createFolder('/core', 'lualib', true, true)
+  e.FS_createFolder('/', 'lualib', true, true)
+  e.FS_createFolder('/', 'locale', true, true)
+
   fs.readdirSync('./core').forEach(filename => {
-    e.FS_createDataFile('/core', filename, fs.readFileSync('core/' + filename, "utf8"), true, false)
+    e.FS_createDataFile('/', filename, fs.readFileSync('core/' + filename, "utf8"), true, false)
   })
+
   fs.readdirSync('./data/core/lualib').forEach(filename => {
-    e.FS_createDataFile('/core/lualib', filename, fs.readFileSync('./data/core/lualib/' + filename, "utf8"), true, false)
+    e.FS_createDataFile('/lualib', filename, fs.readFileSync('./data/core/lualib/' + filename, "utf8"), true, false)
   })
 
   l.execute('modules = {"core", "base", length=2}')
   _global.dataPrefix = 'src/data'
   _global.iconPrefix = 'src/assets'
-  l.execute('require "core.quantorio"')
+  l.execute('require "quantorio"')
   console.log('done')
 } catch(error) {
   if (error.lua_stack) {

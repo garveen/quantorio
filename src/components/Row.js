@@ -1,9 +1,19 @@
-import resources from '../data/resources'
-import recipes from '../data/recipes'
-import machines from '../data/machines'
-import categories from '../data/categories'
-import beacons from '../data/beacons'
+import data from './data'
 import Helpers from './Helpers'
+
+let resources
+let recipes
+let machines
+let categories
+let beacons
+
+data.then(data => {
+  resources = data.resources
+  recipes = data.recipes
+  machines = data.machines
+  categories = data.categories
+  beacons = data.beacons
+})
 
 let rowIdIncrement = 1
 let recipeConfigs = {}
