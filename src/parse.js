@@ -50,6 +50,7 @@ _global.zipStockFiles = (files) => {
   files.forEach(file => {
     let zip
     let zipname
+    // console.log(file)
     if (file.substring(0, 10) === 'data/core/') {
       zip = zips.core
       zipname = file
@@ -57,12 +58,14 @@ _global.zipStockFiles = (files) => {
       zip = zips.base
       zipname = file
     } else {
-      // lualib
-      zip = zips.lualib
-      zipname = file
-      file = 'data/core/' + file
+      // lualib or quantorio, will be zipped later
+      return
     }
     zip.file(zipname, fs.readFileSync(file))
+  })
+
+  fs.readdirSync('./data/core/lualib').forEach(filename => {
+    zips.lualib.file('lualib/' + filename, fs.readFileSync('data/core/lualib/' + filename))
   })
 
   fs.readdirSync('./core').forEach(filename => {
@@ -100,7 +103,7 @@ try {
   l.execute('modules = {"core", "base", length=2}')
   _global.dataPrefix = 'src/data'
   _global.iconPrefix = 'src/assets'
-  l.execute('require "quantorio"')
+  l.execute('require "quantorio"; localParse()')
   console.log('done')
 } catch(error) {
   if (error.lua_stack) {

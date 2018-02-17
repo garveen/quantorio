@@ -1,22 +1,29 @@
 export default {
   icon (item, defaults) {
     let ret
-    if (typeof item === 'string' && window.items[item]) {
-      ret = window.items[item].icon
-    } else if (item && item.name && window.items[item.name]) {
-      ret = window.items[item.name].icon
+    if (typeof item === 'string' && window.meta.items[item]) {
+      ret = window.meta.items[item].icon
     } else if (item && item.icon) {
       ret = item.icon
+    } else if (item) {
+      if (item.name && window.meta.items[item.name]) {
+        ret = window.meta.items[item.name].icon
+      }
+      if (!ret && item.showName && window.meta.items[item.showName]) {
+        ret = window.meta.items[item.showName].icon
+      }
     }
-    if (ret) {
+
+    if (ret && window.files[ret]) {
       ret.replace(/.*\./, '')
       return 'data:image/' + ret.replace(/.*\./, '') + ';base64,' + window.files[ret]
     }
+
     switch (defaults) {
       case 'module':
-        return 'core/slot-icon-module.png'
+        return 'data:image/png;base64,' + window.files['slot-icon-module.png']
     }
-    console.log(item)
+    console.log(item, ret, defaults)
   },
 
   sortByOrder (a, b) {
@@ -25,8 +32,14 @@ export default {
     } else if (!b) {
       return 1
     }
-    let aOrders = a.order.split('-')
-    let bOrders = b.order.split('-')
+    let aName = a.showName || a.name
+    let bName = b.showName || b.name
+    let aOrders, bOrders
+    aOrders = window.meta.items[aName].order.split('-')
+    bOrders = window.meta.items[bName].order.split('-')
+    try {
+    } catch (error) {
+    }
     for (let i = 0; i < Math.max(aOrders.length, bOrders.length); i++) {
       if (aOrders[i] === undefined) {
         return -1
@@ -38,8 +51,8 @@ export default {
         return aOrders[i] > bOrders[i] ? 1 : -1
       }
     }
-    let aName = parseInt(a.name.replace(/^.*-/, ''))
-    let bName = parseInt(b.name.replace(/^.*-/, ''))
+    aName = parseInt(aName.replace(/^.*-/, ''))
+    bName = parseInt(bName.replace(/^.*-/, ''))
 
     if (aName > bName) {
       return 1
@@ -49,28 +62,28 @@ export default {
     return 0
   },
 
-  translate (i18n, ...names) {
-    let translation = false
-    let first = false
-    names.some(name => {
-      if (name && typeof name !== 'string') {
-        name = name.name
+  translate (vue, entity, falling) {
+    let i18n = vue.$i18n
+    let locale = falling ? i18n.fallbackLocale : i18n.locale
+    if (!entity) return false
+    if (typeof entity === 'string') {
+      if (i18n.te(entity, locale)) {
+        return i18n.t(entity, locale)
       }
-
-      if (!first) first = name
-      if (i18n.te(name + '.item-name')) {
-        translation = i18n.t(name + '.item-name')
-        return true
+      if (!falling) {
+        return this.translate(i18n, entity, true)
       }
-      if (i18n.te(name)) {
-        translation = i18n.t(name)
-        return true
-      }
-    })
-    if (translation) {
-      return translation
-    } else {
-      return i18n.t(first, 'en')
+      return entity
     }
+
+    let name = entity.showName || entity.name
+
+    if (i18n.te(name, locale)) {
+      return i18n.t(name, locale)
+    }
+    if (!falling) {
+      return this.translate(vue, entity, true)
+    }
+    return name
   }
 }

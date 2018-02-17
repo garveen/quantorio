@@ -1,35 +1,65 @@
 local fs = require 'fs'
 local dkjson = require 'dkjson'
 local generator = {}
+local pathMapping = {}
 
-local meta = {
-	groups = {},
-	subgroups = {},
-	items = {},
-	inserters = {},
-	recipes = {
-		dummy = {
-		  name = 'dummy',
-		  category = 'crafting',
-		  normal = {
-				energy_required = 0.5,
-				results = {},
-				ingredients = {},
-				ingredient_count = 0,
-			}
-		},
-	},
-	modules = {},
-	beacons = {},
-	resources = {},
-	categories = {},
-	machines = {},
-	languages = {},
-	translations = {},
+local legalTypes = {
+	'item',
+	'armor',
+	'ammo',
+	'capsule',
+	'fluid',
+	'gun',
+	'item-group',
+	'item-with-entity-data',
+	'mining-tool',
+	'module',
+	'player',
+	'rail-planner',
+	'recipe',
+	'repair-tool',
+	'resource',
+	'technology',
+	'tool',
 }
+local typesLength = 17
+
+local meta
 
 local icons = {}
 local icons_to_copy = {}
+
+local function init()
+	icons = {}
+	icons_to_copy = {}
+	pathMapping = {}
+
+	meta = {
+		groups = {},
+		subgroups = {},
+		items = {},
+		inserters = {},
+		recipes = {
+			dummy = {
+			  name = 'dummy',
+			  category = 'crafting',
+			  normal = {
+					energy_required = 0.5,
+					results = {},
+					ingredients = {},
+					ingredient_count = 0,
+				}
+			},
+		},
+		modules = {},
+		beacons = {},
+		resources = {},
+		categories = {},
+		machines = {},
+		languages = {},
+		translations = {},
+	}
+end
 
 local function buildItem(source, params)
 	target = {}
@@ -49,136 +79,72 @@ local function buildItem(source, params)
 	return target
 end
 
-local function prepareCopyIcon(entity, name)
-	local icon = entity.icon
+local function copyIcon(entity, name)
+	if name then
+		icons_to_copy[name] = true
+	end
+	if entity then
+		icons_to_copy[entity.name] = true
+	end
+end
 
+local function translateIconPath(entity)
+	local icon = entity.icon
 	if (entity.icons) then
 		icon = entity.icons[1].icon
 	end
+	if not icon then return end
+	return icon:gsub('^__%w+__', pathMapping)
+end
 
-	local origin = icon:gsub('^__(%w+)__', 'data/%1')
-	local save = icon:gsub('^__(%w+)__', 'data/%1')
+local function saveItem(entity)
+	local path = translateIconPath(entity)
 
 	icons[entity.name] = icons[entity.name] or {}
-	icons[entity.name][entity.type] = {
-		origin = origin,
-		save = save,
-		order = entity.order,
-		name = name,
-	}
+	icons[entity.name][entity.type] = path
 
-	return save
-end
+	local name = entity.name
 
-local function copyIcon(entity)
-	if(not entity.name) then
-		dump(entity)
-	end
-	icons_to_copy[entity.name] = true
-end
-
-local function saveItem(entity, name)
-	if not (entity.icon or entity.icons) or not entity.order then return end
 	if entity.minable and entity.minable.result then
-		local tmp = {
-			icon = entity.icon,
-			name = entity.minable.result,
-			type = entity.type,
-			order = entity.order,
-		}
-		prepareCopyIcon(tmp, name)
-		copyIcon(tmp)
+		name = entity.minable.result
 	end
-	prepareCopyIcon(entity, name)
+
+	local item = {}
+	if meta.items[name] then item = meta.items[name] end
+
+	if not item.icon then item.icon = path end
+	if not item.name then item.name = name end
+	if not item.type then item.type = entity.type end
+	if not item.order then item.order = entity.order end
+	meta.items[name] = item
+	return path
 end
 
-local function copyIcons(iconPrefix, dry)
-	iconPrefix = iconPrefix or js.global.iconPrefix or ''
-	if iconPrefix then
-		iconPrefix = iconPrefix .. '/'
-	end
-
-	local legalTypes = {
-		'item',
-		'armor',
-		'ammo',
-		'capsule',
-		'fluid',
-		'gun',
-		'item-group',
-		'item-with-entity-data',
-		'mining-tool',
-		'module',
-		'player',
-		'rail-planner',
-		'recipe',
-		'repair-tool',
-		'resource',
-		'technology',
-		'tool',
-	}
-	typesLength = 17
+local function finalize()
 
 	local files = {}
 	for name in pairs(icons_to_copy) do
-		local setup
+		local path
 		for i = 1, typesLength do
 			if not icons[name] then break end
-			setup = icons[name][legalTypes[i]]
-			if setup then
+			path = icons[name][legalTypes[i]]
+			if path then
 				break
 			end
 		end
-		if not setup then
-			dump(icons)
-			dump(name)
+		if not path then
+			goto continue
+		end
+		if not fs.exists(path) and not js.global.window then
+			print(name, path)
 			error()
 		end
-		if not fs.exists(setup.origin) and not js.global.window then
-			dump(name)
-			error()
-		end
-		meta.items[name] = {
-			order = setup.order,
-			icon = setup.save,
-			name = setup.name,
-		}
-		if (dry) then
-			files[setup.origin] = true
-		else
-			local remote = iconPrefix .. setup.save
-			if not fs.exists(fs.dirname(remote)) then
-				js.global:mkDirByPathSync(fs.dirname(remote))
-			end
-			fs.copyFile(setup.origin, remote)
-		end
+
+		files[path] = true
+
 		::continue::
 	end
 	return files
-end
-
-local function writeFiles(dataPrefix, iconPrefix)
-	prefix = dataPrefix or js.global.dataPrefix or ''
-	if prefix then
-		prefix = prefix .. '/'
-	end
-
-	iconPrefix = iconPrefix or js.global.iconPrefix or ''
-	if iconPrefix then
-		iconPrefix = iconPrefix .. '/'
-	end
-	copyIcons(iconPrefix)
-
-	for name, content in pairs(meta) do
-		if name == 'translations' then
-			js.global:mkDirByPathSync(prefix .. 'translations')
-			for language, data in pairs(meta.translations) do
-				fs.writeFile(prefix .. 'translations/' .. language .. '.js', 'export default ' .. dkjson.encode(data, {indent = true}))
-			end
-		else
-			fs.writeFile(prefix .. name .. '.js', 'export default ' .. dkjson.encode(content, {indent = true}))
-		end
-	end
 end
 
 local function saveLanguages(moduleName)
@@ -227,24 +193,19 @@ local function saveLanguages(moduleName)
 end
 
 local function saveGroup(entity)
-	local checkGroup = function (groupName)
-		if not meta.groups[groupName] then
-			meta.groups[groupName] = {
-				order = '',
-				subgroups = {},
-			}
-		end
+	if not meta.groups[entity.name] then
+		meta.groups[entity.name] = {
+			name = entity.name,
+			subgroups = {},
+		}
 	end
-	local groupName
-	if (entity.type == 'item-group') then
-		checkGroup(entity.name)
-		meta.groups[entity.name].icon = prepareCopyIcon(entity)
-		copyIcon(entity)
-		meta.groups[entity.name].order = entity.order
-	else
-		checkGroup(entity.group)
-		meta.groups[entity.group].subgroups[entity.name] = entity.order
-	end
+	meta.groups[entity.name].icon = translateIconPath(entity)
+	copyIcon(entity)
+end
+
+local function saveSubGroup(entity)
+	meta.groups[entity.group].subgroups[entity.name] = meta.groups[entity.group].subgroups[entity.name] or {}
+	meta.subgroups[entity.name] = entity
 end
 
 local function saveInserter(entity)
@@ -339,6 +300,9 @@ local function saveRecipe(entity)
 		all.expensive = entity.expensive
 	end
 
+	local lastResult = nil
+	local resultTypeCount = 0
+
 	for difficulty, config in pairs(all) do
 		recipe[difficulty] = {
 			ingredients = {},
@@ -348,17 +312,23 @@ local function saveRecipe(entity)
 			count = count + 1
 			if ingredient.type then
 				recipe[difficulty].ingredients[ingredient.name] = ingredient.amount
+				copyIcon(ingredient)
 			else
 				recipe[difficulty].ingredients[ingredient[1]] = ingredient[2]
+				copyIcon(nil, ingredient[1])
 			end
 		end
 		recipe[difficulty].ingredient_count = count
 		local results = {}
 		if config.result then
 			results[config.result] = config.result_count or 1
+			lastResult = config.result
+			resultTypeCount = 1
 		else
 			for _, result in pairs(config.results) do
 				results[result.name] = result.amount
+				lastResult = result.name
+				resultTypeCount = resultTypeCount + 1
 			end
 		end
 		results.type = nil
@@ -366,16 +336,15 @@ local function saveRecipe(entity)
 		recipe[difficulty].energy_required = config.energy_required or 0.5
 	end
 
-	meta.recipes[entity.name] = recipe
-
 	local name
-	if next(recipe.normal.results) ~= name and size(recipe.normal.results) == 1 then
-		name = next(recipe.normal.results)
+	if lastResult and lastResult ~= name and resultTypeCount == 1 then
+		name = lastResult
+		recipe.showName = name
 	end
 
-	copyIcon(entity)
+	meta.recipes[entity.name] = recipe
 
-	saveItem(entity, name)
+	copyIcon(entity, name)
 end
 
 local function saveMachine(entity)
@@ -427,38 +396,67 @@ local function saveMachine(entity)
 	copyIcon(entity)
 end
 
-local function parse(data)
-	for type, entities in pairs(data) do
+local function pushGroup(entity)
+	if not entity.subgroup then return end
+	meta.groups[meta.subgroups[entity.subgroup].group].subgroups[entity.subgroup][entity.name] = true
+end
+
+local function parse(data, m)
+	-- global
+	pathMapping = m
+
+	local mapping = {
+		{ name = 'inserter', saver = saveInserter },
+		{ name = 'module', saver = saveModule },
+		{ name = 'beacon', saver = saveBeacon },
+		{ name = 'resource', saver = saveResource },
+		{ name = 'recipe', saver = saveRecipe },
+		{ name = 'fluid', saver = copyIcon },
+		{ name = 'player', saver = saveMachine },
+		{ name = 'assembling-machine', saver = saveMachine },
+		{ name = 'furnace', saver = saveMachine },
+		{ name = 'mining-drill', saver = saveMachine },
+	}
+
+	local mappingLength = 10
+
+	for _, entity in pairs(data['item-group']) do
+		saveItem(entity)
+		saveGroup(entity)
+	end
+
+	for _, entity in pairs(data['item-subgroup']) do
+		saveItem(entity)
+		saveSubGroup(entity)
+	end
+
+	for i = 1, typesLength do
+		local typeName = legalTypes[i]
+		local entities = data[typeName]
 		for _, entity in pairs(entities) do
 			saveItem(entity)
-			local type = entity.type
-			if type == 'item-group' or type == 'item-subgroup' then saveGroup(entity) end
-			if type == 'inserter' then saveInserter(entity) end
-			if type == 'module' then saveModule(entity) end
-			if type == 'beacon' then saveBeacon(entity) end
-			if type == 'resource' then saveResource(entity) end
-			if type == 'recipe' then saveRecipe(entity) end
+			pushGroup(entity)
+		end
+	end
 
-			if type == 'fluid' then copyIcon(entity) end
+	for i = 1, mappingLength do
+		local typeName = mapping[i].name
+		local saver = mapping[i].saver
+		local entities = data[typeName]
 
-			if (entity.subgroup) then
-				if not meta.subgroups[entity.subgroup] then
-					meta.subgroups[entity.subgroup] = {}
-				end
-				meta.subgroups[entity.subgroup][entity.name] = true
+		for _, entity in pairs(entities) do
+			if saver then
+				saver(entity)
 			end
-
-			if entity.crafting_categories or entity.resource_categories then
-				saveMachine(entity)
-			end
+			pushGroup(entity)
 		end
 	end
 end
 
 return {
+	init = init,
 	parse = parse,
-	writeFiles = writeFiles,
-	copyIcons = copyIcons,
+	finalize = finalize,
 	saveLanguages = saveLanguages,
 	getMeta = function ()
 		return meta

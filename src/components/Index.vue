@@ -21,9 +21,9 @@
         <template slot-scope="scope">
           <template v-if='scope.row.isData'>
             <div :style='{display: "flex", "flex-direction": "column"}'>
-              <el-button v-if='scope.row.type === "requirement"' class='operation' type="danger" size='small' @click='handleRemove(scope.$index, scope.row)'>-</el-button>
-              <el-button v-if='scope.row.expended' class='operation' type="warning" size='small' @click='scope.row.expended = false'>&lt;</el-button>
-              <el-button v-else-if='scope.row.canExpend' class='operation' type="primary" size='small' @click='scope.row.expended = true'>&gt;</el-button>
+              <el-button v-if='scope.row.type === "requirement"' class='operation el-icon-minus el-icon' type="danger" size='small' @click='handleRemove(scope.$index, scope.row)'></el-button>
+              <el-button v-if='scope.row.expended' class='operation el-icon-arrow-left el-icon' type="warning" size='small' @click='scope.row.expended = false'></el-button>
+              <el-button v-else-if='scope.row.canExpend' class='operation el-icon-arrow-right el-icon' type="primary" size='small' @click='scope.row.expended = true'></el-button>
             </div>
           </template>
         </template>
@@ -34,8 +34,8 @@
             <el-row>
               <el-col :offset='scope.row.indent'>
                 <div :style='{display: "flex"}'>
-                  <img class='icon' :src='icon(scope.row)' />
-                  <span v-bind:style='{margin: "auto 0 auto 10px"}' v-t='scope.row.name'></span>
+                  <img class='icon' :src='scope.row.icon' />
+                  <span v-bind:style='{margin: "auto 0 auto 10px"}'>{{ translate(scope.row.recipe.name !== 'dummy' ? scope.row.recipe : scope.row) }}</span>
                 </div>
               </el-col>
             </el-row>
@@ -46,7 +46,7 @@
         <template slot-scope="scope">
           <template v-if='scope.row.isData'>
             <el-input-number v-if='scope.row.type === "requirement"' v-model="scope.row.needs" :min=0 controls-position="right" size='small'></el-input-number>
-            <span v-else>{{ scope.row.needs }}</span>
+            <span v-else>{{ Math.round(scope.row.needs * 100) / 100 }}</span>
           </template>
         </template>
       </el-table-column>
@@ -56,7 +56,7 @@
             <div slot='reference'  class='flex button'>
               <img :src='icon(scope.row.machine)' class='button icon'>
               <img v-for='module in scope.row.modules' v-if='module' class='icon' :src='icon(module)'>
-              <span v-t='scope.row.machine.name' :style='{"margin-right": "8px"}'></span>
+              <span :style='{"margin-right": "8px"}'>{{ translate(scope.row.machine) }}</span>
               <span v-for='beaconConfig in scope.row.beacons' v-if='beaconConfig.count !== 0' class='flex'>
                 <span>, {{ beaconConfig.count }} X</span>
                 <img class='icon' :src='icon(beaconConfig.beacon)'>
@@ -126,7 +126,7 @@
           :label="translate('pollution')">
         </el-table-column> -->
     </el-table>
-    <RequirementSelector :visible.sync="selectTargetDialogVisiable" @select='doAdd' :key='locale'></RequirementSelector>
+    <RequirementSelector :visible.sync="selectTargetDialogVisiable" @select='doAdd' :key='locale + metaVersion'></RequirementSelector>
     <Mods :visible.sync="ModsDialogVisiable"></Mods>
 
 
@@ -140,7 +140,6 @@ import Mods from './Mods'
 import Helpers from './Helpers'
 import Row from './Row'
 import RequirementSelector from './RequirementSelector'
-import Data from './data'
 export default {
   components: {
     ModuleSelector,
@@ -161,6 +160,7 @@ export default {
       window: window,
       zips: {},
       fs: {},
+      hashLoaded: false,
     }
   },
   methods: {
@@ -206,7 +206,7 @@ export default {
       column,
       $index
     }) {
-      return <el-button class="operation" type="success" size="mini" on-click={this.handleAdd}>+</el-button>
+      return <el-button class="operation" type="success" size="mini" class='el-icon-plus el-icon' on-click={this.handleAdd}></el-button>
       /* / */
     },
 
@@ -227,7 +227,7 @@ export default {
       $index
     }) {
       let items = this.machines.map((machine, index) => {
-        return <el-option label={this.translate(machine.name)} value={machine.name}></el-option>
+        return <el-option label={this.translate(machine)} value={machine.name}></el-option>
         /* / */
       })
       let row = <el-select value='' placeholder={this.translate('made-in')} on-input={this.changeAllMachine}>{items}</el-select>
@@ -311,6 +311,10 @@ export default {
     loadHash () {
       if (!window.location.hash) return
 
+      this.hashLoaded = false
+      this.remainders = []
+      this.requirements = []
+
       let rows = window.location.hash.substring(1).split('&')
       let map = {
         T: 'requirement',
@@ -365,10 +369,13 @@ export default {
       requirements.forEach(row => row.update())
       this.remainders = remainders
       this.requirements = requirements
+      setTimeout(() => {
+        this.hashLoaded = true
+      }, 100)
     },
 
     translate (...names) {
-      return Helpers.translate(this.$i18n, ...names)
+      return Helpers.translate(this, ...names)
     },
 
     format (number) {
@@ -394,19 +401,17 @@ export default {
 
   },
   created () {
-    Data.then(data => {
-      let translateFallback = 'en'
-      let currentLanguage
-      let testLanguage = navigator.language || navigator.userLanguage
-      if (this.languages[testLanguage]) {
-        currentLanguage = testLanguage
-      } else {
-        currentLanguage = translateFallback
-      }
-      this.$i18n.locale = this.locale = currentLanguage
+    let translateFallback = 'en'
+    let currentLanguage
+    let testLanguage = navigator.language || navigator.userLanguage
+    if (this.languages[testLanguage]) {
+      currentLanguage = testLanguage
+    } else {
+      currentLanguage = translateFallback
+    }
+    this.$i18n.locale = this.locale = currentLanguage
 
-      this.loadHash()
-    })
+    this.loadHash()
   },
 
   mounted () {
@@ -421,6 +426,7 @@ export default {
     categories () { return this.$store.state.meta.categories },
     inserters () { return this.$store.state.meta.inserters },
     modules () { return this.$store.state.meta.modules },
+    metaVersion () { return this.$store.state.metaVersion },
 
     difficulty () {
       return this.$store.state.difficulty
@@ -503,6 +509,10 @@ export default {
   },
 
   watch: {
+    metaVersion () {
+      this.loadHash()
+    },
+
     locale () {
       this.$i18n.locale = this.locale
     },
@@ -552,8 +562,9 @@ export default {
           row.needs = row.sources.reduce((acc, cur) => acc + cur.needs, 0)
           row.update()
         })
-
-        this.saveHash()
+        if (this.hashLoaded) {
+          this.saveHash()
+        }
       }, 50, {
         trailing: false,
       }),
@@ -632,6 +643,14 @@ div.cell {
   width: 32px;
   height: 32px;
   margin: 0
+}
+
+>>> .el-icon {
+  font-size: 14px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-weight: 900
 }
 
 </style>

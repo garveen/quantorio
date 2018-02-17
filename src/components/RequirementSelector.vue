@@ -5,7 +5,7 @@
         <span slot="label"><img :src='icon(group)' class='group'></span>
         <div>
           <div v-for='subgroup in group.subgroupsWithItems'>
-            <abbr v-for='(item) in subgroup.items' :title="translate(item, items[item.name])">
+            <abbr v-for='(item) in subgroup.items' :title="translate(item)">
               <a @click='doAdd(item.name)'>
                 <img class='icon icon-bordered' :src='icon(item)'>
               </a>
@@ -22,7 +22,7 @@ export default {
   props: ['visible'],
   methods: {
     translate (...names) {
-      return Helpers.translate(this.$i18n, ...names)
+      return Helpers.translate(this, ...names)
     },
     doAdd (name) {
       this.$emit('select', name)

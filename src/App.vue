@@ -25,21 +25,10 @@ export default {
       background: 'rgba(0, 0, 0, 0)'
     })
 
-    Data.then((data) => {
-      this.$store.commit('setLanguages', data.languages)
-      this.$store.commit('setMeta', data)
-      window.items = data.items
-
-      Object.keys(data.translations).forEach(lang => {
-        let message = data.translations[lang]
-        try {
-          message.el = require('element-ui/lib/locale/lang/' + lang).default.el
-        } catch (ex) {
-        }
-        this.$i18n.setLocaleMessage(lang, message)
-      })
-      loading.close()
+    Data.init().then((meta) => {
+      Data.setVue(this, meta)
       this.loaded = true
+      loading.close()
     })
   }
 }

@@ -4,10 +4,12 @@ import Vuex from 'vuex'
 import VueI18n from 'vue-i18n'
 import vueHeadful from 'vue-headful'
 import Element from './element'
+import VueTransmitPlugin from 'vue-transmit'
 
 Vue.config.productionTip = false
 Vue.use(Vuex)
 Vue.use(VueI18n)
+Vue.use(VueTransmitPlugin)
 Vue.component('vue-headful', vueHeadful)
 
 const i18n = new VueI18n({
@@ -23,6 +25,7 @@ const store = new Vuex.Store({
     difficulty: 'normal',
     meta: {},
     languages: {},
+    metaVersion: 0,
   },
   mutations: {
     setDifficulty (state, v) {
@@ -30,6 +33,7 @@ const store = new Vuex.Store({
     },
     setMeta (state, v) {
       state.meta = v
+      state.metaVersion = state.metaVersion + 1
     },
     setLanguages (state, v) {
       state.languages = v

@@ -1,4 +1,3 @@
-import data from './data'
 import Helpers from './Helpers'
 
 let resources
@@ -6,14 +5,6 @@ let recipes
 let machines
 let categories
 let beacons
-
-data.then(data => {
-  resources = data.resources
-  recipes = data.recipes
-  machines = data.machines
-  categories = data.categories
-  beacons = data.beacons
-})
 
 let rowIdIncrement = 1
 let recipeConfigs = {}
@@ -27,13 +18,18 @@ let difficulty = 'normal'
 
 class Row {
   constructor (name, type, indent) {
+    resources = window.meta.resources
+    recipes = window.meta.recipes
+    machines = window.meta.machines
+    categories = window.meta.categories
+    beacons = window.meta.beacons
+
     let isResource = Boolean(resources[name])
     indent || (indent = 0)
     this.id = rowIdIncrement++
     this.name = name
     this.machine = null
     this.recipe = isResource ? resources[name] : recipes[name]
-    this.icon = Helpers.icon(name)
     this.needs = 0
     this.modules = []
     this.beacons = []
@@ -51,6 +47,13 @@ class Row {
     if (!this.recipe) {
       this.recipe = recipes.dummy
     }
+
+    if (this.recipe.showName) {
+      this.showName = this.recipe.showName
+    }
+
+    this.icon = Helpers.icon(this.showName || name)
+
     this.machine = machines.find(machine => machine.name === categories[this.recipe.category][0])
 
     beacons.forEach(beacon => {

@@ -1,6 +1,17 @@
-function print(...)
-	js.global.console:log(...)
+old_print = print
+_G.print = function(...)
+	local info = debug.getinfo(2, 'Sl')
+	local line = info.short_src .. ':' .. info.currentline .. ':'
+	js.global.console:log(line, ...)
 end
+log = print
+
+originPaths = {
+	"?.lua",
+	"lualib/?.lua",
+}
+originPathsLength = 2
+
 
 do -- Create js.ipairs and js.pairs functions. attach as __pairs and __ipairs on JS userdata objects.
 	local _PROXY_MT = debug.getregistry()._PROXY_MT
@@ -83,6 +94,9 @@ table.insert(package.searchers, function(name)
 	if loaded then return loaded, path end
 end)
 
+generator = require "generator"
+
+
 function split(inputstr, sep)
         if sep == nil then
                 sep = "%s"
@@ -95,9 +109,7 @@ function split(inputstr, sep)
         return t
 end
 
-function log(...)
-	print(...)
-end
+
 
 local dkjson = require 'dkjson'
 function dump(...)
@@ -106,7 +118,7 @@ function dump(...)
 	for _, v in ipairs({...}) do
 		line = line .. ' ' .. dkjson.encode(v, {indent = true})
 	end
-	print(line)
+	old_print(line)
 end
 
 function is_int(n)
@@ -134,58 +146,65 @@ function zipIt(name)
 	to_be_zipped[name] = true
 end
 
-function loadModules(modules)
-	local old_require = require
-	local to_be_removed = {}
-	require('util')
+defines = require 'lualib.defines'
 
-	require = function (name)
-		_, fullname = findfile(name)
-		zipIt(fullname)
-		if not package.loaded[name] then
-			to_be_removed[name] = true
-		end
-		return old_require(name)
-	end
-
-	defines = require 'defines'
-
-	defines.difficulty_settings = {
-		technology_difficulty = {
-			normal = 0
-		},
-		recipe_difficulty = {
-			normal = 0
-		}
+defines.difficulty_settings = {
+	technology_difficulty = {
+		normal = 0
+	},
+	recipe_difficulty = {
+		normal = 0
 	}
+}
+
+function loadModules(modules, modulesLength)
+	local old_require = require
+
+	local mapping = {}
 
 	require "dataloader"
+	require = function (filename)
+		loaded, fullname = findfile(filename)
+		zipIt(fullname)
+		return old_require(filename)
+	end
+	-- packup package.loaded
+	-- cannot assign directly by lua's design
+	local ploaded = {}
+	for k, v in pairs(package.loaded) do
+		ploaded[k] = v
+	end
 
-	for _, name in pairs({'data', 'data-updates', 'data-final-fixes'}) do
-
-		for i = 1, modules.length do
+	for _, filename in pairs({'data', 'data-updates', 'data-final-fixes'}) do
+		for i = 1, modulesLength do
+			for k, v in pairs(package.loaded) do
+				package.loaded[k] = nil
+			end
 			local moduleName = modules[i]
 			table.insert(originPaths, 1, 'data/' .. moduleName .. '/?.lua')
 			originPathsLength = originPathsLength + 1
-			local loaded = findfile(name)
-			if loaded then
-				require(name)
-
-				for name in pairs(to_be_removed) do
-					package.loaded[name] = nil
-				end
-				to_be_removed = {}
+			local chunk = findfile(filename)
+			if chunk then
+				print('loading ' .. moduleName .. '/' .. filename .. '.lua')
+				require(filename)
+			else
 			end
 			originPathsLength = originPathsLength - 1
 			table.remove(originPaths, 1)
 		end
 	end
-	for i = 1, modules.length do
-		local moduleName = modules[i]
-		generator.saveLanguages(moduleName)
+	for k, v in pairs(ploaded) do
+		package.loaded[k] = v
 	end
 
 	require = old_require
+	for i = 1, modulesLength do
+		local moduleName = modules[i]
+		local part = moduleName:gmatch('[^_]+')()
+		mapping['__' .. part .. '__'] = 'data/' .. moduleName
+		generator.saveLanguages(moduleName)
+	end
+	return mapping
 end
 
 
@@ -221,24 +240,29 @@ function loadINI(file)
 	return data
 end
 
-originPaths = {
-	"?.lua",
-	"lualib/?.lua",
-}
-originPathsLength = 2
+function parse(modules, modulesLength)
+	generator.init()
+	local mapping = loadModules(modules, modulesLength)
+	generator.parse(data.raw, mapping)
+	local files = generator.finalize()
+	local meta = generator.getMeta()
+	return meta, files
+end
 
-generator = require "generator"
-loadModules(modules)
+function browserParse(modules, modulesLength)
+	parse(modules, modulesLength)
 
-generator.parse(data.raw)
+	return translate(generator.getMeta())
+end
 
-if not js.global.window then
+
+function localParse()
+	local modules = {'core', 'base'}
+	local modulesLength = 2
+	local meta, files = parse(modules, modulesLength)
+
 	-- nodejs
-	if js.global.process.env.NODE_ENV == 'development' then
-		files = generator.copyIcons(nil, true)
-	else
-		files = generator.copyIcons()
-	end
+	files = generator.finalize()
 	all = {}
 	for k in pairs(to_be_zipped) do
 		table.insert(all, k)
@@ -247,9 +271,8 @@ if not js.global.window then
 		table.insert(all, k)
 	end
 	js.global:zipStockFiles(js.global:Array(table.unpack(all)))
-else
-	-- browser
-	generator.copyIcons(nil, true)
+
+
+	return meta
 end
 
-return translate(generator.getMeta())
