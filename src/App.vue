@@ -9,6 +9,7 @@
 import Data from './components/data'
 import Index from './components/Index'
 import Loading from './components/Loading'
+import Vue from 'vue'
 export default {
   components: {
     Index,
@@ -19,6 +20,11 @@ export default {
     return {
       inited: false,
     }
+  },
+  beforeCreate () {
+    import('./element').then((Element) => {
+      Element.default(Vue, this.$i18n)
+    })
   },
   mounted () {
     let translateFallback = 'zh-CN' // this.$i18n.fallbackLocale
