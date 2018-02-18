@@ -9,7 +9,7 @@
       @added-files='uploaderHeight="10vh";uploaderIconHeight="8vh"'
       >
       <div class="inner" :style='{height: uploaderHeight}'>
-        <div class="el-icon-upload" :style='{"font-size": uploaderIconHeight}'></div>
+        <div class="el-icon-document" :style='{"font-size": uploaderIconHeight}'></div>
       </div>
       <!-- Scoped slot -->
       <template slot="files" slot-scope="props">

@@ -164,6 +164,7 @@ local function saveLanguages(moduleName)
 				local ini = loadINI(fullname)
 				meta.translations[language] = meta.translations[language] or {}
 				for _, groupName in pairs({
+						'gui-menu',
 						'item-name',
 						'entity-name',
 						'fluid-name',

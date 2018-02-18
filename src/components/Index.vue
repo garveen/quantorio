@@ -9,8 +9,8 @@
         </h1>
       </el-col>
       <el-col :span='8' :style='{"text-align": "end"}'>
+        <el-button type='primary' plain @click="handleMod">{{ $t('mods') }}</el-button>
         <el-button type='primary' plain @click="window.location.href = 'https://github.com/garveen/quantorio'">View on GitHub</el-button>
-        <el-button type='primary' plain @click="handleMod">Mod</el-button>
         <el-select v-model='locale' filterable default-first-option>
           <el-option v-for="long, short in languages" :key="short" :label="long" :value="short"></el-option>
         </el-select>

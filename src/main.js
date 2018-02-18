@@ -3,7 +3,6 @@ import App from './App'
 import Vuex from 'vuex'
 import VueI18n from 'vue-i18n'
 import vueHeadful from 'vue-headful'
-import Element from './element'
 import VueTransmitPlugin from 'vue-transmit'
 
 Vue.config.productionTip = false
@@ -17,8 +16,6 @@ const i18n = new VueI18n({
   fallbackLocale: 'en',
   messages: {}
 })
-
-Element(Vue, i18n)
 
 const store = new Vuex.Store({
   state: {
@@ -36,7 +33,6 @@ const store = new Vuex.Store({
       state.metaVersion = state.metaVersion + 1
     },
     saveTranslation (state, [name, v]) {
-      console.log(name, v)
       state.meta.translations[name] = v
     },
     setLoading (state, v) {
