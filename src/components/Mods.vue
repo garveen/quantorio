@@ -79,7 +79,7 @@ export default {
       this.$store.commit('setLoading', true)
       let _this = this
       window.setTimeout(() => {
-        import('JSZip').then(JSZip => {
+        import('jszip').then(JSZip => {
           let promises = []
           vtFiles.forEach(vtFile => {
             promises.push(JSZip.loadAsync(vtFile.nativeFile))
