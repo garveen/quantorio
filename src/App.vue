@@ -20,9 +20,18 @@ export default {
       inited: false,
     }
   },
-  created () {
-    Data.init().then((meta) => {
+  mounted () {
+    let translateFallback = 'zh-CN' // this.$i18n.fallbackLocale
+    Data.init(translateFallback).then((meta) => {
       Data.setVue(this, meta)
+      let currentLanguage
+      let testLanguage = navigator.language || navigator.userLanguage
+      if (meta.languages[testLanguage]) {
+        currentLanguage = testLanguage
+      } else {
+        currentLanguage = translateFallback
+      }
+      this.$i18n.locale = currentLanguage
       this.inited = true
       this.$store.commit('setLoading', false)
     })

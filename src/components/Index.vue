@@ -133,6 +133,7 @@
   </div>
 </template>
 <script>
+import Data from './data'
 import LuaLoader from './LuaLoader'
 import throttle from 'lodash/throttle'
 import ModuleSelector from './ModuleSelector'
@@ -161,6 +162,7 @@ export default {
       zips: {},
       fs: {},
       hashLoaded: false,
+      loadedLanguages: {},
     }
   },
   methods: {
@@ -309,7 +311,10 @@ export default {
     },
 
     loadHash () {
-      if (!window.location.hash) return
+      if (!window.location.hash) {
+        this.hashLoaded = true
+        return
+      }
 
       this.hashLoaded = false
       this.remainders = []
@@ -401,20 +406,13 @@ export default {
 
   },
   created () {
-    let translateFallback = 'en'
-    let currentLanguage
-    let testLanguage = navigator.language || navigator.userLanguage
-    if (this.languages[testLanguage]) {
-      currentLanguage = testLanguage
-    } else {
-      currentLanguage = translateFallback
-    }
-    this.$i18n.locale = this.locale = currentLanguage
-
     this.loadHash()
   },
 
   mounted () {
+    this.loadedLanguages[this.$i18n.locale] = true
+    this.locale = this.$i18n.locale
+    this.$nextTick(this.$forceUpdate)
   },
 
   computed: {
@@ -426,14 +424,11 @@ export default {
     categories () { return this.$store.state.meta.categories },
     inserters () { return this.$store.state.meta.inserters },
     modules () { return this.$store.state.meta.modules },
+    languages () { return this.$store.state.meta.languages },
     metaVersion () { return this.$store.state.metaVersion },
 
     difficulty () {
       return this.$store.state.difficulty
-    },
-
-    languages () {
-      return this.$store.state.languages
     },
 
     tableData () {
@@ -514,7 +509,14 @@ export default {
     },
 
     locale () {
-      this.$i18n.locale = this.locale
+      let val = this.locale
+      if (!this.loadedLanguages[val]) {
+        Data.loadTranslation(this, val).then(() => {
+          this.$i18n.locale = val
+        })
+      } else {
+        this.$i18n.locale = val
+      }
     },
 
     requirements: {

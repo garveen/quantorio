@@ -24,7 +24,6 @@ const store = new Vuex.Store({
   state: {
     difficulty: 'normal',
     meta: {},
-    languages: {},
     metaVersion: 0,
     loading: true,
   },
@@ -36,10 +35,10 @@ const store = new Vuex.Store({
       state.meta = v
       state.metaVersion = state.metaVersion + 1
     },
-    setLanguages (state, v) {
-      state.languages = v
+    saveTranslation (state, [name, v]) {
+      console.log(name, v)
+      state.meta.translations[name] = v
     },
-
     setLoading (state, v) {
       state.loading = v
     }

@@ -121,8 +121,10 @@ let extractZipToVirtualFS = (zips, prefix) => {
       e.FS_createFolder('/', 'locale', true, true)
     } catch (e) {}
 
-    zips.forEach((zip, index) => {
+    zips.forEach(([name, zip], index) => {
       let baseDir = rootDir
+
+      console.log('extracting ' + name)
 
       zip.forEach((relativePath, file) => {
         if (file.dir) {
@@ -187,18 +189,43 @@ let extractZipToVirtualFS = (zips, prefix) => {
   })
 }
 
-let init = (mods) => {
+let loadZip = (name) => {
   return import('jszip').then(JSZip => {
-    let loadZip = (name) => {
-      if (process.env.TRAVIS_TAG) {
-        name = `//cdn.rawgit.com/garveen/quantorio/${process.env.TRAVIS_TAG}/public/` + name
-      }
-      return fetch(name + '.zip', {mode: 'cors'}).then((response) => {
-        return response.blob()
-      }).then(JSZip.loadAsync)
+    if (process.env.TRAVIS_TAG) {
+      name = `//raw.githubusercontent.com/garveen/quantorio/${process.env.TRAVIS_TAG}/public/` + name
     }
-    console.log('loading zips...')
-    return Promise.all([loadZip('lualib'), loadZip('core'), loadZip('base'), loadZip('quantorio')]).then(parse)
+    return fetch(name + '.zip', {mode: 'cors'})
+    .then(response => response.blob())
+    .then(JSZip.loadAsync)
+    .then(zip => {
+      return [name, zip]
+    })
+  })
+}
+
+let init = (fallbackLanguage) => {
+  return Promise.all([loadZip('lualib'), loadZip('core'), loadZip('base'), loadZip('quantorio'), loadZip(fallbackLanguage)]).then(parse)
+}
+
+let loadSingle = (name) => {
+  return loadZip(name).then(zip => [zip]).then(parse)
+}
+
+let setTranslation = ($vm, meta) => {
+  Object.keys(meta.translations).forEach(lang => {
+    let message = meta.translations[lang]
+    try {
+      message.el = require('element-ui/lib/locale/lang/' + lang).default.el
+    } catch (ex) {
+    }
+    $vm.$i18n.mergeLocaleMessage(lang, message)
+    $vm.$store.commit('saveTranslation', [lang, message])
+  })
+}
+
+let loadTranslation = ($vm, name) => {
+  return loadSingle(name).then(meta => {
+    setTranslation($vm, meta)
   })
 }
 
@@ -223,22 +250,15 @@ let parse = (zips, prefix, mods) => {
 }
 
 let setVue = ($vm, meta) => {
-  $vm.$store.commit('setLanguages', meta.languages)
   window.items = meta.items
   $vm.$store.commit('setMeta', meta)
-
-  Object.keys(meta.translations).forEach(lang => {
-    let message = meta.translations[lang]
-    try {
-      message.el = require('element-ui/lib/locale/lang/' + lang).default.el
-    } catch (ex) {
-    }
-    $vm.$i18n.setLocaleMessage(lang, message)
-  })
+  setTranslation($vm, meta)
 }
 
 export default {
   init: init,
   parse: parse,
   setVue: setVue,
+  loadSingle: loadSingle,
+  loadTranslation: loadTranslation,
 }

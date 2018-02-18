@@ -193,10 +193,12 @@ end
 local function saveQuantorioLanguages()
 	for _, file in pairs(fs.readDir('locale')) do
 		local language = file:match('(.-)%.')
-		local ini = loadINI('locale/' .. file)
-		for _, group in pairs(ini) do
-			for k, v in pairs(group) do
-				meta.translations[language][k] = v
+		if meta.translations[language] then
+			local ini = loadINI('locale/' .. file)
+			for _, group in pairs(ini) do
+				for k, v in pairs(group) do
+					meta.translations[language][k] = v
+				end
 			end
 		end
 	end

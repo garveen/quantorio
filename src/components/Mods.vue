@@ -82,12 +82,12 @@ export default {
         import('jszip').then(JSZip => {
           let promises = []
           vtFiles.forEach(vtFile => {
-            promises.push(JSZip.loadAsync(vtFile.nativeFile))
+            promises.push(JSZip.loadAsync(vtFile.nativeFile).then(zip => [vtFile.name, zip]))
           })
           Promise.all(promises)
           .then(zips => {
             let names = []
-            zips.forEach(zip => {
+            zips.forEach(([_, zip]) => {
               let name = zip.folder(/^[^/]+\/$/)[0].name
               names.push(name.substring(0, name.length - 1))
             })

@@ -49,19 +49,21 @@ _global.zipStockFiles = (files) => {
 
   files.forEach(file => {
     let zip
-    let zipname
-    // console.log(file)
-    if (file.substring(0, 10) === 'data/core/') {
+    if (file.substring(10, 16) === 'locale' && file.substring(file.length - 4) === '.cfg') {
+      let locale = /.*?locale\/([^/]+)/.exec(file)[1]
+      if (!zips[locale]) {
+        zips[locale] = new JSZip()
+      }
+      zip = zips[locale]
+    }else if (file.substring(0, 10) === 'data/core/') {
       zip = zips.core
-      zipname = file
     } else if (file.substring(0, 10) === 'data/base/') {
       zip = zips.base
-      zipname = file
     } else {
       // lualib or quantorio, will be zipped later
       return
     }
-    zip.file(zipname, fs.readFileSync(file))
+    zip.file(file, fs.readFileSync(file))
   })
 
   fs.readdirSync('./data/core/lualib').forEach(filename => {
@@ -75,8 +77,7 @@ _global.zipStockFiles = (files) => {
     zips.quantorio.file('locale/' + filename, fs.readFileSync('./locale/' + filename))
   })
 
-  let names = ['core', 'base', 'lualib', 'quantorio']
-  names.forEach((name) => {
+  Object.keys(zips).forEach((name) => {
     zips[name]
     .generateNodeStream({type:'nodebuffer',streamFiles:true})
     .pipe(fs.createWriteStream('public/' + name + '.zip'))
