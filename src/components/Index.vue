@@ -126,7 +126,7 @@
           :label="translate('pollution')">
         </el-table-column> -->
     </el-table>
-    <RequirementSelector :visible.sync="selectTargetDialogVisiable" @select='doAdd' :key='locale + metaVersion'></RequirementSelector>
+    <RequirementSelector v-if='loadedLanguages[locale]' :visible.sync="selectTargetDialogVisiable" @select='doAdd' :key='locale + metaVersion'></RequirementSelector>
     <Mods :visible.sync="ModsDialogVisiable"></Mods>
 
 
@@ -513,6 +513,7 @@ export default {
       if (!this.loadedLanguages[val]) {
         Data.loadTranslation(this, val).then(() => {
           this.$i18n.locale = val
+          this.loadedLanguages[val] = true
         })
       } else {
         this.$i18n.locale = val
