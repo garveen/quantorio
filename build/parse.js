@@ -79,7 +79,7 @@ _global.zipStockFiles = (files) => {
 
   Object.keys(zips).forEach((name) => {
     zips[name]
-    .generateNodeStream({type:'nodebuffer',streamFiles:true})
+    .generateNodeStream({type:'nodebuffer',streamFiles:true, compression: 'DEFLATE', compressionOptions: { level: 9 }})
     .pipe(fs.createWriteStream('public/' + name + '.zip'))
     .on('finish', () => {
         console.log(name + ".zip written.")
