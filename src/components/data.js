@@ -191,7 +191,7 @@ let init = (mods) => {
   return import('jszip').then(JSZip => {
     let loadZip = (name) => {
       if (process.env.TRAVIS_TAG) {
-        name = `//cdn.rawgit.com/garveen/quantorio/${process.env.TRAVIS_TAG}/` + name
+        name = `//cdn.rawgit.com/garveen/quantorio/${process.env.TRAVIS_TAG}/public/` + name
       }
       return fetch(name + '.zip', {mode: 'cors'}).then((response) => {
         return response.blob()
