@@ -64,6 +64,9 @@ export default {
 
   translate (vue, entity, falling) {
     let i18n = vue.$i18n
+    if (!i18n) {
+      console.trace()
+    }
     let locale = falling ? i18n.fallbackLocale : i18n.locale
     if (!entity) return false
     if (typeof entity === 'string') {
@@ -71,7 +74,7 @@ export default {
         return i18n.t(entity, locale)
       }
       if (!falling) {
-        return this.translate(i18n, entity, true)
+        return this.translate(vue, entity, true)
       }
       return entity
     }

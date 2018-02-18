@@ -7,11 +7,11 @@ const baseWebpackConfig = require('./webpack.base.conf')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const FriendlyErrorsPlugin = require('friendly-errors-webpack-plugin')
 const portfinder = require('portfinder')
+const WebpackShellPlugin = require('webpack-shell-plugin')
 
 const HOST = process.env.HOST
 const PORT = process.env.PORT && Number(process.env.PORT)
 
-const WebpackShellPlugin = require('webpack-shell-plugin')
 
 const devWebpackConfig = merge(baseWebpackConfig, {
   module: {
@@ -22,6 +22,7 @@ const devWebpackConfig = merge(baseWebpackConfig, {
 
   // these devServer options should be customized in /config/index.js
   devServer: {
+    contentBase: './public',
     clientLogLevel: 'warning',
     historyApiFallback: true,
     hot: true,
@@ -53,8 +54,7 @@ const devWebpackConfig = merge(baseWebpackConfig, {
       inject: true
     }),
     new WebpackShellPlugin({
-      onBuildStart: ['node src/parse.js'],
-      dev: false,
+      onBuildEnd: ['node build/parse.js'],
     }),
   ]
 })

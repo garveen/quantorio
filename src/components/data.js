@@ -190,12 +190,15 @@ let extractZipToVirtualFS = (zips, prefix) => {
 let init = (mods) => {
   return import('JSZip').then(JSZip => {
     let loadZip = (name) => {
-      return fetch('public/' + name + '.zip').then((response) => {
+      if (process.env.TRAVIS_TAG) {
+        name = `//cdn.rawgit.com/garveen/quantorio/${process.env.TRAVIS_TAG}/` + name
+      }
+      return fetch(name + '.zip', {mode: 'cors'}).then((response) => {
         return response.blob()
       }).then(JSZip.loadAsync)
     }
     console.log('loading zips...')
-    return Promise.all([loadZip('lualib'), loadZip('core'), loadZip('base'), loadZip('quantorio')])
+    return Promise.all([loadZip('lualib'), loadZip('core'), loadZip('base'), loadZip('quantorio')]).then(parse)
   })
 }
 
@@ -235,11 +238,7 @@ let setVue = ($vm, meta) => {
 }
 
 export default {
-  init: () => {
-    return init().then((zips, prefix) => {
-      return parse(zips, prefix)
-    })
-  },
+  init: init,
   parse: parse,
   setVue: setVue,
 }

@@ -148,6 +148,7 @@ local function finalize()
 end
 
 local function saveLanguages(moduleName)
+	print('loading language ' .. moduleName)
 	-- Will be called when parsing a mod
 	-- The working directory is different
 	for _, language in pairs(fs.readDir('data/' .. moduleName .. '/locale')) do
@@ -171,16 +172,25 @@ local function saveLanguages(moduleName)
 						-- 'technology-name',
 						}) do
 					if ini[groupName] then
-					    local group = ini[groupName]
-					    for k, v in pairs(group) do
-					    	meta.translations[language][k] = v
-					    end
+						local group = ini[groupName]
+						for k, v in pairs(group) do
+							if k == 'fibreglass-board' then
+								print('found')
+							end
+							if not v then
+								print(k)
+								error()
+							end
+							meta.translations[language][k] = v
+						end
 					end
 				end
 			end
 		end
 	end
+end
 
+local function saveQuantorioLanguages()
 	for _, file in pairs(fs.readDir('locale')) do
 		local language = file:match('(.-)%.')
 		local ini = loadINI('locale/' .. file)
@@ -458,6 +468,7 @@ return {
 	parse = parse,
 	finalize = finalize,
 	saveLanguages = saveLanguages,
+	saveQuantorioLanguages = saveQuantorioLanguages,
 	getMeta = function ()
 		return meta
 	end,

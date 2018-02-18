@@ -203,6 +203,7 @@ function loadModules(modules, modulesLength)
 		local part = moduleName:gmatch('[^_]+')()
 		mapping['__' .. part .. '__'] = 'data/' .. moduleName
 		generator.saveLanguages(moduleName)
+		generator.saveQuantorioLanguages()
 	end
 	return mapping
 end
@@ -241,6 +242,9 @@ function loadINI(file)
 end
 
 function parse(modules, modulesLength)
+	if (fs.syncDir) then
+		fs.syncDir()
+	end
 	generator.init()
 	local mapping = loadModules(modules, modulesLength)
 	generator.parse(data.raw, mapping)
