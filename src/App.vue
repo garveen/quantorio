@@ -1,35 +1,37 @@
 <template>
   <div id="app">
-    <index v-if="loaded"/>
+    <index v-if="inited"/>
+    <Loading v-if="loading"></Loading>
   </div>
 </template>
 
 <script>
 import Data from './components/data'
 import Index from './components/Index'
+import Loading from './components/Loading'
 export default {
   components: {
-    Index
+    Index,
+    Loading,
   },
   name: 'app',
   data () {
     return {
-      loaded: false,
+      inited: false,
     }
   },
   created () {
-    const loading = this.$loading({
-      lock: true,
-      text: 'Loading',
-      spinner: 'el-icon-loading',
-      background: 'rgba(0, 0, 0, 0)'
-    })
-
     Data.init().then((meta) => {
       Data.setVue(this, meta)
-      this.loaded = true
-      loading.close()
+      this.inited = true
+      this.$store.commit('setLoading', false)
     })
+  },
+
+  computed: {
+    loading () {
+      return this.$store.state.loading
+    }
   }
 }
 </script>

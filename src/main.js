@@ -26,6 +26,7 @@ const store = new Vuex.Store({
     meta: {},
     languages: {},
     metaVersion: 0,
+    loading: true,
   },
   mutations: {
     setDifficulty (state, v) {
@@ -38,6 +39,10 @@ const store = new Vuex.Store({
     setLanguages (state, v) {
       state.languages = v
     },
+
+    setLoading (state, v) {
+      state.loading = v
+    }
   }
 })
 

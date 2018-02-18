@@ -43,10 +43,8 @@
 <script>
 import Data from './data'
 export default {
-
   props: ['visible'],
-  components: {
-  },
+
   data () {
     return {
       uploaderHeight: '20vh',
@@ -77,13 +75,9 @@ export default {
     },
 
     setFiles (vtFiles) {
-      const loading = this.$loading({
-        lock: true,
-        text: 'Loading',
-        spinner: 'el-icon-loading',
-        background: 'rgba(0, 0, 0, 0.8)'
-      })
-
+      // console.log(String(this.$i18n.locale))
+      this.$store.commit('setLoading', true)
+      let _this = this
       window.setTimeout(() => {
         import('JSZip').then(JSZip => {
           let promises = []
@@ -100,17 +94,18 @@ export default {
             return Data.parse(zips, 'data', names)
           })
           .then(meta => {
-            Data.setVue(this, meta)
-            loading.close()
-            this.$emit('update:visible', false)
+            // console.log(String(_this.$i18n.locale))
+            Data.setVue(_this, meta)
+            _this.$emit('update:visible', false)
           })
           .catch(error => {
-            loading.close()
-            alert('some module got an error')
             console.error(error)
+            alert('some module got an error')
+          }).finally(() => {
+            _this.$store.commit('setLoading', false)
           })
         })
-      }, 0)
+      }, 1)
     },
 
     handleMove (ev, table, index, direction) {
@@ -164,6 +159,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+>>> .inner:hover {
   cursor: pointer;
 }
 

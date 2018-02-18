@@ -5,7 +5,6 @@ import {
   Table,
   InputNumber,
   Icon,
-  Loading,
   Popover,
   Dialog,
   Tabs,
@@ -31,7 +30,4 @@ export default (Vue, i18n) => {
   Vue.use(Col, options)
   Vue.use(Option, options)
   Vue.use(TableColumn, options)
-  Vue.use(Loading.directive, options)
-
-  Vue.prototype.$loading = Loading.service
 }
