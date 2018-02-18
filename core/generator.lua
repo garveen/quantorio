@@ -429,9 +429,10 @@ local function parse(data, m)
 		{ name = 'assembling-machine', saver = saveMachine },
 		{ name = 'furnace', saver = saveMachine },
 		{ name = 'mining-drill', saver = saveMachine },
+		{ name = 'rocket-silo', saver = saveMachine },
 	}
 
-	local mappingLength = 10
+	local mappingLength = 11
 
 	for _, entity in pairs(data['item-group']) do
 		saveItem(entity)
