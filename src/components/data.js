@@ -224,8 +224,10 @@ let setTranslation = ($vm, meta) => {
 }
 
 let loadTranslation = ($vm, name) => {
+  $vm.$store.commit('setLoading', true)
   return loadSingle(name).then(meta => {
     setTranslation($vm, meta)
+    $vm.$store.commit('setLoading', false)
   })
 }
 
