@@ -88,5 +88,9 @@ export default {
       return this.translate(vue, entity, true)
     }
     return name
+  },
+
+  isValid (obj) {
+    return obj.name && obj.name !== 'dummy'
   }
 }

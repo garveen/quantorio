@@ -41,9 +41,9 @@ local function init()
 		inserters = {},
 		recipes = {
 			dummy = {
-			  name = 'dummy',
-			  category = 'crafting',
-			  normal = {
+				name = 'dummy',
+				category = 'dummy',
+				normal = {
 					energy_required = 0.5,
 					results = {},
 					ingredients = {},
@@ -54,8 +54,22 @@ local function init()
 		modules = {},
 		beacons = {},
 		resources = {},
-		categories = {},
-		machines = {},
+		categories = {
+			dummy = {'dummy'},
+		},
+		machines = {
+			{
+				name = 'dummy',
+				type = 'dummy',
+				module_slots = 0,
+				crafting_speed = 0,
+				energy_usage = 0,
+				allowed_effects = {},
+				energy_source = {
+					type = 'biologic'
+				},
+			}
+		},
 		languages = {},
 		translations = {},
 	}
@@ -379,6 +393,26 @@ local function saveMachine(entity)
 		machine.module_slots = 0
 	end
 
+	if entity.pumping_speed then
+		entity.resource_categories = {entity.fluid}
+		machine.crafting_speed = entity.pumping_speed
+		if not meta.recipes[entity.fluid] then
+			local recipe =
+				{
+					name = entity.fluid,
+					category = entity.fluid,
+					normal = {
+						energy_required = 1,
+						results = {},
+						ingredients = {},
+						ingredient_count = 0,
+					}
+				}
+			recipe.normal.results[entity.fluid] = 60
+			recipe.showName = entity.fluid
+			meta.recipes[entity.fluid] = recipe
+		end
+	end
 
 	machine.energy_usage = tonumber(string.sub(machine.energy_usage, 0, -3)) or 0
 
@@ -429,9 +463,10 @@ local function parse(data, m)
 		{ name = 'furnace', saver = saveMachine },
 		{ name = 'mining-drill', saver = saveMachine },
 		{ name = 'rocket-silo', saver = saveMachine },
+		{ name = 'offshore-pump', saver = saveMachine },
 	}
 
-	local mappingLength = 11
+	local mappingLength = 12
 
 	for _, entity in pairs(data['item-group']) do
 		saveItem(entity)

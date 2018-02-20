@@ -58,44 +58,13 @@ function findfile(filename)
 	return false
 end
 
-function translate(inTable)
-	-- Array or Object?
-	local isArray = true
-	if not inTable[1] then
-		isArray = false
-	end
-
-	-- Recurse on table elements
-	local obj = {}
-	for k,v in pairs(inTable) do
-		if type(v) == 'table' then
-			obj[k] = translate(v)
-		else
-			obj[k] = v
-		end
-	end
-
-	-- Create new Array or Object
-	if isArray then
-		return js.global:Array(table.unpack(obj))
-	else
-		local output = js.global:Object()
-		for k,v in pairs(obj) do
-			output[k] = v
-		end
-		return output
-	end
-end
-
-
-
 table.insert(package.searchers, function(name)
 	local loaded, path = findfile(name)
 	if loaded then return loaded, path end
 end)
 
 generator = require "generator"
-
+local dkjson = require 'dkjson'
 
 function split(inputstr, sep)
         if sep == nil then
@@ -109,9 +78,6 @@ function split(inputstr, sep)
         return t
 end
 
-
-
-local dkjson = require 'dkjson'
 function dump(...)
 	local info = debug.getinfo(2, 'Sl')
 	local line = info.short_src .. ':' .. info.currentline .. ':'
@@ -256,7 +222,7 @@ end
 function browserParse(modules, modulesLength)
 	parse(modules, modulesLength)
 
-	return translate(generator.getMeta())
+	return dkjson.encode(generator.getMeta())
 end
 
 
@@ -275,7 +241,6 @@ function localParse()
 		table.insert(all, k)
 	end
 	js.global:zipStockFiles(js.global:Array(table.unpack(all)))
-
 
 	return meta
 end

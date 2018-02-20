@@ -16,7 +16,7 @@ let bonus = {
 }
 
 class Row {
-  constructor (name, type, indent) {
+  constructor (name, type, indent, parent) {
     resources = window.meta.resources
     recipes = window.meta.recipes
     machines = window.meta.machines
@@ -28,8 +28,8 @@ class Row {
     this.id = rowIdIncrement++
     this.name = name
     this.machine = null
-    this.recipe = isResource ? resources[name] : recipes[name]
     this.needs = 0
+    this.recipe = type === 'byproduct' ? recipes.dummy : (isResource ? resources[name] : recipes[name])
     this.modules = []
     this.beacons = []
     this.type = type
@@ -42,7 +42,9 @@ class Row {
     this.batchTime = 0.5
     this.sources = []
     this.isData = true
-    this.selectable = this.recipe.name === 'dummy'
+    this.selectable = !Helpers.isValid(this.recipe) && this.type !== 'byproduct'
+    this.parent = parent
+    this.resultMultiple = 1
 
     beacons.forEach(beacon => {
       this.beacons.push({
@@ -59,6 +61,10 @@ class Row {
     }
   }
 
+  get showMachine () {
+    return Helpers.isValid(this.machine)
+  }
+
   get recipe () {
     return this._recipe
   }
@@ -73,14 +79,28 @@ class Row {
     }
     let iconName
     // not using selectable because it will not change
-    if (this.recipe.name !== 'dummy') {
+    if (Helpers.isValid(this.recipe)) {
       iconName = this.recipe.name
     } else {
       iconName = this.showName || this.name
     }
     this.icon = Helpers.icon(iconName)
     this.machine = machines.find(machine => machine.name === categories[this._recipe.category][0])
+
     this._sub = null
+  }
+
+  get byproducts () {
+    let recipe = this.recipe
+    let byproducts = {}
+    if (recipe && recipe.results && recipe.results[this.name]) {
+      this.resultMultiple = recipe.results[this.name]
+      Object.keys(recipe.results).forEach(result => {
+        if (result === this.name) return
+        byproducts[result] = recipe.results[result] * this.needs / this.result_count
+      })
+    }
+    return byproducts
   }
 
   get sub () {
@@ -95,7 +115,7 @@ class Row {
     if (this.isResource) {
       return 1
     }
-    return this.recipe.results[Object.keys(this.recipe.results)[0]] || 1
+    return this.recipe.results[this.name] || 1
   }
 
   machineCount () {
@@ -162,7 +182,8 @@ class Row {
         subrow = new Row(ingredient, 'sub', this.indent + 1)
         this._sub.push(subrow)
       }
-      subrow.needs = this.needs / this.result_count * value / (1 + this.bonus.productivity)
+      let needs = this.needs / this.result_count * value / (1 + this.bonus.productivity)
+      subrow.needs = needs
 
       if (typeof resources[ingredient] === 'undefined') {
         subrow.update()

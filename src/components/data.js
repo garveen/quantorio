@@ -33,6 +33,7 @@ let callLua = (fs, files, mods) => {
       data.raw = {}
       js.global.meta = browserParse({'${modules.join("','")}'}, ${modules.length})
     `)
+    window.meta = JSON.parse(window.meta)
     return window.meta
   })
 }

@@ -75,11 +75,11 @@ module.exports = {
         }
       },
       {
-        test: /\.(lua?.*)?$/,
+        test: /\.(zip)$/,
         loader: 'url-loader',
         options: {
           limit: 0,
-          name: utils.assetsPath('lua/[name].[hash:7].[ext]')
+          name: utils.assetsPath('zip/[name].[hash:7].[ext]')
         }
       }
     ]

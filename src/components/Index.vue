@@ -21,7 +21,7 @@
         <template slot-scope="scope">
           <template v-if='scope.row.isData'>
             <div :style='{display: "flex", "flex-direction": "column"}'>
-              <el-button v-if='scope.row.type === "requirement"' class='operation el-icon-minus el-icon' type="danger" size='small' @click='handleRemove(scope.$index, scope.row)'></el-button>
+              <el-button v-if='scope.row.type === "requirement"' class='operation el-icon-minus el-icon' type="danger" size='small' @click='handleRemove(scope.row)'></el-button>
               <el-button v-if='scope.row.expended' class='operation el-icon-arrow-left el-icon' type="warning" size='small' @click='scope.row.expended = false'></el-button>
               <el-button v-else-if='scope.row.canExpend' class='operation el-icon-arrow-right el-icon' type="primary" size='small' @click='scope.row.expended = true'></el-button>
             </div>
@@ -43,7 +43,10 @@
                     </el-dropdown-menu>
                   </el-dropdown>
                   <img class='icon' :src='scope.row.icon' />
-                  <span v-bind:style='{margin: "auto 0 auto 10px"}'>{{ translate(scope.row.recipe.name !== 'dummy' ? scope.row.recipe : scope.row) }}</span>
+                  <span :style='{margin: "auto 10px"}'>{{ translate(scope.row) }}</span>
+                  <template v-if="scope.row.selectable">
+                    <span :style='{margin: "auto 10px"}'>({{ translate(Helpers.isValid(scope.row.recipe) ? scope.row.recipe : scope.row) }})</span>
+                  </template>
                 </div>
               </el-col>
             </el-row>
@@ -54,13 +57,13 @@
         <template slot-scope="scope">
           <template v-if='scope.row.isData'>
             <el-input-number v-if='scope.row.type === "requirement"' v-model="scope.row.needs" :min=0 controls-position="right" size='small'></el-input-number>
-            <span v-else>{{ Math.round(scope.row.needs * 100) / 100 }}</span>
+            <span v-else>{{ Math.round((scope.row.showNeeds || scope.row.needs) * 100) / 100 }}</span>
           </template>
         </template>
       </el-table-column>
       <el-table-column prop="made_in" :render-header='renderHeaderMachine'>
         <template slot-scope="scope">
-          <el-popover v-if='scope.row.isData' placement="bottom" trigger='click' popper-class='machine-popper'>
+          <el-popover v-if='scope.row.showMachine' placement="bottom" trigger='click' popper-class='machine-popper'>
             <div slot='reference'  class='flex button'>
               <img :src='icon(scope.row.machine)' class='button icon'>
               <img v-for='module in scope.row.modules' v-if='module' class='icon' :src='icon(module)'>
@@ -104,11 +107,11 @@
       </el-table-column>
       <el-table-column prop="" :label="translate('machine-number')">
         <template slot-scope="scope">
-          <template v-if='scope.row.isData'>
+          <template v-if=' scope.row.showMachine'>
             {{ scope.row.machineCount().toFixed(2) }}
           </template>
           <template v-if='scope.row.type === "sums"'>
-            <span v-for='machine in scope.row.machines' :style='{margin: "0 5px"}'>
+            <span v-for='machine in scope.row.machines' v-if='Helpers.isValid(machine)' :style='{margin: "0 5px"}'>
               <img :src='icon(machine)'>{{ machine.count }}
             </span>
           </template>
@@ -116,7 +119,7 @@
       </el-table-column>
       <el-table-column prop="" :render-header='renderHeaderInserter'>
         <template slot-scope="scope">
-          <template v-if='scope.row.isData'>
+          <template v-if='scope.row.showMachine'>
             <span class='flex around'>
               <span v-for='inserter in inserters'>
                 {{ format(scope.row.inserterCount(inserter)) }}
@@ -125,14 +128,6 @@
           </template>
         </template>
       </el-table-column>
-      <!-- <el-table-column
-          prop="power"
-          :label="translate('electric-consumption')">
-        </el-table-column>
-        <el-table-column
-          prop="pollution"
-          :label="translate('pollution')">
-        </el-table-column> -->
     </el-table>
     <RequirementSelector v-if='loadedLanguages[locale]' :visible.sync="selectTargetDialogVisiable" @select='doAdd' :key='locale + metaVersion'></RequirementSelector>
     <Mods :visible.sync="ModsDialogVisiable"></Mods>
@@ -141,14 +136,15 @@
   </div>
 </template>
 <script>
-import Data from './data'
-import LuaLoader from './LuaLoader'
 import throttle from 'lodash/throttle'
-import ModuleSelector from './ModuleSelector'
+import Data from './data'
+import Row from './Row'
 import Mods from './Mods'
 import Helpers from './Helpers'
-import Row from './Row'
+import LuaLoader from './LuaLoader'
+import ModuleSelector from './ModuleSelector'
 import RequirementSelector from './RequirementSelector'
+
 export default {
   components: {
     ModuleSelector,
@@ -159,18 +155,19 @@ export default {
   name: 'Index',
   data () {
     return {
-      resetMachine: 'player',
       locale: 'en',
       selectTargetDialogVisiable: false,
       ModsDialogVisiable: false,
       requirements: [],
       remainders: [],
       remainderSources: {},
+      byproducts: [],
       window: window,
       zips: {},
       fs: {},
       hashLoaded: false,
       loadedLanguages: {},
+      Helpers: Helpers,
     }
   },
   methods: {
@@ -195,7 +192,8 @@ export default {
       this.ModsDialogVisiable = true
     },
 
-    handleRemove (index, row) {
+    handleRemove (row) {
+      let index = this.requirements.findIndex(r => r === row)
       this.requirements.splice(index, 1)
     },
 
@@ -236,9 +234,12 @@ export default {
       column,
       $index
     }) {
-      let items = this.machines.map((machine, index) => {
-        return <el-option label={this.translate(machine)} value={machine.name}></el-option>
+      let items = []
+      this.machines.forEach((machine, index) => {
+        if (!Helpers.isValid(machine)) return
+        let item = <el-option label={this.translate(machine)} value={machine.name}></el-option>
         /* / */
+        items.push(item)
       })
       let row = <el-select value='' placeholder={this.translate('made-in')} on-input={this.changeAllMachine}>{items}</el-select>
       /* / */
@@ -275,7 +276,6 @@ export default {
 
     saveHash () {
       let strings = []
-      // let remainders = []
       let str
       this.shownData.forEach(row => {
         switch (row.type) {
@@ -288,14 +288,10 @@ export default {
           case 'sub':
             str = 'S'
             break
-          case 'byproduct':
-            str = 'S'
-            break
           default:
             return
         }
 
-        if (Math.abs(row.needs) < 0.0001) return
         str += '/' + /* 1 */ row.name + '/' + /* 2 */ (row.type === 'requirement' ? row.needs : 0) + '/' + /* 3 */ row.machine.name + '/'
         let modules = []
         row.modules.forEach(module => {
@@ -348,6 +344,7 @@ export default {
         if (rowConfig.length < 8) return
         let indent = Number(rowConfig[7])
         let row = new Row(rowConfig[1], map[rowConfig[0]], indent)
+        row.needs = Number(rowConfig[2])
         if (rowConfig[8]) {
           row.recipe = this.recipes[rowConfig[8]]
         }
@@ -369,7 +366,6 @@ export default {
             path[path.length - 1].sub.push(row)
           }
         }
-        row.needs = Number(rowConfig[2])
         row.machine = this.machines.find(machine => machine.name === rowConfig[3])
         rowConfig[4].split('~').forEach(moduleName => {
           row.modules.push(this.modules.find(module => module && (module.name === moduleName)))
@@ -395,8 +391,20 @@ export default {
       }, 100)
     },
 
+    removeEmptyRows (rows, lessThenZero) {
+      let removing = []
+      rows.forEach((row, index) => {
+        if (Math.abs(row.needs) < 0.0001 || (lessThenZero && row.needs < 0.0001)) {
+          removing.push(index)
+        }
+      })
+      removing.sort((a, b) => { return b - a }).forEach(index => {
+        rows.splice(index, 1)
+      })
+      return rows
+    },
+
     selectRecipe ([row, recipe]) {
-      console.log(row, recipe)
       row.recipe = recipe
     },
 
@@ -457,42 +465,53 @@ export default {
     },
 
     tableData () {
-      return this.shownData.concat(this.summaryData)
+      let data = [].concat(this.requirementData)
+      data.push({
+        type: 'split',
+        name: 'extra-needed',
+      })
+
+      // must do this job here, not to trigger other computed's
+      let byproducts = [].concat(this.byproducts)
+      let remainderData = [].concat(this.remainderData)
+      remainderData.forEach((row, index) => {
+        let byproduct = byproducts.find(b => b.name === row.name)
+        if (!byproduct) return
+        let rowNeeds = row.needs
+        if (rowNeeds >= byproduct.needs) {
+          row.showNeeds = row.needs - byproduct.needs
+        } else {
+          row.needs = 0
+        }
+        byproduct.needs -= rowNeeds
+      })
+
+      this.removeEmptyRows(byproducts, true)
+      remainderData = this.removeEmptyRows(remainderData)
+      data = data.concat(remainderData)
+      data.push({
+        type: 'split',
+        name: 'byproducts',
+      })
+      return data.concat(byproducts).concat(this.summaryData)
+    },
+
+    requirementData () {
+      return this.expends({sub: this.requirements})
+    },
+
+    remainderData () {
+      let remainderData = this.expends({sub: this.remainders})
+      remainderData.forEach(row => {
+        row.saveRecipeConfig()
+      })
+      this.removeEmptyRows(remainderData)
+
+      return remainderData
     },
 
     shownData () {
-      let data = this.expends({sub: this.requirements})
-      data.push({
-        type: 'split',
-      })
-
-      let remainderData = this.expends({sub: this.remainders})
-
-      let removing = []
-
-      data.forEach((row, index) => {
-        if (Math.abs(row.needs) < 0.0001) {
-          removing.push(index)
-        }
-      })
-
-      removing.sort((a, b) => { return b - a }).forEach(index => {
-        data.splice(index, 1)
-      })
-
-      removing = []
-
-      remainderData.forEach((row, index) => {
-        row.saveRecipeConfig()
-        if (Math.abs(row.needs) < 0.0001) {
-          removing.push(index)
-        }
-      })
-
-      removing.sort((a, b) => { return b - a }).forEach(index => {
-        remainderData.splice(index, 1)
-      })
-      return data.concat(remainderData)
+      return this.requirementData.concat(this.remainderData)
     },
 
     summaryData () {
@@ -500,7 +519,6 @@ export default {
       let consumption = 0
       let machines = []
       this.shownData.forEach(row => {
-        if (!row.isData) return
         let machine = machines.find(machine => {
           return machine.name === row.machine.name
         })
@@ -521,10 +539,6 @@ export default {
       sums.consumption = '' + this.format(consumption) + 'W (' + this.translate('beacons-not-included') + ')'
       sums.machines = machines
       return [sums]
-    },
-
-    remainderTrigger () {
-      return [this.requirements, this.remainders]
     },
   },
 
@@ -554,8 +568,8 @@ export default {
       deep: true,
     },
 
-    remainderTrigger: {
-      handler: throttle(function () {
+    shownData: {
+      handler: throttle(function (shownData) {
         let res
         let remainders = this.remainders
         remainders.forEach(row => { row.sources = [] })
@@ -590,6 +604,17 @@ export default {
           row.needs = row.sources.reduce((acc, cur) => acc + cur.needs, 0)
           row.update()
         })
+
+        let byproducts = {}
+
+        this.requirementData.concat(remainders).forEach(showRow => {
+          Object.keys(showRow.byproducts).forEach(byproduct => {
+            let row = byproducts[byproduct] || (byproducts[byproduct] = new Row(byproduct, 'byproduct'))
+            row.needs += showRow.byproducts[byproduct]
+          })
+        })
+        this.byproducts = Object.values(byproducts)
+
         if (this.hashLoaded) {
           this.saveHash()
         }
