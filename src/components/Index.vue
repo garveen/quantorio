@@ -34,6 +34,14 @@
             <el-row>
               <el-col :offset='scope.row.indent'>
                 <div :style='{display: "flex"}'>
+                  <el-dropdown v-if="scope.row.selectable" @command='selectRecipe'>
+                    <el-button type='primary' plain class='el-icon-caret-bottom el-icon' style='height:36px;width:36px'></el-button>
+                    <el-dropdown-menu slot="dropdown">
+                      <el-dropdown-item v-for="recipe in getRecipeCandidates(scope.row)" :key='recipe.name' :command='[scope.row, recipe]'>
+                        <img :src='icon(recipe)'>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </el-dropdown>
                   <img class='icon' :src='scope.row.icon' />
                   <span v-bind:style='{margin: "auto 0 auto 10px"}'>{{ translate(scope.row.recipe.name !== 'dummy' ? scope.row.recipe : scope.row) }}</span>
                 </div>
@@ -198,7 +206,7 @@ export default {
     },
 
     doAdd (name) {
-      let row = new Row.Row(name, 'requirement')
+      let row = new Row(name, 'requirement')
       row.needs = 1
       this.requirements.push(row)
       this.selectTargetDialogVisiable = false
@@ -280,6 +288,9 @@ export default {
           case 'sub':
             str = 'S'
             break
+          case 'byproduct':
+            str = 'S'
+            break
           default:
             return
         }
@@ -305,6 +316,9 @@ export default {
           beacons.push(beaconConfig.beacon.name + '=' + beaconConfig.count + '=' + modules.join('~'))
         })
         str += /* 5 */ beacons.join(':') + '/' + /* 6 */ (row.expended ? 'T' : 'F') + '/' + /* 7 */ row.indent
+        if (row.recipe.name !== row.name) {
+          str += '/' + /* 8 */ row.recipe.name
+        }
         strings.push(str)
       })
       window.history.pushState(null, null, '/#' + strings.join('&'))
@@ -333,7 +347,10 @@ export default {
         let rowConfig = rowConfigStr.split('/')
         if (rowConfig.length < 8) return
         let indent = Number(rowConfig[7])
-        let row = new Row.Row(rowConfig[1], map[rowConfig[0]])
+        let row = new Row(rowConfig[1], map[rowConfig[0]], indent)
+        if (rowConfig[8]) {
+          row.recipe = this.recipes[rowConfig[8]]
+        }
         if (indent === 0) {
           path = [row]
           if (rowConfig[0] === 'T') {
@@ -342,7 +359,6 @@ export default {
             remainders.push(row)
           }
         } else {
-          row.indent = indent
           if (indent > path.length - 1) {
             path[path.length - 1]._sub.push(row)
             path.push(row)
@@ -377,6 +393,15 @@ export default {
       setTimeout(() => {
         this.hashLoaded = true
       }, 100)
+    },
+
+    selectRecipe ([row, recipe]) {
+      console.log(row, recipe)
+      row.recipe = recipe
+    },
+
+    getRecipeCandidates (row) {
+      return Object.values(this.recipes).filter(recipe => recipe.results[row.name])
     },
 
     translate (...names) {
@@ -540,7 +565,7 @@ export default {
             if (!row.expended) {
               let remainder = remainders.find(remainder => { return remainder.name === subrow.name })
               if (!remainder) {
-                remainder = new Row.Row(subrow.name, 'remainder')
+                remainder = new Row(subrow.name, 'remainder')
                 remainders.push(remainder)
               }
               if (!remainder.sources.find(source => source.id === subrow.id)) {
@@ -653,7 +678,10 @@ div.cell {
   width: 32px;
   height: 32px;
   padding: 0;
-  font-weight: 900
+  font-weight: 900;
+  /*display: flex;
+  justify-content: center;
+  align-items: center;*/
 }
 
 </style>

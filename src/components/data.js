@@ -1,4 +1,5 @@
 import Helpers from './Helpers'
+import Recipe from './Recipe'
 
 let luaState
 
@@ -56,6 +57,13 @@ let parseMeta = (meta) => {
       return -1
     }
   })
+
+  let recipes = {}
+
+  Object.keys(meta.recipes).forEach(recipeName => {
+    recipes[recipeName] = new Recipe(meta.recipes[recipeName])
+  })
+  meta.recipes = recipes
 
   Object.keys(meta.groups).forEach(groupName => {
     let group = meta.groups[groupName]

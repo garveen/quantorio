@@ -299,7 +299,6 @@ local function saveRecipe(entity)
 	if entity.subgroup == 'empty-barrel' or entity.subgroup == 'fill-barrel' then return end
 	local recipe = buildItem(entity, {
 		category = 'crafting',
-		'results',
 	})
 
 	local all = {

@@ -12,6 +12,9 @@ import {
   Col,
   Option,
   TableColumn,
+  Dropdown,
+  DropdownMenu,
+  DropdownItem,
 } from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 
@@ -30,4 +33,7 @@ export default (Vue, i18n) => {
   Vue.use(Col, options)
   Vue.use(Option, options)
   Vue.use(TableColumn, options)
+  Vue.use(Dropdown, options)
+  Vue.use(DropdownMenu, options)
+  Vue.use(DropdownItem, options)
 }

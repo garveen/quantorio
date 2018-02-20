@@ -14,7 +14,6 @@ let bonus = {
   consumption: 0,
   pollution: 0,
 }
-let difficulty = 'normal'
 
 class Row {
   constructor (name, type, indent) {
@@ -43,18 +42,7 @@ class Row {
     this.batchTime = 0.5
     this.sources = []
     this.isData = true
-
-    if (!this.recipe) {
-      this.recipe = recipes.dummy
-    }
-
-    if (this.recipe.showName) {
-      this.showName = this.recipe.showName
-    }
-
-    this.icon = Helpers.icon(this.showName || name)
-
-    this.machine = machines.find(machine => machine.name === categories[this.recipe.category][0])
+    this.selectable = this.recipe.name === 'dummy'
 
     beacons.forEach(beacon => {
       this.beacons.push({
@@ -71,6 +59,30 @@ class Row {
     }
   }
 
+  get recipe () {
+    return this._recipe
+  }
+
+  set recipe (recipe) {
+    if (!recipe) {
+      recipe = recipes.dummy
+    }
+    this._recipe = recipe
+    if (this._recipe.showName) {
+      this.showName = this.recipe.showName
+    }
+    let iconName
+    // not using selectable because it will not change
+    if (this.recipe.name !== 'dummy') {
+      iconName = this.recipe.name
+    } else {
+      iconName = this.showName || this.name
+    }
+    this.icon = Helpers.icon(iconName)
+    this.machine = machines.find(machine => machine.name === categories[this._recipe.category][0])
+    this._sub = null
+  }
+
   get sub () {
     if (this._sub === null) {
       this.update()
@@ -83,7 +95,7 @@ class Row {
     if (this.isResource) {
       return 1
     }
-    return this.recipe[difficulty].results[Object.keys(this.recipe[difficulty].results)[0]] || 1
+    return this.recipe.results[Object.keys(this.recipe.results)[0]] || 1
   }
 
   machineCount () {
@@ -101,7 +113,7 @@ class Row {
     if (this.isResource) {
       count = 60 / (recipe.mining_time / machine.mining_speed / (machine.mining_power - recipe.hardness))
     } else {
-      count = 60 / (recipe[difficulty].energy_required / machine.crafting_speed) * this.result_count
+      count = 60 / (recipe.energy_required / machine.crafting_speed) * this.result_count
     }
 
     if (this.bonus.productivity) count *= (1 + this.bonus.productivity)
@@ -138,7 +150,7 @@ class Row {
       return
     }
 
-    let recipe = this.recipe[difficulty]
+    let recipe = this.recipe
 
     let ingredients = recipe.ingredients
     Object.keys(ingredients).forEach(ingredient => {
@@ -167,7 +179,4 @@ class Row {
   }
 }
 
-export default {
-  Row: Row,
-  difficulty: difficulty
-}
+export default Row
