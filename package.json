@@ -10,6 +10,7 @@
     "unit": "jest --config test/unit/jest.conf.js --coverage",
     "test": "npm run unit",
     "lint": "eslint --ext .js,.vue src test/unit/specs",
+    "parse": "node build/parse.js",
     "build": "node build/build.js"
   },
   "dependencies": {

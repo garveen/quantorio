@@ -20,7 +20,8 @@ let quantorioBridge = {
   },
   readDir: function (path) {
     let dir = this.fs
-    path.split('/').forEach(part => (dir = dir[part]))
+    path.split('/').forEach(part => dir ? (dir = dir[part]) : false)
+    if (!dir) { return '' }
     return Object.keys(dir).join('|')
   }
 }
