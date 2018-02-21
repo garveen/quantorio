@@ -350,7 +350,7 @@ let loadZip = (name, file) => {
   } else {
     p = p.then(JSZip => {
       if (process.env.TRAVIS_TAG) {
-        name = `//raw.githubusercontent.com/garveen/quantorio/${process.env.TRAVIS_TAG}/public/` + name
+        name = `https://raw.githubusercontent.com/garveen/quantorio/${process.env.TRAVIS_TAG}/public/` + name
       }
       return fetchEx(name + '.zip')
       .then(JSZip.loadAsync)
