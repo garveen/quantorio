@@ -94,8 +94,7 @@ export default {
             return Data.parse(zips, 'data', names)
           })
           .then(meta => {
-            // console.log(String(_this.$i18n.locale))
-            Data.setVue(_this, meta)
+            Data.setVue(meta)
             _this.$emit('update:visible', false)
           })
           .catch(error => {

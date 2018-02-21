@@ -1,5 +1,7 @@
 import Helpers from './Helpers'
 import Recipe from './Recipe'
+import store from '../store'
+import i18n from '../i18n'
 
 let luaState
 
@@ -220,23 +222,23 @@ let loadSingle = (name) => {
   return loadZip(name).then(zip => [zip]).then(parse)
 }
 
-let setTranslation = ($vm, meta) => {
+let setTranslation = (meta) => {
   Object.keys(meta.translations).forEach(lang => {
     let message = meta.translations[lang]
     try {
       message.el = require('element-ui/lib/locale/lang/' + lang).default.el
     } catch (ex) {
     }
-    $vm.$i18n.mergeLocaleMessage(lang, message)
-    $vm.$store.commit('saveTranslation', [lang, message])
+    i18n.mergeLocaleMessage(lang, message)
+    store.commit('saveTranslation', [lang, message])
   })
 }
 
-let loadTranslation = ($vm, name) => {
-  $vm.$store.commit('setLoading', true)
+let loadTranslation = (name) => {
+  store.commit('setLoading', true)
   return loadSingle(name).then(meta => {
-    setTranslation($vm, meta)
-    $vm.$store.commit('setLoading', false)
+    setTranslation(meta)
+    store.commit('setLoading', false)
   })
 }
 
@@ -260,10 +262,10 @@ let parse = (zips, prefix, mods) => {
   })
 }
 
-let setVue = ($vm, meta) => {
+let setVue = (meta) => {
   window.items = meta.items
-  $vm.$store.commit('setMeta', meta)
-  setTranslation($vm, meta)
+  store.commit('setMeta', meta)
+  setTranslation(meta)
 }
 
 export default {

@@ -144,6 +144,8 @@ import Helpers from './Helpers'
 import LuaLoader from './LuaLoader'
 import ModuleSelector from './ModuleSelector'
 import RequirementSelector from './RequirementSelector'
+import Plus from './Plus'
+import Inserters from './Inserters'
 
 export default {
   components: {
@@ -214,20 +216,14 @@ export default {
       column,
       $index
     }) {
-      return <el-button class="operation" type="success" size="mini" class='el-icon-plus el-icon' on-click={this.handleAdd}></el-button>
-      /* / */
+      return Plus.render.bind(this)()
     },
 
     renderHeaderInserter (h, {
       column,
       $index
     }) {
-      let items = this.inserters.map((inserter, index) => {
-        return <img class="icon" src={this.icon(inserter)} />
-      })
-      let row = <span class='flex around'>{items}</span>
-      /* / */
-      return row
+      return Inserters.render.bind(this)()
     },
 
     renderHeaderMachine (h, {
@@ -412,10 +408,6 @@ export default {
       return Object.values(this.recipes).filter(recipe => recipe.results[row.name])
     },
 
-    translate (...names) {
-      return Helpers.translate(this, ...names)
-    },
-
     format (number) {
       let prefixes = [
         'k',
@@ -435,9 +427,10 @@ export default {
       return number
     },
 
+    translate: Helpers.translate,
     icon: Helpers.icon,
-
   },
+
   created () {
     this.loadHash()
   },
@@ -550,7 +543,7 @@ export default {
     locale () {
       let val = this.locale
       if (!this.loadedLanguages[val]) {
-        Data.loadTranslation(this, val).then(() => {
+        Data.loadTranslation(val).then(() => {
           this.$i18n.locale = val
           this.loadedLanguages[val] = true
         })

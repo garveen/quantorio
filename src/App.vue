@@ -29,7 +29,7 @@ export default {
   mounted () {
     let translateFallback = 'zh-CN' // this.$i18n.fallbackLocale
     Data.init(translateFallback).then((meta) => {
-      Data.setVue(this, meta)
+      Data.setVue(meta)
       let currentLanguage
       let testLanguage = navigator.language || navigator.userLanguage
       if (meta.languages[testLanguage]) {

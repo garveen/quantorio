@@ -21,13 +21,11 @@ import Helpers from './Helpers'
 export default {
   props: ['visible'],
   methods: {
-    translate (...names) {
-      return Helpers.translate(this, ...names)
-    },
     doAdd (name) {
       this.$emit('select', name)
       this.$emit('update:visible', false)
     },
+    translate: Helpers.translate,
     icon: Helpers.icon
   },
   computed: {

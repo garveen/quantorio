@@ -1,3 +1,5 @@
+import i18n from '../i18n'
+
 export default {
   icon (item, defaults) {
     let ret
@@ -24,6 +26,7 @@ export default {
         return 'data:image/png;base64,' + window.files['slot-icon-module.png']
     }
     console.log(item, ret, defaults)
+    console.trace()
   },
 
   sortByOrder (a, b) {
@@ -62,8 +65,7 @@ export default {
     return 0
   },
 
-  translate (vue, entity, falling) {
-    let i18n = vue.$i18n
+  translate (entity, falling) {
     if (!i18n) {
       console.trace()
     }
@@ -74,7 +76,7 @@ export default {
         return i18n.t(entity, locale)
       }
       if (!falling) {
-        return this.translate(vue, entity, true)
+        return this.translate(entity, true)
       }
       return entity
     }
@@ -85,7 +87,7 @@ export default {
       return i18n.t(name, locale)
     }
     if (!falling) {
-      return this.translate(vue, entity, true)
+      return this.translate(entity, true)
     }
     return name
   },
