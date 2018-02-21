@@ -375,7 +375,7 @@ let loadFiles = zips => {
 }
 
 let init = (fallbackLanguage) => {
-  return Promise.all([loadZip('lualib'), loadZip('core'), loadZip('base'), loadZip('quantorio'), loadZip(fallbackLanguage)])
+  return Promise.all([loadZip('lualib'), loadZip('core'), loadZip('base'), loadZip('quantorio'), loadZip('locale/' + fallbackLanguage)])
   .then(parse)
   .then(setVue)
   .then(meta => {
@@ -395,7 +395,7 @@ let setTranslation = (meta) => {
 
 let loadTranslation = (name) => {
   store.commit('setLoading', true)
-  return loadZip(name)
+  return loadZip('locale/' + name)
   .then(zip => {
     return parse([zip], undefined, undefined, true)
   })

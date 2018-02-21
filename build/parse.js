@@ -51,6 +51,7 @@ _global.zipStockFiles = (files) => {
     let zip
     if (file.substring(10, 16) === 'locale' && file.substring(file.length - 4) === '.cfg') {
       let locale = /.*?locale\/([^/]+)/.exec(file)[1]
+      locale = 'locale/' + locale
       if (!zips[locale]) {
         zips[locale] = new JSZip()
       }
