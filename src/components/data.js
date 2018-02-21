@@ -298,12 +298,6 @@ let fetchEx = name => {
     if (length) {
       allFetches[id].length = Number(length)
     }
-    let total = 0
-    allFetches.forEach(setup => {
-      total += setup.length
-    })
-    console.log(total)
-
     const reader = response.body.getReader()
 
     return new ReadableStream({
@@ -324,7 +318,6 @@ let fetchEx = name => {
               total += setup.length
               loaded += setup.loaded
             })
-            // console.log(loaded)
             store.commit('setNetworkProgress', loaded / (total + 1))
             // Enqueue the next data chunk into our target stream
             controller.enqueue(value)
@@ -349,9 +342,12 @@ let loadZip = (name, file) => {
     p = p.then(JSZip => JSZip.loadAsync(file))
   } else {
     p = p.then(JSZip => {
+      /*
+      // wait for Access-Control-Expose-Headers: Content-Length
       if (process.env.TRAVIS_TAG) {
         name = `https://raw.githubusercontent.com/garveen/quantorio/${process.env.TRAVIS_TAG}/public/` + name
       }
+      */
       return fetchEx(name + '.zip')
       .then(JSZip.loadAsync)
     })
