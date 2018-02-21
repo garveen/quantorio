@@ -3,6 +3,11 @@ node_js:
   - "8"
 script: npm run build
 
+notifications:
+  email:
+    on_success: never
+    on_failure: always
+
 deploy:
   provider: pages
   skip_cleanup: true
