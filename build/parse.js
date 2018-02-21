@@ -47,7 +47,7 @@ _global.zipStockFiles = (files) => {
     quantorio: new JSZip(),
   }
 
-  files.forEach(file => {
+  files.sort().forEach(file => {
     let zip
     if (file.substring(10, 16) === 'locale' && file.substring(file.length - 4) === '.cfg') {
       let locale = /.*?locale\/([^/]+)/.exec(file)[1]

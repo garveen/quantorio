@@ -336,20 +336,19 @@ let loadZip = (name, file) => {
     return loaded[name]
   }
   console.log('loading file ' + name)
-  let p = import('jszip')
+  let p
   let origName = name
   if (file) {
-    p = p.then(JSZip => JSZip.loadAsync(file))
+    p = import('jszip').then(JSZip => JSZip.loadAsync(file))
   } else {
-    p = p.then(JSZip => {
-      /*
-      // wait for Access-Control-Expose-Headers: Content-Length
-      if (process.env.TRAVIS_TAG) {
-        name = `https://raw.githubusercontent.com/garveen/quantorio/${process.env.TRAVIS_TAG}/public/` + name
-      }
-      */
-      return fetchEx(name + '.zip')
-      .then(JSZip.loadAsync)
+    /*
+    // wait for Access-Control-Expose-Headers: Content-Length
+    if (process.env.TRAVIS_TAG) {
+      name = `https://raw.githubusercontent.com/garveen/quantorio/${process.env.TRAVIS_TAG}/public/` + name
+    }
+    */
+    p = fetchEx(name + '.zip').then(blob => {
+      return import('jszip').then(JSZip => JSZip.loadAsync(blob))
     })
   }
   p = p.then(zip => {
