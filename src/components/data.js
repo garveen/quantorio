@@ -376,9 +376,6 @@ let loadFiles = zips => {
 }
 
 let init = (fallbackLanguage) => {
-  // fetchEx('sublime.rar').then(blob => {
-  //   console.log(blob)
-  // })
   return Promise.all([loadZip('lualib'), loadZip('core'), loadZip('base'), loadZip('quantorio'), loadZip(fallbackLanguage)])
   .then(parse)
   .then(setVue)
@@ -392,10 +389,6 @@ let init = (fallbackLanguage) => {
 let setTranslation = (meta) => {
   Object.keys(meta.translations).forEach(lang => {
     let message = meta.translations[lang]
-    try {
-      message.el = require('element-ui/lib/locale/lang/' + lang).default.el
-    } catch (ex) {
-    }
     i18n.mergeLocaleMessage(lang, message)
     store.commit('saveTranslation', [lang, message])
   })

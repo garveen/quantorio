@@ -1,6 +1,5 @@
 <template>
   <el-dialog :show-close='false' :visible.sync="_visible">
-
     <vue-transmit class="col-12"
       tag="section"
       v-bind="options"
@@ -14,6 +13,7 @@
       <!-- Scoped slot -->
       <template slot="files" slot-scope="props">
         <el-table :data='props.files'>
+          <template slot='empty'>&nbsp;</template>
           <el-table-column :width='60'>
             <template slot-scope="scope">
               <template v-if='scope.row.name !== "base"'>
@@ -42,6 +42,7 @@
 </template>
 <script>
 import Data from './data'
+
 export default {
   props: ['visible'],
 
@@ -51,7 +52,6 @@ export default {
       uploaderIconHeight: '12vh',
       options: {
         acceptedFileTypes: ['application/zip'],
-        // clickable: false,
         url: '#',
         autoQueue: false,
         createImageThumbnails: false,
@@ -125,7 +125,7 @@ export default {
       console.log(123)
       return (this.$refs.uploader && this.$refs.uploader.files.length) ? '10vh' : '20vh'
     }
-  }
+  },
 }
 </script>
 <style scoped>

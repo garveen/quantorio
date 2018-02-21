@@ -137,6 +137,7 @@
 </template>
 <script>
 import throttle from 'lodash/throttle'
+import vueHeadful from 'vue-headful'
 import Data from './data'
 import Row from './Row'
 import Mods from './Mods'
@@ -146,6 +147,7 @@ import ModuleSelector from './ModuleSelector'
 import RequirementSelector from './RequirementSelector'
 import Plus from './Plus'
 import Inserters from './Inserters'
+import MachineSelector from './MachineSelector'
 
 export default {
   components: {
@@ -153,6 +155,7 @@ export default {
     RequirementSelector,
     Mods,
     LuaLoader,
+    vueHeadful,
   },
   name: 'Index',
   data () {
@@ -204,6 +207,19 @@ export default {
       row.modules.splice(len)
     },
 
+    renderHeaderOperation (h) {
+      return Plus.render.bind(this)()
+    },
+
+    renderHeaderInserter (h) {
+      return Inserters.render.bind(this)()
+    },
+
+    renderHeaderMachine (h) {
+      return MachineSelector.render.bind(this)()
+    },
+
+    // for Plus
     doAdd (name) {
       let row = new Row(name, 'requirement')
       row.needs = 1
@@ -211,36 +227,7 @@ export default {
       this.selectTargetDialogVisiable = false
     },
 
-    renderHeaderOperation (h, {
-      column,
-      $index
-    }) {
-      return Plus.render.bind(this)()
-    },
-
-    renderHeaderInserter (h, {
-      column,
-      $index
-    }) {
-      return Inserters.render.bind(this)()
-    },
-
-    renderHeaderMachine (h, {
-      column,
-      $index
-    }) {
-      let items = []
-      this.machines.forEach((machine, index) => {
-        if (!Helpers.isValid(machine)) return
-        let item = <el-option label={this.translate(machine)} value={machine.name}></el-option>
-        /* / */
-        items.push(item)
-      })
-      let row = <el-select value='' placeholder={this.translate('made-in')} on-input={this.changeAllMachine}>{items}</el-select>
-      /* / */
-      return row
-    },
-
+    // for MachineSelector
     changeAllMachine (machineName) {
       let machine = this.machines.find(machine => machine.name === machineName)
 

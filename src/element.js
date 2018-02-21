@@ -1,3 +1,6 @@
+import Vue from 'vue'
+import i18n from './i18n'
+
 import {
   Button,
   Select,
@@ -18,7 +21,7 @@ import {
 } from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 
-export default (Vue, i18n) => {
+export default () => {
   let options = {i18n: i18n.t}
   Vue.use(Button, options)
   Vue.use(Select, options)

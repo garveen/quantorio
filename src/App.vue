@@ -13,7 +13,7 @@
 import Data from './components/data'
 import Index from './components/Index'
 import Loading from './components/Loading'
-import Vue from 'vue'
+
 export default {
   components: {
     Index,
@@ -26,15 +26,12 @@ export default {
     }
   },
   beforeCreate () {
-    import('./element').then((Element) => {
-      Element.default(Vue, this.$i18n)
-    })
-  },
-  mounted () {
     this.$store.commit('setLoading', true)
 
     let translateFallback = this.$i18n.fallbackLocale
-    Data.init(translateFallback).then((meta) => {
+
+    Data.init(translateFallback)
+    .then((meta) => {
       let currentLanguage
       let testLanguage = navigator.language || navigator.userLanguage
       if (meta.languages[testLanguage]) {
