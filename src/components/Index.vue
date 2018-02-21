@@ -4,7 +4,7 @@
     <el-row type='flex' justify='space-between'>
 
       <el-col :span='12'>
-        <h1>
+        <h1 style='margin:auto'>
         <span data-type='quantorio'>{{ translate('factorio-quantizative-tool') }}</span>
         </h1>
       </el-col>
@@ -168,7 +168,6 @@ export default {
       zips: {},
       fs: {},
       hashLoaded: false,
-      loadedLanguages: {},
       Helpers: Helpers,
     }
   },
@@ -436,7 +435,6 @@ export default {
   },
 
   mounted () {
-    this.loadedLanguages[this.$i18n.locale] = true
     this.locale = this.$i18n.locale
     this.$nextTick(this.$forceUpdate)
   },
@@ -451,6 +449,7 @@ export default {
     inserters () { return this.$store.state.meta.inserters },
     modules () { return this.$store.state.meta.modules },
     languages () { return this.$store.state.meta.languages },
+    loadedLanguages () { return this.$store.state.loadedLanguages },
     metaVersion () { return this.$store.state.metaVersion },
 
     difficulty () {
@@ -545,7 +544,6 @@ export default {
       if (!this.loadedLanguages[val]) {
         Data.loadTranslation(val).then(() => {
           this.$i18n.locale = val
-          this.loadedLanguages[val] = true
         })
       } else {
         this.$i18n.locale = val

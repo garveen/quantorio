@@ -149,7 +149,7 @@ local function finalize()
 		if not path then
 			goto continue
 		end
-		if not fs.exists(path) and not js.global.window then
+		if not fs.exists(path) and isNode() then
 			print(name, path)
 			error()
 		end

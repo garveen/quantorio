@@ -27,9 +27,10 @@ export default {
     })
   },
   mounted () {
-    let translateFallback = 'zh-CN' // this.$i18n.fallbackLocale
+    this.$store.commit('setLoading', true)
+
+    let translateFallback = this.$i18n.fallbackLocale
     Data.init(translateFallback).then((meta) => {
-      Data.setVue(meta)
       let currentLanguage
       let testLanguage = navigator.language || navigator.userLanguage
       if (meta.languages[testLanguage]) {
@@ -37,7 +38,14 @@ export default {
       } else {
         currentLanguage = translateFallback
       }
-      this.$i18n.locale = currentLanguage
+      if (currentLanguage !== translateFallback) {
+        return Data.loadTranslation(currentLanguage)
+      } else {
+        return currentLanguage
+      }
+    })
+    .then(language => {
+      this.$i18n.locale = language
       this.inited = true
       this.$store.commit('setLoading', false)
     })

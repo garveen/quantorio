@@ -75,34 +75,18 @@ export default {
     },
 
     setFiles (vtFiles) {
-      // console.log(String(this.$i18n.locale))
       this.$store.commit('setLoading', true)
       let _this = this
       window.setTimeout(() => {
-        import('jszip').then(JSZip => {
-          let promises = []
-          vtFiles.forEach(vtFile => {
-            promises.push(JSZip.loadAsync(vtFile.nativeFile).then(zip => [vtFile.name, zip]))
-          })
-          Promise.all(promises)
-          .then(zips => {
-            let names = []
-            zips.forEach(([_, zip]) => {
-              let name = zip.folder(/^[^/]+\/$/)[0].name
-              names.push(name.substring(0, name.length - 1))
-            })
-            return Data.parse(zips, 'data', names)
-          })
-          .then(meta => {
-            Data.setVue(meta)
-            _this.$emit('update:visible', false)
-          })
-          .catch(error => {
-            console.error(error)
-            alert('some module got an error')
-          }).finally(() => {
-            _this.$store.commit('setLoading', false)
-          })
+        let files = vtFiles.map(vtFile => [vtFile.name, vtFile.nativeFile])
+        Data.loadFiles(files).then(() => {
+          _this.$emit('update:visible', false)
+        })
+        .catch(error => {
+          console.error(error)
+          alert('some module got an error')
+        }).finally(() => {
+          _this.$store.commit('setLoading', false)
         })
       }, 1)
     },

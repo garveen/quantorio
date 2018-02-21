@@ -2,7 +2,7 @@ old_print = print
 _G.print = function(...)
 	local info = debug.getinfo(2, 'Sl')
 	local line = info.short_src .. ':' .. info.currentline .. ':'
-	js.global.console:log(line, ...)
+	old_print(line, ...)
 end
 log = print
 
@@ -37,6 +37,10 @@ do -- Create js.ipairs and js.pairs functions. attach as __pairs and __ipairs on
 		end, ob, nil
 	end
 	_PROXY_MT.__pairs = js.pairs
+end
+
+function isNode()
+	return not js.global.window
 end
 
 fs = require 'fs'
@@ -126,9 +130,7 @@ defines.difficulty_settings = {
 function loadModules(modules, modulesLength)
 	local old_require = require
 
-	local mapping = {}
 
-	require "dataloader"
 	require = function (filename)
 		loaded, fullname = findfile(filename)
 		zipIt(fullname)
@@ -164,6 +166,12 @@ function loadModules(modules, modulesLength)
 	end
 
 	require = old_require
+
+	return loadLanguages(modules, modulesLength)
+end
+
+function loadLanguages(modules, modulesLength)
+	local mapping = {}
 	for i = 1, modulesLength do
 		local moduleName = modules[i]
 		local part = moduleName:gmatch('[^_]+')()
@@ -173,8 +181,6 @@ function loadModules(modules, modulesLength)
 	end
 	return mapping
 end
-
-
 
 function loadINI(file)
 	local section = '{}'
@@ -208,9 +214,6 @@ function loadINI(file)
 end
 
 function parse(modules, modulesLength)
-	if (fs.syncDir) then
-		fs.syncDir()
-	end
 	generator.init()
 	local mapping = loadModules(modules, modulesLength)
 	generator.parse(data.raw, mapping)
@@ -220,13 +223,13 @@ function parse(modules, modulesLength)
 end
 
 function browserParse(modules, modulesLength)
-	parse(modules, modulesLength)
-
-	return dkjson.encode(generator.getMeta())
+	local meta = parse(modules, modulesLength)
+	return meta
 end
 
 
 function localParse()
+	require "dataloader"
 	local modules = {'core', 'base'}
 	local modulesLength = 2
 	local meta, files = parse(modules, modulesLength)

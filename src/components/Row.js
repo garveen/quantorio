@@ -1,4 +1,5 @@
 import Helpers from './Helpers'
+import store from '../store'
 
 let resources
 let recipes
@@ -17,11 +18,11 @@ let bonus = {
 
 class Row {
   constructor (name, type, indent, parent) {
-    resources = window.meta.resources
-    recipes = window.meta.recipes
-    machines = window.meta.machines
-    categories = window.meta.categories
-    beacons = window.meta.beacons
+    resources = store.state.meta.resources
+    recipes = store.state.meta.recipes
+    machines = store.state.meta.machines
+    categories = store.state.meta.categories
+    beacons = store.state.meta.beacons
 
     let isResource = Boolean(resources[name])
     indent || (indent = 0)

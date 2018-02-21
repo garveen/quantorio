@@ -1,21 +1,34 @@
-import Helpers from './Helpers'
 import Recipe from './Recipe'
 import store from '../store'
 import i18n from '../i18n'
 
 let luaState
+let _meta
 
-let callLua = (fs, files, mods) => {
+let loaded = {}
+
+let quantorioBridge = {
+  fs: {},
+  files: {},
+  getFileContent: function (path) {
+    let content = this.files[path]
+    return content
+  },
+  exists: function (path) {
+    let dir = this.fs
+    return !path.split('/').some(part => !(dir = dir[part]))
+  },
+  readDir: function (path) {
+    let dir = this.fs
+    path.split('/').forEach(part => (dir = dir[part]))
+    return Object.keys(dir).join('|')
+  }
+}
+
+window.quantorioBridge = quantorioBridge
+
+let callLua = (mods, onlyLanguage) => {
   return import('lua.vm.js').then(LuaVM => {
-    window.getFileContent = (path) => {
-      let content = window.files[path]
-      if (!content) {
-        // console.log(path)
-      }
-      return content
-    }
-    window.fs = fs
-    window.files = files
     let modules = [
       'core',
       'base',
@@ -25,26 +38,99 @@ let callLua = (fs, files, mods) => {
 
     if (!luaState) {
       luaState = new LuaVM.Lua.State()
+
+      luaState.push(quantorioBridge)
+      luaState.setglobal('quantorioBridge')
+
       luaState.execute(`
         require("quantorio")
         require("dataloader")
+        generator = require("generator")
+        dkjson = require 'dkjson'
       `)
     }
 
-    luaState.execute(`
-      data.raw = {}
-      js.global.meta = browserParse({'${modules.join("','")}'}, ${modules.length})
-    `)
-    window.meta = JSON.parse(window.meta)
-    return window.meta
+    if (onlyLanguage) {
+      luaState.execute(`
+        data.raw = {}
+        loadLanguages({'${modules.join("','")}'}, ${modules.length})
+        quantorioBridge.meta = dkjson.encode(generator.getMeta())
+        `)
+      quantorioBridge.meta = JSON.parse(quantorioBridge.meta)
+      setTranslation(quantorioBridge.meta)
+    } else {
+      luaState.execute(`
+        data.raw = {}
+        quantorioBridge.meta = dkjson.encode(browserParse({'${modules.join("','")}'}, ${modules.length}))
+      `)
+
+      quantorioBridge.meta = parseMeta(JSON.parse(quantorioBridge.meta))
+
+      // for debug
+      window.fs = quantorioBridge.fs
+      window.files = quantorioBridge.files
+      window.meta = quantorioBridge.meta
+    }
+
+    return quantorioBridge.meta
   })
 }
 
+let sortByOrder = (a, b) => {
+  if (!a) {
+    return -1
+  } else if (!b) {
+    return 1
+  }
+  let aName = a.showName || a.name
+  let bName = b.showName || b.name
+  let aOrders, bOrders
+  aOrders = _meta.items[aName].order.split('-')
+  bOrders = _meta.items[bName].order.split('-')
+  try {
+  } catch (error) {
+  }
+  for (let i = 0; i < Math.max(aOrders.length, bOrders.length); i++) {
+    if (aOrders[i] === undefined) {
+      return -1
+    }
+    if (bOrders[i] === undefined) {
+      return 1
+    }
+    if (aOrders[i] !== bOrders[i]) {
+      return aOrders[i] > bOrders[i] ? 1 : -1
+    }
+  }
+  aName = parseInt(aName.replace(/^.*-/, ''))
+  bName = parseInt(bName.replace(/^.*-/, ''))
+
+  if (aName > bName) {
+    return 1
+  } else if (aName < bName) {
+    return -1
+  }
+  return 0
+}
+
 let parseMeta = (meta) => {
-  meta.modules.sort(Helpers.sortByOrder)
+  // for sorting
+  _meta = meta
+
+  // flip, sort, flip back
+  let languages = meta.languages
+  let fliped = {}
+  Object.keys(languages).forEach(k => {
+    fliped[languages[k]] = k
+  })
+  meta.languages = {}
+  Object.keys(fliped).sort().forEach(k => {
+    meta.languages[fliped[k]] = k
+  })
+
+  meta.modules.sort(sortByOrder)
   meta.modules.unshift(null)
 
-  meta.inserters.sort((a, b) => Helpers.sortByOrder(meta.items[a.name], meta.items[b.name]))
+  meta.inserters.sort((a, b) => sortByOrder(meta.items[a.name], meta.items[b.name]))
 
   meta.machines.sort((a, b) => {
     // put player first
@@ -88,7 +174,7 @@ let parseMeta = (meta) => {
             subgroupItems.push(item)
             itemCount++
           }
-          subgroupItems.sort(Helpers.sortByOrder)
+          subgroupItems.sort(sortByOrder)
         })
         let subgroup = {
           order: group.subgroups[subgroupName],
@@ -99,23 +185,23 @@ let parseMeta = (meta) => {
       }
     })
     if (itemCount !== 0) {
-      group.subgroupsWithItems.sort(Helpers.sortByOrder)
+      group.subgroupsWithItems.sort(sortByOrder)
     } else {
       delete meta.groups[groupName]
     }
   })
-  meta.groups = Object.values(meta.groups).sort(Helpers.sortByOrder)
+  meta.groups = Object.values(meta.groups).sort(sortByOrder)
+  console.log('done')
   return meta
 }
 
 let extractZipToVirtualFS = (zips, prefix) => {
-  console.log('extracting...')
-  let fs = window.fs || {}
-  let files = window.files || {}
+  console.log('extracting to virtual fs...')
 
   return import('lua.vm.js').then(LuaVM => {
     prefix = prefix || ''
     let rootDir
+    let fs = quantorioBridge.fs
     if (prefix) {
       rootDir = fs
       fs[prefix] = fs[prefix] || {}
@@ -134,8 +220,6 @@ let extractZipToVirtualFS = (zips, prefix) => {
 
     zips.forEach(([name, zip], index) => {
       let baseDir = rootDir
-
-      console.log('extracting ' + name)
 
       zip.forEach((relativePath, file) => {
         if (file.dir) {
@@ -158,7 +242,7 @@ let extractZipToVirtualFS = (zips, prefix) => {
           let suffix = file.name.substring(file.name.length - 4, file.name.length)
           if (suffix === '.lua' || suffix === '.cfg' || suffix === '.ini' || suffix === 'json') {
             promises.push(file.async('text').then((content) => {
-              files[prefix + file.name] = content
+              quantorioBridge.files[prefix + file.name] = content
 
               let dir = baseDir
               file.name.split('/').forEach(part => {
@@ -188,38 +272,69 @@ let extractZipToVirtualFS = (zips, prefix) => {
             }))
           } else {
             promises.push(file.async('base64').then((content) => {
-              files[prefix + file.name] = content
+              quantorioBridge.files[prefix + file.name] = content
             }))
           }
         }
       })
     })
     return Promise.all(promises)
-  }).then(() => {
-    return [fs, files]
   })
 }
 
-let loadZip = (name) => {
-  return import('jszip').then(JSZip => {
-    if (process.env.TRAVIS_TAG) {
-      name = `//raw.githubusercontent.com/garveen/quantorio/${process.env.TRAVIS_TAG}/public/` + name
-    }
-    return fetch(name + '.zip', {mode: 'cors'})
-    .then(response => response.blob())
-    .then(JSZip.loadAsync)
-    .then(zip => {
-      return [name, zip]
+let loadZip = (name, file) => {
+  if (loaded[name]) {
+    return loaded[name]
+  }
+  console.log('loading file ' + name)
+  let p = import('jszip')
+  let origName = name
+  if (file) {
+    p = p.then(JSZip => JSZip.loadAsync(file))
+  } else {
+    p = p.then(JSZip => {
+      if (process.env.TRAVIS_TAG) {
+        name = `//raw.githubusercontent.com/garveen/quantorio/${process.env.TRAVIS_TAG}/public/` + name
+      }
+      return fetch(name + '.zip', {mode: 'cors'})
+      .then(response => response.blob())
+      .then(JSZip.loadAsync)
     })
+  }
+  p = p.then(zip => {
+    return [name, zip]
   })
+  loaded[origName] = p
+  return p
+}
+
+let loadFiles = zips => {
+  let promises = []
+  zips.forEach(([name, file]) => {
+    promises.push(loadZip(name, file))
+  })
+  return Promise.all(promises).then(zips => {
+    let names = []
+    zips.forEach(([_, zip]) => {
+      let name = zip.folder(/^[^/]+\/$/)[0].name
+      names.push(name.substring(0, name.length - 1))
+    })
+    return parse(zips, 'data', names)
+  })
+  .then(setVue)
 }
 
 let init = (fallbackLanguage) => {
-  return Promise.all([loadZip('lualib'), loadZip('core'), loadZip('base'), loadZip('quantorio'), loadZip(fallbackLanguage)]).then(parse)
-}
-
-let loadSingle = (name) => {
-  return loadZip(name).then(zip => [zip]).then(parse)
+  return Promise.all([loadZip('lualib'), loadZip('core'), loadZip('base'), loadZip('quantorio'), loadZip(fallbackLanguage)])
+  .then(zips => {
+    return zips
+  })
+  .then(parse)
+  .then(setVue)
+  .then(meta => {
+    loadTranslation(fallbackLanguage)
+    return meta
+  })
 }
 
 let setTranslation = (meta) => {
@@ -236,24 +351,25 @@ let setTranslation = (meta) => {
 
 let loadTranslation = (name) => {
   store.commit('setLoading', true)
-  return loadSingle(name).then(meta => {
+  return loadZip(name)
+  .then(zip => {
+    return parse([zip], undefined, undefined, true)
+  })
+  .then(meta => {
     setTranslation(meta)
+    store.commit('loadedLanguage', name)
     store.commit('setLoading', false)
+    return name
   })
 }
 
-let parse = (zips, prefix, mods) => {
+let parse = (zips, prefix, mods, onlyLanguage) => {
   return extractZipToVirtualFS(zips, prefix)
-  .then(([fs, files]) => {
+  .then(() => {
     console.log('lua...')
-    return callLua(fs, files, mods)
+    return callLua(mods, onlyLanguage)
   })
-  .then(parseMeta)
-  .then(meta => {
-    console.log('done')
-    window.meta = meta
-    return meta
-  }).catch(error => {
+  .catch(error => {
     if (error.lua_stack) {
       console.error(error.lua_stack)
     } else {
@@ -263,15 +379,16 @@ let parse = (zips, prefix, mods) => {
 }
 
 let setVue = (meta) => {
-  window.items = meta.items
   store.commit('setMeta', meta)
   setTranslation(meta)
+  return meta
 }
 
 export default {
   init: init,
   parse: parse,
   setVue: setVue,
-  loadSingle: loadSingle,
   loadTranslation: loadTranslation,
+  loadFiles: loadFiles,
+  files: quantorioBridge.files,
 }
