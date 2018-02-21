@@ -1,7 +1,11 @@
 <template>
   <div id="app">
-    <index v-if="inited"/>
-    <Loading v-if="loading"></Loading>
+    <transition name='fade'>
+      <index v-if="!loading && inited"/>
+    </transition>
+    <transition name='fade'>
+      <Loading v-if="loading"></Loading>
+    </transition>
   </div>
 </template>
 
@@ -66,5 +70,12 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   /*text-align: center;*/
   color: #2c3e50;
+}
+.fade-enter-active, .fade-leave-active {
+  transition: opacity .5s;
+}
+
+.fade-enter, .fade-leave-to {
+  opacity: 0;
 }
 </style>

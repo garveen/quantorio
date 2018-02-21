@@ -1,8 +1,39 @@
 <template>
-  <div class='lmask'></div>
+  <div class='outer'>
+    <div class='lmask'>
+      <loading-bar
+        :on-error-done="error"
+        :on-progress-done="done"
+        :progress="progress"
+        >
+      </loading-bar>
+    </div>
+  </div>
 </template>
+<script>
+import LoadingBar from 'vue2-loading-bar'
+export default {
+  components: {
+    LoadingBar,
+  },
+  methods: {
+    error: () => {
+    },
+    done: () => {
+    }
+  },
+  computed: {
+    progress () {
+      return this.$store.state.networkProgress * 100
+    },
+  },
+}
+</script>
 <style scoped>
 /* https://codepen.io/bartezic/pen/ByqeNq */
+.outer {
+  z-index: 9998;
+}
 .lmask {
   position: absolute;
   height: 100%;
@@ -101,4 +132,45 @@
     -webkit-transform: rotate(360deg);
   }
 }
+
+/* Loading Bar */
+
+>>> .LoadingBar{
+  transition:all .5s ease;
+  position:fixed;
+  top:0;
+  background:rgba(0, 183, 229, 0.8);
+  height:3px;
+  box-shadow: 0 0 15px #2187e7;
+}
+
+>>> .LoadingBar-glow{
+  top:0;
+  position:absolute;
+  width:100px;
+  height:100%;
+}
+
+>>> .LoadingBar--to_right{
+  left:0
+}
+
+>>> .LoadingBar--to_left,.LoadingBar--to_right .LoadingBar-glow{
+  right:0
+}
+
+>>> .LoadingBar--to_left .LoadingBar-glow{
+  left:0
+}
+
+>>> .LoadingBar--full{
+  transition:all 1s ease;
+  height:0;
+  opacity:0
+}
+
+>>> .LoadingBar--error{
+  background:#f44336;
+}
+
 </style>

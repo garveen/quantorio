@@ -9,6 +9,8 @@ const store = new Vuex.Store({
     metaVersion: 0,
     loading: 0,
     loadedLanguages: {},
+    networkProgress: 0,
+    dataProgress: 0,
   },
   mutations: {
     setDifficulty (state, v) {
@@ -27,6 +29,12 @@ const store = new Vuex.Store({
       } else {
         state.loading = state.loading - 1
       }
+    },
+    setNetworkProgress (state, v) {
+      state.networkProgress = v
+    },
+    setDataProgress (state, v) {
+      state.dataProgress = v
     },
     loadedLanguage (state, v) {
       state.loadedLanguages[v] = true

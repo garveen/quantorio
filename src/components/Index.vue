@@ -700,4 +700,8 @@ div.cell {
   align-items: center;*/
 }
 
+>>> .el-table::before {
+  z-index: 0
+}
+
 </style>

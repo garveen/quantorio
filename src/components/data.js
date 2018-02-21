@@ -283,6 +283,61 @@ let extractZipToVirtualFS = (zips, prefix) => {
   })
 }
 
+let allFetches = []
+let fetchEx = name => {
+  console.log(name)
+  return fetch(name, {mode: 'cors'})
+  // Retrieve its body as ReadableStream
+  .then(response => {
+    let id = allFetches.length
+    allFetches.push({
+      length: 0,
+      loaded: 0,
+    })
+    let length = response.headers.get('Content-Length')
+    if (length) {
+      allFetches[id].length = Number(length)
+    }
+    let total = 0
+    allFetches.forEach(setup => {
+      total += setup.length
+    })
+    console.log(total)
+
+    const reader = response.body.getReader()
+
+    return new ReadableStream({
+      start (controller) {
+        return pump()
+
+        function pump () {
+          return reader.read().then(({ done, value }) => {
+            // When no more data needs to be consumed, close the stream
+            if (done) {
+              controller.close()
+              return
+            }
+            allFetches[id].loaded += value.byteLength
+            let total = 0
+            let loaded = 0
+            allFetches.forEach(setup => {
+              total += setup.length
+              loaded += setup.loaded
+            })
+            // console.log(loaded)
+            store.commit('setNetworkProgress', loaded / (total + 1))
+            // Enqueue the next data chunk into our target stream
+            controller.enqueue(value)
+            return pump()
+          })
+        }
+      }
+    })
+  })
+  .then(stream => new Response(stream))
+  .then(response => response.blob())
+}
+
 let loadZip = (name, file) => {
   if (loaded[name]) {
     return loaded[name]
@@ -297,8 +352,7 @@ let loadZip = (name, file) => {
       if (process.env.TRAVIS_TAG) {
         name = `//raw.githubusercontent.com/garveen/quantorio/${process.env.TRAVIS_TAG}/public/` + name
       }
-      return fetch(name + '.zip', {mode: 'cors'})
-      .then(response => response.blob())
+      return fetchEx(name + '.zip')
       .then(JSZip.loadAsync)
     })
   }
@@ -326,13 +380,14 @@ let loadFiles = zips => {
 }
 
 let init = (fallbackLanguage) => {
+  // fetchEx('sublime.rar').then(blob => {
+  //   console.log(blob)
+  // })
   return Promise.all([loadZip('lualib'), loadZip('core'), loadZip('base'), loadZip('quantorio'), loadZip(fallbackLanguage)])
-  .then(zips => {
-    return zips
-  })
   .then(parse)
   .then(setVue)
   .then(meta => {
+    store.commit('setNetworkProgress', 1)
     loadTranslation(fallbackLanguage)
     return meta
   })
