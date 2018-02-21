@@ -20,11 +20,16 @@ npm install
 npm run dev
 ```
 
-After you changed *.lua, run
+After you changed \*.lua, run
 ```shell
 npm run parse
 ```
 For make a build, run
 ```shell
 npm run build
+```
+
+For generate defines.lua, **run in game**:
+```lua
+game.write_file("defines.lua", "return " .. serpent.block(_G.defines))
 ```
