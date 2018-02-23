@@ -105,7 +105,7 @@ try {
   l.execute('modules = {"core", "base", length=2}')
   _global.dataPrefix = 'src/data'
   _global.iconPrefix = 'src/assets'
-  l.execute('require "quantorio"; localParse()')
+  l.execute('require "lualib.dataloader"; require "quantorio"; localParse()')
   console.log('done')
 } catch(error) {
   if (error.lua_stack) {

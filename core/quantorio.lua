@@ -17,32 +17,43 @@ function isNode()
 end
 
 fs = require 'fs'
+generator = require "generator"
+defines = require 'defines'
+local dkjson = require 'dkjson'
+
 function findfile(filename)
 	for i = 1, originPathsLength do
 		local path = originPaths[i]
 		filename = filename:gsub('%.', '/')
 		local fullname = path:gsub('%?', filename)
-		local content = fs.readFile(fullname)
-		if content then
-			loaded, err = load(content, '@' .. fullname)
-			if (loaded) then
-				return loaded, fullname
-			else
-				print(err)
-			end
+		if fs.exists(fullname) then
+			return fullname
 		end
+
 	end
 	return false
 end
 
-table.insert(package.searchers, function(name)
-	local loaded, path = findfile(name)
+function loadfile(filename)
+	local fullname = findfile(filename)
+	if not fullname then
+		return
+	end
+	local content = fs.readFile(fullname)
+	if content then
+		loaded, err = load(content, '@' .. fullname)
+		if loaded then
+			return loaded, fullname
+		else
+			error(err)
+		end
+	end
+end
+
+table.insert(package.searchers, 1, function(name)
+	local loaded, path = loadfile(name)
 	if loaded then return loaded, path end
 end)
-
-generator = require "generator"
-defines = require 'defines'
-local dkjson = require 'dkjson'
 
 do -- Create js.ipairs and js.pairs functions. attach as __pairs and __ipairs on JS userdata objects.
 	local _PROXY_MT = debug.getregistry()._PROXY_MT
@@ -59,7 +70,7 @@ do -- Create js.ipairs and js.pairs functions. attach as __pairs and __ipairs on
 	_PROXY_MT.__ipairs = js.ipairs
 
 	function js.pairs(ob)
-		local keys = js.global.Object:getOwnPropertyNames(ob) -- Should this be Object.keys?
+		local keys = js.global.Object:keys(ob)
 		local i = 0
 		return function(ob, last)
 			local k = keys[i]
@@ -121,11 +132,11 @@ function loadModules(modules, modulesLength)
 
 
 	require = function (filename)
-		loaded, fullname = findfile(filename)
+		fullname = findfile(filename)
 		zipIt(fullname)
 		return old_require(filename)
 	end
-	-- packup package.loaded
+	-- backup package.loaded
 	-- cannot assign directly by lua's design
 	local ploaded = {}
 	for k, v in pairs(package.loaded) do
@@ -137,11 +148,14 @@ function loadModules(modules, modulesLength)
 			for k, v in pairs(package.loaded) do
 				package.loaded[k] = nil
 			end
+			for k, v in pairs(ploaded) do
+				package.loaded[k] = v
+			end
 			local moduleName = modules[i]
 			table.insert(originPaths, 1, 'data/' .. moduleName .. '/?.lua')
 			originPathsLength = originPathsLength + 1
-			local chunk = findfile(filename)
-			if chunk then
+			local fullname = findfile(filename)
+			if fullname then
 				print('loading ' .. moduleName .. '/' .. filename .. '.lua')
 				require(filename)
 			else
@@ -149,6 +163,9 @@ function loadModules(modules, modulesLength)
 			originPathsLength = originPathsLength - 1
 			table.remove(originPaths, 1)
 		end
+	end
+	for k, v in pairs(package.loaded) do
+		package.loaded[k] = nil
 	end
 	for k, v in pairs(ploaded) do
 		package.loaded[k] = v
@@ -218,7 +235,12 @@ end
 
 
 function localParse()
-	require "dataloader"
+	originPaths = {
+		"?.lua",
+		"data/core/lualib/?.lua",
+	}
+	originPathsLength = 2
+
 	local modules = {'core', 'base'}
 	local modulesLength = 2
 	local meta, files = parse(modules, modulesLength)
