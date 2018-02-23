@@ -1,22 +1,24 @@
 'use strict'
 
 let LuaVM = require('lua.vm.js')
+let fs = require('fs')
+let path = require('path')
 
 let l = new LuaVM.Lua.State()
 
-let fs = require('fs')
-
-let path = require('path')
-
-let _global
-if (typeof window == 'undefined') {
-  _global = global
-} else {
-  _global = window
+let quantorioBridge = {
+  exists: function (path) {
+    return fs.existsSync(path)
+  },
+  readDir: function (path) {
+    return fs.readdirSync(path).join('|')
+  },
 }
 
+l.push(quantorioBridge)
+l.setglobal('quantorioBridge')
 
-_global.mkDirByPathSync = (targetDir, {isRelativeToScript = false} = {}) => {
+global.mkDirByPathSync = (targetDir, {isRelativeToScript = false} = {}) => {
   const sep = path.sep;
   const initDir = path.isAbsolute(targetDir) ? sep : '';
   const baseDir = isRelativeToScript ? __dirname : '.';
@@ -38,7 +40,7 @@ _global.mkDirByPathSync = (targetDir, {isRelativeToScript = false} = {}) => {
   }, initDir);
 }
 
-_global.zipStockFiles = (files) => {
+global.zipStockFiles = (files) => {
   let JSZip = require("jszip")
   let zips = {
     core: new JSZip(),
@@ -103,8 +105,8 @@ try {
   })
 
   l.execute('modules = {"core", "base", length=2}')
-  _global.dataPrefix = 'src/data'
-  _global.iconPrefix = 'src/assets'
+  global.dataPrefix = 'src/data'
+  global.iconPrefix = 'src/assets'
   l.execute('require "lualib.dataloader"; require "quantorio"; localParse()')
   console.log('done')
 } catch(error) {
