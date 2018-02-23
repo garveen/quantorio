@@ -1,30 +1,12 @@
 import Recipe from './Recipe'
 import store from '../store'
 import i18n from '../i18n'
+import quantorioBridge from './bridge'
 
 let luaState
-let _meta
+let _items
 
 let loaded = {}
-
-let quantorioBridge = {
-  fs: {},
-  files: {},
-  getFileContent: function (path) {
-    let content = this.files[path]
-    return content
-  },
-  exists: function (path) {
-    let dir = this.fs
-    return !path.split('/').some(part => !(dir = dir[part]))
-  },
-  readDir: function (path) {
-    let dir = this.fs
-    path.split('/').forEach(part => dir ? (dir = dir[part]) : false)
-    if (!dir) { return '' }
-    return Object.keys(dir).join('|')
-  }
-}
 
 window.quantorioBridge = quantorioBridge
 
@@ -44,6 +26,7 @@ let callLua = (mods, onlyLanguage) => {
       luaState.setglobal('quantorioBridge')
 
       luaState.execute(`
+        package.path = '?.lua'
         require("quantorio")
         require("dataloader")
         generator = require("generator")
@@ -66,11 +49,6 @@ let callLua = (mods, onlyLanguage) => {
       `)
 
       quantorioBridge.meta = parseMeta(JSON.parse(quantorioBridge.meta))
-
-      // for debug
-      window.fs = quantorioBridge.fs
-      window.files = quantorioBridge.files
-      window.meta = quantorioBridge.meta
     }
 
     return quantorioBridge.meta
@@ -86,8 +64,8 @@ let sortByOrder = (a, b) => {
   let aName = a.showName || a.name
   let bName = b.showName || b.name
   let aOrders, bOrders
-  aOrders = _meta.items[aName].order.split('-')
-  bOrders = _meta.items[bName].order.split('-')
+  aOrders = _items[aName].order.split('-')
+  bOrders = _items[bName].order.split('-')
   try {
   } catch (error) {
   }
@@ -115,7 +93,7 @@ let sortByOrder = (a, b) => {
 
 let parseMeta = (meta) => {
   // for sorting
-  _meta = meta
+  _items = meta.items
 
   // flip, sort, flip back
   let languages = meta.languages
@@ -194,93 +172,6 @@ let parseMeta = (meta) => {
   meta.groups = Object.values(meta.groups).sort(sortByOrder)
   console.log('done')
   return meta
-}
-
-let extractZipToVirtualFS = (zips, prefix) => {
-  console.log('extracting to virtual fs...')
-
-  return import('lua.vm.js').then(LuaVM => {
-    prefix = prefix || ''
-    let rootDir
-    let fs = quantorioBridge.fs
-    if (prefix) {
-      rootDir = fs
-      fs[prefix] = fs[prefix] || {}
-      rootDir = fs[prefix]
-      prefix += '/'
-    } else {
-      rootDir = fs
-    }
-
-    let e = LuaVM.emscripten
-    let promises = []
-
-    try {
-      e.FS_createFolder('/', 'locale', true, true)
-    } catch (e) {}
-
-    zips.forEach(([name, zip], index) => {
-      let baseDir = rootDir
-
-      zip.forEach((relativePath, file) => {
-        if (file.dir) {
-          let dir = baseDir
-          file.name.split('/').forEach(part => {
-            if (dir[part]) {
-              dir = dir[part]
-            } else if (part) {
-              dir[part] = {}
-            }
-          })
-          let matches = file.name.match(/(.*)\/(.+)/)
-          if (!matches || !matches[2]) {
-            matches = {
-              '1': '',
-              '2': file.name
-            }
-          }
-        } else {
-          let suffix = file.name.substring(file.name.length - 4, file.name.length)
-          if (suffix === '.lua' || suffix === '.cfg' || suffix === '.ini' || suffix === 'json') {
-            promises.push(file.async('text').then((content) => {
-              quantorioBridge.files[prefix + file.name] = content
-
-              let dir = baseDir
-              file.name.split('/').forEach(part => {
-                if (part && dir[part]) {
-                  dir = dir[part]
-                } else {
-                  dir[part] = true
-                }
-              })
-
-              let matches = file.name.match(/(.*)\/(.+)/)
-              if (!matches) {
-                matches = {
-                  '1': '',
-                  '2': file.name
-                }
-              }
-              if (index === 3 && !file.dir && !prefix) {
-                try {
-                  return e.FS_createDataFile('/' + matches[1], matches[2], content, true, false)
-                } catch (error) {
-                  if (error.code !== 'EEXIST') {
-                    throw error
-                  }
-                }
-              }
-            }))
-          } else {
-            promises.push(file.async('base64').then((content) => {
-              quantorioBridge.files[prefix + file.name] = content
-            }))
-          }
-        }
-      })
-    })
-    return Promise.all(promises)
-  })
 }
 
 let allFetches = []
@@ -380,6 +271,8 @@ let init = (fallbackLanguage) => {
     store.commit('setNetworkProgress', 1)
     loadTranslation(fallbackLanguage)
     return meta
+  }).catch(e => {
+    throw e
   })
 }
 
@@ -406,7 +299,7 @@ let loadTranslation = (name) => {
 }
 
 let parse = (zips, prefix, mods, onlyLanguage) => {
-  return extractZipToVirtualFS(zips, prefix)
+  return quantorioBridge.extractZipToVirtualFS(zips, prefix)
   .then(() => {
     console.log('lua...')
     return callLua(mods, onlyLanguage)
