@@ -48,6 +48,7 @@ export default {
     .then(language => {
       this.$i18n.locale = language
       this.inited = true
+      console.log('inited')
       this.$store.commit('setLoading', false)
     })
   },

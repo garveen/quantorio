@@ -526,14 +526,14 @@ export default {
       this.loadHash()
     },
 
-    locale () {
-      let val = this.locale
+    locale (val) {
+      const i18n = this.$i18n
       if (!this.loadedLanguages[val]) {
         Data.loadTranslation(val).then(() => {
-          this.$i18n.locale = val
+          i18n.locale = val
         })
       } else {
-        this.$i18n.locale = val
+        i18n.locale = val
       }
     },
 

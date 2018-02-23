@@ -17,6 +17,7 @@
     "element-ui": "2.0.9",
     "jszip": "^3.1.5",
     "lua.vm.js": "0.0.1",
+    "promise-polyfill": "^7.1.0",
     "vue": "^2.5.2",
     "vue-headful": "^1.0.0",
     "vue-i18n": "^7.4.2",
@@ -24,7 +25,8 @@
     "vue-router": "^3.0.1",
     "vue-transmit": "^8.0.0",
     "vue2-loading-bar": "0.0.1",
-    "vuex": "^3.0.1"
+    "vuex": "^3.0.1",
+    "whatwg-fetch": "^2.0.3"
   },
   "devDependencies": {
     "autoprefixer": "^7.2.6",

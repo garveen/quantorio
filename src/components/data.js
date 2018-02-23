@@ -284,51 +284,49 @@ let extractZipToVirtualFS = (zips, prefix) => {
 }
 
 let allFetches = []
-let fetchEx = name => {
-  console.log(name)
+let fetchEx = (name) => {
   return fetch(name, {mode: 'cors'})
   // Retrieve its body as ReadableStream
   .then(response => {
+    let length = response.headers.get('Content-Length')
+
+    if (!length || !response.body) {
+      return response.blob()
+    }
+
     let id = allFetches.length
+
     allFetches.push({
       length: 0,
       loaded: 0,
     })
-    let length = response.headers.get('Content-Length')
-    if (length) {
-      allFetches[id].length = Number(length)
-    }
+
+    allFetches[id].length = Number(length)
+
     const reader = response.body.getReader()
 
-    return new ReadableStream({
-      start (controller) {
-        return pump()
+    let result = new Uint8Array(length)
 
-        function pump () {
-          return reader.read().then(({ done, value }) => {
-            // When no more data needs to be consumed, close the stream
-            if (done) {
-              controller.close()
-              return
-            }
-            allFetches[id].loaded += value.byteLength
-            let total = 0
-            let loaded = 0
-            allFetches.forEach(setup => {
-              total += setup.length
-              loaded += setup.loaded
-            })
-            store.commit('setNetworkProgress', loaded / (total + 1))
-            // Enqueue the next data chunk into our target stream
-            controller.enqueue(value)
-            return pump()
-          })
+    function pump () {
+      return reader.read().then(({ done, value }) => {
+        if (done) {
+          return result
         }
-      }
-    })
+        result.set(value, allFetches[id].loaded)
+
+        allFetches[id].loaded += value.byteLength
+        let total = 0
+        let loaded = 0
+        allFetches.forEach(setup => {
+          total += setup.length
+          loaded += setup.loaded
+        })
+        store.commit('setNetworkProgress', loaded / (total + 1))
+        return pump()
+      })
+    }
+    return pump()
   })
-  .then(stream => new Response(stream))
-  .then(response => response.blob())
 }
 
 let loadZip = (name, file) => {
