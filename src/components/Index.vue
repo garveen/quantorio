@@ -571,17 +571,22 @@ export default {
 
         this.requirements.forEach(res)
 
-        remainders.forEach(row => {
-          row.needs = row.sources.reduce((acc, cur) => acc + cur.needs, 0)
-          row.update()
-        })
-
         remainders.forEach(res)
 
-        remainders.forEach(row => {
-          row.needs = row.sources.reduce((acc, cur) => acc + cur.needs, 0)
-          row.update()
-        })
+        let counter = 0
+        let changed
+        do {
+          changed = false
+          counter++
+          remainders.forEach(row => {
+            let originNeeds = row.needs
+            row.needs = row.sources.reduce((acc, cur) => acc + cur.needs, 0)
+            if (Math.abs(row.needs - originNeeds) > 0.00001) {
+              changed = true
+            }
+            row.update()
+          })
+        } while (changed && counter < 100)
 
         let byproducts = {}
 
