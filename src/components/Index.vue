@@ -89,7 +89,7 @@
                     <img class='icon button' :src='icon(scope.row.machine)'>
                   </span>
                 </el-popover>
-                <ModuleSelector ref="modulePopover" v-for="index in scope.row.machine.module_slots" :key='index' :allows='scope.row.machine.allowed_effects' :module.sync='scope.row.modules[index - 1]'></ModuleSelector>
+                <ModuleSelector ref="modulePopover" v-for="index in scope.row.machine.module_slots" :key='index' :row='scope.row.machine.allowed_effects' :recipe='scope.row.recipe' :module.sync='scope.row.modules[index - 1]'></ModuleSelector>
               </span>
             </div>
             <div>
@@ -167,6 +167,8 @@ export default {
       remainders: [],
       remainderSources: {},
       byproducts: [],
+      maxProductivityModule: null,
+      maxSpeedModule: null,
       window: window,
       zips: {},
       fs: {},
@@ -234,7 +236,7 @@ export default {
       let changeMachine
       changeMachine = row => {
         if (this.categories[row.recipe.category].includes(machineName)) {
-          row.machine = machine
+          this.selectMachine(row, machine)
         }
         row.sub.forEach(subrow => {
           changeMachine(subrow)
@@ -245,7 +247,34 @@ export default {
       this.remainders.forEach(changeMachine)
     },
 
-    expends (row) {
+    maxProductivity () {
+      this.maxModule(this.maxProductivityModule)
+    },
+
+    maxSpeed () {
+      this.maxModule(this.maxSpeedModule)
+    },
+
+    maxModule (module) {
+      let changeModule = row => {
+        if (!row.machine || !row.machine.module_slots) return
+        if (row.recipe && module.limitation && module.limitation.indexOf(row.recipe.name) === -1) {
+          return
+        }
+        let modules = []
+        for (let i = 0; i < row.machine.module_slots; i++) {
+          modules.push(module)
+        }
+        row.modules = modules
+
+        row.sub.forEach(changeModule)
+      }
+
+      this.requirements.forEach(changeModule)
+      this.remainders.forEach(changeModule)
+    },
+
+    expends (row, force) {
       let arr = []
       row.sub.forEach(subrow => {
         arr.push(subrow)
@@ -349,6 +378,7 @@ export default {
           }
         }
         row.machine = this.machines.find(machine => machine.name === rowConfig[3])
+        row.modules = []
         rowConfig[4].split('~').forEach(moduleName => {
           row.modules.push(this.modules.find(module => module && (module.name === moduleName)))
         })
@@ -357,6 +387,7 @@ export default {
           let newBeaconConfig = beaconConfigStr.split('=')
           let beaconConfig = row.beacons.find(b => b.beacon.name === newBeaconConfig[0])
           beaconConfig.count = Number(newBeaconConfig[1])
+          beaconConfig.modules = []
           newBeaconConfig[2].split('~').forEach(moduleName => {
             beaconConfig.modules.push(this.modules.find(module => module && (module.name === moduleName)))
           })
@@ -418,6 +449,32 @@ export default {
   },
 
   created () {
+    let maxProductivityModule = {
+      effect: {
+        productivity: {
+          bonus: 0
+        }
+      }
+    }
+    let maxSpeedModule = {
+      effect: {
+        speed: {
+          bonus: 0
+        }
+      }
+    }
+    this.modules.forEach(module => {
+      if (module && module.effect) {
+        if (module.effect.productivity && module.effect.productivity.bonus > maxProductivityModule.effect.productivity.bonus) {
+          maxProductivityModule = module
+        }
+        if (module.effect.speed && module.effect.speed.bonus > maxSpeedModule.effect.speed.bonus) {
+          maxSpeedModule = module
+        }
+      }
+    })
+    this.maxProductivityModule = maxProductivityModule
+    this.maxSpeedModule = maxSpeedModule
     this.loadHash()
   },
 

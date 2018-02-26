@@ -15,11 +15,11 @@
 <script>
 import Helpers from './Helpers'
 export default {
-  props: ['module', 'allows'],
+  props: ['module', 'row', 'recipe'],
   data () {
     return {
       allowedModules: [],
-      selectedModule: module,
+      selectedModule: null,
       visiable: false,
     }
   },
@@ -32,23 +32,25 @@ export default {
     }
   },
   mounted () {
-    if (this.allowedModules.length) {
-      this.modules.forEach(module => {
-        let allowed = true
-        if (module) {
+    this.selectedModule = this.module
+    this.modules.forEach(module => {
+      let allowed = true
+      if (module) {
+        if (this.allows) {
           Object.keys(module.effect).forEach(effect => {
             if (!this.allows.includes(effect)) {
               allowed = false
             }
           })
         }
+        if (this.recipe && module.limitation && module.limitation.indexOf(this.recipe.name) === -1) {
+          allowed = false
+        }
         if (allowed) {
           this.allowedModules.push(module)
         }
-      })
-    } else {
-      this.allowedModules = this.modules
-    }
+      }
+    })
   },
   computed: {
     modules () {

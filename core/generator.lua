@@ -276,6 +276,7 @@ local function saveModule(entity)
 		'type',
 		'effect',
 		'order',
+		'limitation',
 	})
 	table.insert(meta.modules, module)
 
