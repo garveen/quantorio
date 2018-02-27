@@ -60,6 +60,6 @@ export default {
   },
 
   isValid (obj) {
-    return obj.name && obj.name !== 'dummy'
+    return obj && obj.name && obj.name !== 'dummy'
   }
 }

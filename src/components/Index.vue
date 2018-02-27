@@ -28,7 +28,7 @@
           </template>
         </template>
       </el-table-column>
-      <el-table-column :label="translate('name')">
+      <el-table-column :label="translate('name')" width='300'>
         <template slot-scope="scope">
           <template v-if='scope.row.isData'>
             <el-row>
@@ -45,15 +45,18 @@
                   <img class='icon' :src='scope.row.icon' />
                   <span :style='{margin: "auto 10px"}'>{{ translate(scope.row) }}</span>
                   <template v-if="scope.row.selectable">
-                    <span :style='{margin: "auto 10px"}'>({{ translate(Helpers.isValid(scope.row.recipe) ? scope.row.recipe : scope.row) }})</span>
+                    <span :style='{margin: "auto 10px"}'>({{ translate(isValid(scope.row.recipe) ? scope.row.recipe : scope.row) }})</span>
                   </template>
                 </div>
               </el-col>
             </el-row>
           </template>
+          <span v-if='scope.row.type === "sums"'>
+            {{ scope.row.consumption }}
+          </span>
         </template>
       </el-table-column>
-      <el-table-column prop="needs" :label="translate('requirement-per-minute')">
+      <el-table-column prop="needs" :label="translate('requirement-per-minute')" width='160'>
         <template slot-scope="scope">
           <template v-if='scope.row.isData'>
             <el-input-number v-if='scope.row.type === "requirement"' v-model="scope.row.needs" :min=0 controls-position="right" size='small'></el-input-number>
@@ -63,11 +66,11 @@
       </el-table-column>
       <el-table-column prop="made_in" :render-header='renderHeaderMachine'>
         <template slot-scope="scope">
-          <el-popover v-if='scope.row.showMachine' placement="bottom" trigger='click' popper-class='machine-popper'>
+          <el-popover v-if='scope.row.showMachine' placement="left" trigger='click' popper-class='machine-popper'>
             <div slot='reference'  class='flex button'>
               <img :src='icon(scope.row.machine)' class='button icon'>
               <img v-for='module in scope.row.modules' v-if='module' class='icon' :src='icon(module)'>
-              <span :style='{"margin-right": "8px"}'>{{ translate(scope.row.machine) }}</span>
+              <span v-if='scope.row.modules.length === 0' :style='{"margin-right": "8px"}'>{{ translate(scope.row.machine) }}</span>
               <span v-for='beaconConfig in scope.row.beacons' v-if='beaconConfig.count !== 0' class='flex'>
                 <span>, {{ beaconConfig.count }} X</span>
                 <img class='icon' :src='icon(beaconConfig.beacon)'>
@@ -89,7 +92,7 @@
                     <img class='icon button' :src='icon(scope.row.machine)'>
                   </span>
                 </el-popover>
-                <ModuleSelector ref="modulePopover" v-for="index in scope.row.machine.module_slots" :key='index' :row='scope.row.machine.allowed_effects' :recipe='scope.row.recipe' :module.sync='scope.row.modules[index - 1]'></ModuleSelector>
+                <ModuleSelector ref="modulePopover" v-for="index in scope.row.machine.module_slots" :key='index' :allows='scope.row.machine.allowed_effects' :recipe='scope.row.recipe' :module.sync='scope.row.modules[index - 1]'></ModuleSelector>
               </span>
             </div>
             <div>
@@ -100,24 +103,21 @@
               </span>
             </div>
           </el-popover>
-          <span v-if='scope.row.type === "sums"'>
-            {{ scope.row.consumption }}
-          </span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="" :label="translate('machine-number')">
-        <template slot-scope="scope">
-          <template v-if=' scope.row.showMachine'>
-            {{ scope.row.machineCount().toFixed(2) }}
-          </template>
           <template v-if='scope.row.type === "sums"'>
-            <span v-for='machine in scope.row.machines' v-if='Helpers.isValid(machine)' :style='{margin: "0 5px"}'>
+            <span v-for='machine in scope.row.machines' v-if='isValid(machine)' :style='{margin: "0 5px"}'>
               <img :src='icon(machine)'>{{ machine.count }}
             </span>
           </template>
         </template>
       </el-table-column>
-      <el-table-column prop="" :render-header='renderHeaderInserter'>
+      <el-table-column prop="" :label="translate('machine-number')" width='140'>
+        <template slot-scope="scope">
+          <template v-if=' scope.row.showMachine'>
+            {{ scope.row.machineCount().toFixed(2) }}
+          </template>
+        </template>
+      </el-table-column>
+      <el-table-column prop="" :render-header='renderHeaderInserter' :width='inserters.length * 40'>
         <template slot-scope="scope">
           <template v-if='scope.row.showMachine'>
             <span class='flex around'>
@@ -267,6 +267,10 @@ export default {
         }
         row.modules = modules
 
+        if (!module.effect.productivity) {
+          row.beacons[1].modules = [module, module]
+          row.beacons[1].count = 8
+        }
         row.sub.forEach(changeModule)
       }
 
@@ -276,7 +280,7 @@ export default {
 
     expends (row, force) {
       let arr = []
-      row.sub.forEach(subrow => {
+      row.sub.sort((a, b) => b.needs - a.needs).forEach(subrow => {
         arr.push(subrow)
         if (subrow.expended) {
           arr.push(...this.expends(subrow))
@@ -446,6 +450,7 @@ export default {
 
     translate: Helpers.translate,
     icon: Helpers.icon,
+    isValid: Helpers.isValid,
   },
 
   created () {
@@ -553,19 +558,28 @@ export default {
     summaryData () {
       let sums = {}
       let consumption = 0
-      let machines = []
-      this.shownData.forEach(row => {
-        let machine = machines.find(machine => {
-          return machine.name === row.machine.name
-        })
+      let machines = {}
+      let modules = {}
+      let find = (stack, m) => {
+        let machine = stack[m.name]
         if (!machine) {
           machine = {
-            name: row.machine.name,
+            name: m.name,
             count: 0,
           }
-          machines.push(machine)
+          stack[m.name] = machine
         }
-        machine.count += parseInt(Math.ceil(row.machineCount()))
+        return machine
+      }
+      this.shownData.forEach(row => {
+        if (!this.isValid(row.machine)) return
+        let machineCount = parseInt(Math.ceil(row.machineCount()))
+        find(machines, row.machine).count += machineCount
+        row.modules.forEach(module => {
+          if (module) {
+            find(modules, module).count += machineCount
+          }
+        })
         if (row.machine.energy_source.type === 'electric') {
           consumption += row.machine.energy_usage * (1 + row.bonus.consumption) * row.machineCount()
         }
@@ -573,7 +587,9 @@ export default {
 
       sums.type = 'sums'
       sums.consumption = '' + this.format(consumption) + 'W (' + this.translate('beacons-not-included') + ')'
-      sums.machines = machines
+
+      sums.machines = Object.values(machines).sort((a, b) => b.count - a.count).concat(Object.values(modules).sort(Helpers.sortByOrder))
+
       return [sums]
     },
   },

@@ -47,8 +47,10 @@ let callLua = (mods, onlyLanguage) => {
         data.raw = {}
         quantorioBridge.meta = dkjson.encode(browserParse({'${modules.join("','")}'}, ${modules.length}))
       `)
-
-      quantorioBridge.meta = parseMeta(JSON.parse(quantorioBridge.meta))
+      let meta = JSON.parse(quantorioBridge.meta)
+      // for sorting
+      _items = meta.items
+      quantorioBridge.meta = parseMeta(meta)
     }
 
     return quantorioBridge.meta
@@ -92,9 +94,7 @@ let sortByOrder = (a, b) => {
 }
 
 let parseMeta = (meta) => {
-  // for sorting
-  _items = meta.items
-
+  meta.beacons = meta.beacons.concat(meta.beacons)
   // flip, sort, flip back
   let languages = meta.languages
   let fliped = {}
@@ -107,7 +107,6 @@ let parseMeta = (meta) => {
   })
 
   meta.modules.sort(sortByOrder)
-  meta.modules.unshift(null)
 
   meta.inserters.sort((a, b) => sortByOrder(meta.items[a.name], meta.items[b.name]))
 
@@ -326,4 +325,5 @@ export default {
   loadTranslation: loadTranslation,
   loadFiles: loadFiles,
   files: quantorioBridge.files,
+  sortByOrder: sortByOrder,
 }

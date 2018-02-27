@@ -15,7 +15,7 @@
 <script>
 import Helpers from './Helpers'
 export default {
-  props: ['module', 'row', 'recipe'],
+  props: ['allows', 'module', 'recipe'],
   data () {
     return {
       allowedModules: [],
@@ -51,6 +51,8 @@ export default {
         }
       }
     })
+    this.allowedModules.unshift(null)
+
   },
   computed: {
     modules () {
