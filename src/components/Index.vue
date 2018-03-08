@@ -288,12 +288,18 @@ export default {
       this.remainders.forEach(changeModule)
     },
 
-    expends (row, force) {
+    expends (row, sort) {
       let arr = []
-      row.sub.sort((a, b) => b.needs - a.needs).forEach(subrow => {
+      let rows
+      if (sort) {
+        rows = row.sub.sort((a, b) => b.needs - a.needs)
+      } else {
+        rows = row.sub
+      }
+      rows.forEach(subrow => {
         arr.push(subrow)
         if (subrow.expended) {
-          arr.push(...this.expends(subrow))
+          arr.push(...this.expends(subrow, sort))
         }
       })
       return arr
@@ -554,11 +560,11 @@ export default {
     },
 
     requirementData () {
-      return this.expends({sub: this.requirements})
+      return this.expends({sub: this.requirements}, false)
     },
 
     remainderData () {
-      let remainderData = this.expends({sub: this.remainders})
+      let remainderData = this.expends({sub: this.remainders}, true)
       remainderData.forEach(row => {
         row.saveRecipeConfig()
       })
