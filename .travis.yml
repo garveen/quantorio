@@ -8,10 +8,10 @@ notifications:
     on_success: never
     on_failure: always
 
-deploy:
-  provider: pages
-  skip_cleanup: true
-  github_token: $GITHUB_TOKEN # travis-ci.org 控制面板上设置
-  on:
-    tags: true
-  local-dir: public
+# deploy:
+#   provider: pages
+#   skip_cleanup: true
+#   github_token: $GITHUB_TOKEN # travis-ci.org 控制面板上设置
+#   on:
+#     tags: true
+#   local-dir: public
