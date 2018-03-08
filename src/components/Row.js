@@ -46,6 +46,7 @@ class Row {
     this.selectable = !Helpers.isValid(this.recipe) && this.type !== 'byproduct'
     this.parent = parent
     this.resultMultiple = 1
+    this.resultPerMachinePerMinute = 0
 
     beacons.forEach(beacon => {
       this.beacons.push({
@@ -119,12 +120,12 @@ class Row {
     return this.recipe.results[this.name] || 1
   }
 
-  machineCount () {
-    return this.needs / this.calcResultPerMachinePerMinute()
+  machineCount (needs) {
+    return (needs || this.needs) / this.resultPerMachinePerMinute
   }
 
   inserterCount (inserter) {
-    return this.calcResultPerMachinePerMinute() / inserter.turns_per_minute
+    return this.resultPerMachinePerMinute / inserter.turns_per_minute
   }
 
   calcResultPerMachinePerMinute () {
@@ -166,6 +167,7 @@ class Row {
         })
       })
     })
+    this.resultPerMachinePerMinute = this.calcResultPerMachinePerMinute()
 
     if (this.isResource) {
       return

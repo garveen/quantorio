@@ -31,25 +31,37 @@
       <el-table-column :label="translate('name')" width='300'>
         <template slot-scope="scope">
           <template v-if='scope.row.isData'>
-            <el-row>
-              <el-col :offset='scope.row.indent'>
-                <div :style='{display: "flex"}'>
-                  <el-dropdown v-if="scope.row.selectable" @command='selectRecipe'>
-                    <el-button type='primary' plain class='el-icon-caret-bottom el-icon' style='height:36px;width:36px'></el-button>
-                    <el-dropdown-menu slot="dropdown">
-                      <el-dropdown-item v-for="recipe in getRecipeCandidates(scope.row)" :key='recipe.name' :command='[scope.row, recipe]'>
-                        <img :src='icon(recipe)'>
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </el-dropdown>
-                  <img class='icon' :src='scope.row.icon' />
-                  <span :style='{margin: "auto 10px"}'>{{ translate(scope.row) }}</span>
-                  <template v-if="scope.row.selectable">
-                    <span :style='{margin: "auto 10px"}'>({{ translate(isValid(scope.row.recipe) ? scope.row.recipe : scope.row) }})</span>
-                  </template>
+            <el-popover placement="bottom" trigger='hover' :disabled='scope.row.type !== "remainder"'>
+              <div>
+                <div v-for='source in scope.row.sources' class='flex'>
+                  <img class='icon' :src='source.origin.icon' />
+                  <span class='row-name'>
+                    {{ translate(source.origin) }} : {{ source.needs.toFixed(2) }} ( {{ scope.row.machineCount(source.needs).toFixed(2) }} )
+                  </span>
                 </div>
-              </el-col>
-            </el-row>
+              </div>
+              <template slot='reference'>
+                <el-row>
+                  <el-col :offset='scope.row.indent'>
+                    <div class='flex'>
+                      <el-dropdown v-if="scope.row.selectable" @command='selectRecipe'>
+                        <el-button type='primary' plain class='el-icon-caret-bottom el-icon' style='height:36px;width:36px'></el-button>
+                        <el-dropdown-menu slot="dropdown">
+                          <el-dropdown-item v-for="recipe in getRecipeCandidates(scope.row)" :key='recipe.name' :command='[scope.row, recipe]'>
+                            <img :src='icon(recipe)'>
+                          </el-dropdown-item>
+                        </el-dropdown-menu>
+                      </el-dropdown>
+                      <img class='icon' :src='scope.row.icon' />
+                      <span class='row-name'>{{ translate(scope.row) }}</span>
+                      <template v-if="scope.row.selectable">
+                        <span class='row-name'>({{ translate(isValid(scope.row.recipe) ? scope.row.recipe : scope.row) }})</span>
+                      </template>
+                    </div>
+                  </el-col>
+                </el-row>
+              </template>
+            </el-popover>
           </template>
           <span v-if='scope.row.type === "sums"'>
             {{ scope.row.consumption }}
@@ -656,6 +668,7 @@ export default {
                 remainders.push(remainder)
               }
               if (!remainder.sources.find(source => source.id === subrow.id)) {
+                subrow.origin = row
                 remainder.sources.push(subrow)
               }
             } else {
@@ -733,6 +746,10 @@ a:hover {
 
 </style>
 <style scoped>
+.row-name {
+  margin: auto 10px
+}
+
 >>>.flex, .flex {
   display: flex;
   align-items: center;
