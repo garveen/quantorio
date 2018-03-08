@@ -48,11 +48,12 @@ export default {
       return entity
     }
 
-    let name = entity.showName || entity.name
-
-    if (i18n.te(name, locale)) {
-      return i18n.t(name, locale)
+    if (i18n.te(entity.name, locale)) {
+      return i18n.t(entity.name, locale)
+    } else if (i18n.te(entity.showName, locale)) {
+      return i18n.t(entity.showName, locale)
     }
+
     if (!falling) {
       return this.translate(entity, true)
     }
