@@ -94,7 +94,6 @@ let sortByOrder = (a, b) => {
 }
 
 let parseMeta = (meta) => {
-  meta.beacons = meta.beacons.concat(meta.beacons)
   // flip, sort, flip back
   let languages = meta.languages
   let fliped = {}

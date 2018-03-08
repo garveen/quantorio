@@ -29,6 +29,7 @@ export default {
       this.selectedModule = _module
       this.visiable = false
       this.$emit('update:module', _module)
+      this.$emit('change')
     }
   },
   mounted () {
@@ -52,8 +53,8 @@ export default {
       }
     })
     this.allowedModules.unshift(null)
-
   },
+
   computed: {
     modules () {
       return this.$store.state.meta.modules

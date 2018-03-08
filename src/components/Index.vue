@@ -169,6 +169,7 @@ export default {
       byproducts: [],
       maxProductivityModule: null,
       maxSpeedModule: null,
+      beacons: [],
       window: window,
       zips: {},
       fs: {},
@@ -247,6 +248,19 @@ export default {
       this.remainders.forEach(changeMachine)
     },
 
+    maxBeacon (beacon, index) {
+      if (!beacon.count) return
+
+      window.setTimeout(() => {
+        let changeBeacon = row => {
+          row.beacons[index].modules = beacon.modules.slice(0)
+          row.beacons[index].count = beacon.count
+        }
+        this.requirements.forEach(changeBeacon)
+        this.remainders.forEach(changeBeacon)
+      }, 0)
+    },
+
     maxProductivity () {
       this.maxModule(this.maxProductivityModule)
     },
@@ -267,10 +281,6 @@ export default {
         }
         row.modules = modules
 
-        if (!module.effect.productivity) {
-          row.beacons[1].modules = [module, module]
-          row.beacons[1].count = 8
-        }
         row.sub.forEach(changeModule)
       }
 
@@ -484,6 +494,12 @@ export default {
   },
 
   mounted () {
+    this.$store.state.meta.beacons.forEach(b => {
+      let beacon = Object.assign({}, b)
+      beacon.modules = []
+      beacon.count = 0
+      this.beacons.push(beacon)
+    })
     this.locale = this.$i18n.locale
     this.$nextTick(this.$forceUpdate)
   },
@@ -711,7 +727,7 @@ a:hover {
 
 </style>
 <style scoped>
->>>.flex {
+>>>.flex, .flex {
   display: flex;
   align-items: center;
 }
