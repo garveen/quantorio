@@ -668,6 +668,7 @@ export default {
               if (!remainder.sources.find(source => source.id === subrow.id)) {
                 subrow.origin = row
                 remainder.sources.push(subrow)
+                remainder.sources.sort((a, b) => b.needs - a.needs)
               }
             } else {
               res(subrow)
