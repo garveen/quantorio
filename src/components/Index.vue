@@ -104,13 +104,17 @@
                     <img class='icon button' :src='icon(scope.row.machine)'>
                   </span>
                 </el-popover>
-                <ModuleSelector ref="modulePopover" v-for="index in scope.row.machine.module_slots" :key='index' :allows='scope.row.machine.allowed_effects' :recipe='scope.row.recipe' :module.sync='scope.row.modules[index - 1]'></ModuleSelector>
+                <ModuleSelector ref="modulePopover" v-for="module, index in scope.row.modules" :key='index' :allows='scope.row.machine.allowed_effects' :recipe='scope.row.recipe' :module.sync='scope.row.modules[index]'>
+                  <img slot='reference' class='icon icon-bordered button' :src='icon(module, "module")'>
+                </ModuleSelector>
               </span>
             </div>
             <div>
               <span v-for="beaconConfig in scope.row.beacons" class='flex'>
                 <img class='icon' :src='icon(beaconConfig.beacon)'>
-                <ModuleSelector ref="modulePopover" v-for="index in beaconConfig.beacon.module_slots" :key='index' :allows='beaconConfig.beacon.allowed_effects' :module.sync='beaconConfig.modules[index - 1]'></ModuleSelector>
+                <ModuleSelector ref="modulePopover" v-for="index in beaconConfig.beacon.module_slots" :key='index' :allows='beaconConfig.beacon.allowed_effects' :module.sync='beaconConfig.modules[index - 1]'>
+                  <img slot='reference' class='icon icon-bordered button' :src='icon(beaconConfig.modules[index - 1], "module")'>
+                </ModuleSelector>
                 <el-input-number :min=0 controls-position="right" v-model='beaconConfig.count' size='small'></el-input-number>
               </span>
             </div>
@@ -218,8 +222,6 @@ export default {
 
     selectMachine (row, machine) {
       row.machine = machine
-      let len = machine.module_slots ? machine.module_slots : 0
-      row.modules.splice(len)
     },
 
     renderHeaderOperation (h) {
@@ -246,14 +248,11 @@ export default {
     changeAllMachine (machineName) {
       let machine = this.machines.find(machine => machine.name === machineName)
 
-      let changeMachine
-      changeMachine = row => {
+      let changeMachine = row => {
         if (this.categories[row.recipe.category].includes(machineName)) {
           this.selectMachine(row, machine)
         }
-        row.sub.forEach(subrow => {
-          changeMachine(subrow)
-        })
+        row.sub.forEach(changeMachine)
       }
 
       this.requirements.forEach(changeMachine)
@@ -261,16 +260,16 @@ export default {
     },
 
     maxBeacon (beacon, index) {
-      if (!beacon.count) return
-
-      window.setTimeout(() => {
+      this.$nextTick(() => {
+        if (!beacon.count) return
         let changeBeacon = row => {
           row.beacons[index].modules = beacon.modules.slice(0)
           row.beacons[index].count = beacon.count
+          row.sub.forEach(changeBeacon)
         }
         this.requirements.forEach(changeBeacon)
         this.remainders.forEach(changeBeacon)
-      }, 0)
+      })
     },
 
     maxProductivity () {
@@ -283,6 +282,7 @@ export default {
 
     maxModule (module) {
       let changeModule = row => {
+        row.sub.forEach(changeModule)
         if (!row.machine || !row.machine.module_slots) return
         if (row.recipe && module.limitation && module.limitation.indexOf(row.recipe.name) === -1) {
           return
@@ -292,8 +292,6 @@ export default {
           modules.push(module)
         }
         row.modules = modules
-
-        row.sub.forEach(changeModule)
       }
 
       this.requirements.forEach(changeModule)

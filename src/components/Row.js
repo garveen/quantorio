@@ -1,5 +1,6 @@
 import Helpers from './Helpers'
 import store from '../store'
+import Vue from 'vue'
 
 let resources
 let recipes
@@ -28,7 +29,7 @@ class Row {
     indent || (indent = 0)
     this.id = rowIdIncrement++
     this.name = name
-    this.machine = null
+    this._machine = null
     this.needs = 0
     this.recipe = type === 'byproduct' ? recipes.dummy : (isResource ? resources[name] : recipes[name])
     this.modules = []
@@ -64,7 +65,7 @@ class Row {
   }
 
   get showMachine () {
-    return Helpers.isValid(this.machine)
+    return Helpers.isValid(this._machine)
   }
 
   get recipe () {
@@ -87,7 +88,7 @@ class Row {
       iconName = this.showName || this.name
     }
     this.icon = Helpers.icon(iconName)
-    this.machine = machines.find(machine => machine.name === categories[this._recipe.category][0])
+    this._machine = machines.find(machine => machine.name === categories[this._recipe.category][0])
 
     this._sub = null
   }
@@ -120,6 +121,21 @@ class Row {
     return this.recipe.results[this.name] || 1
   }
 
+  get machine () {
+    return this._machine
+  }
+
+  set machine (machine) {
+    this._machine = machine
+    let len = machine.module_slots ? machine.module_slots : 0
+    this.modules.splice(len)
+    if (this.modules.length < len) {
+      for (let i = this.modules.length; i < len; i++) {
+        Vue.set(this.modules, i, null)
+      }
+    }
+  }
+
   machineCount (needs) {
     return (needs || this.needs) / this.resultPerMachinePerMinute
   }
@@ -130,7 +146,7 @@ class Row {
 
   calcResultPerMachinePerMinute () {
     let recipe = this.recipe
-    let machine = this.machine
+    let machine = this._machine
     let count
     if (this.isResource) {
       count = 60 / (recipe.mining_time / machine.mining_speed / (machine.mining_power - recipe.hardness))
@@ -196,7 +212,7 @@ class Row {
 
   saveRecipeConfig () {
     recipeConfigs[this.name] = [
-      { k: 'machine', v: this.machine },
+      { k: 'machine', v: this._machine },
       { k: 'beacons', v: this.beacons },
       { k: 'modules', v: this.modules },
     ]

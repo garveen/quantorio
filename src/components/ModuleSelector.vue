@@ -1,15 +1,13 @@
 <template>
   <el-popover
     placement="bottom"
-    trigger="click"
+    trigger="hover"
     v-model="visiable"
     >
     <span>
       <img v-for='_module in allowedModules' class='icon icon-bordered button' :src='icon(_module, "module")' @click="update(_module)">
     </span>
-    <span slot='reference'>
-      <img class='icon icon-bordered button' :src='icon(selectedModule, "module")'>
-    </span>
+    <slot slot='reference' name='reference'></slot>
   </el-popover>
 </template>
 <script>

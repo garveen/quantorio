@@ -8,7 +8,11 @@
     <span v-for="beacon, beaconIndex in beacons">
       <el-popover placement="bottom" trigger='click'>
         <div class="flex">
-          <ModuleSelector ref="modulePopover" v-for="index in beacon.module_slots" :key='index' :allows='beacon.allowed_effects' :module.sync='beacon.modules[index - 1]' @change='maxBeacon(beacon, beaconIndex)'></ModuleSelector>
+          <ModuleSelector ref="modulePopover" v-for="index in beacon.module_slots" :key='index' :allows='beacon.allowed_effects' :module.sync='beacon.modules[index - 1]' @change='maxBeacon(beacon, beaconIndex)'>
+            <span slot='reference'>
+              <img class='icon icon-bordered button' :src='icon(beacon.modules[index - 1], "module")'>
+            </span>
+          </ModuleSelector>
           <el-input-number :min=0 controls-position="right" v-model='beacon.count' size='small' @change='maxBeacon(beacon, beaconIndex)'></el-input-number>
         </div>
         <span slot='reference'>
