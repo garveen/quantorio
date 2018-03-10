@@ -1,5 +1,6 @@
 import 'core-js/fn/promise'
 import 'core-js/fn/object/assign'
+import 'core-js/fn/object/values'
 import 'core-js/fn/array/find'
 import 'core-js/fn/array/find-index'
 import 'core-js/fn/array/map'

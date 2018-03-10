@@ -11,13 +11,20 @@
 
 <script>
 import Data from './components/data'
-import Index from './components/Index'
 import Loading from './components/Loading'
+
+import Vue from 'vue'
+import('vue-transmit').then((transmit) => {
+  Vue.use(transmit)
+})
+
+// for lazy loading
+import('./element')
 
 export default {
   components: {
-    Index,
-    Loading,
+    Index: () => import('./components/Index'),
+    Loading: Loading,
   },
   name: 'app',
   data () {
