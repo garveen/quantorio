@@ -70,6 +70,7 @@ local function init()
 				},
 			}
 		},
+		technologies = {},
 		languages = {},
 		translations = {},
 	}
@@ -179,24 +180,22 @@ local function saveLanguages(moduleName)
 				meta.translations[language] = meta.translations[language] or {}
 				for _, groupName in pairs({
 						'gui-menu',
+						'gui-technology',
 						'item-name',
 						'entity-name',
 						'fluid-name',
 						'equipment-name',
 						'recipe-name',
-						-- 'technology-name',
+						'technology-name',
+						''
 						}) do
 					if ini[groupName] then
+						if not meta.translations[language][groupName] then
+							meta.translations[language][groupName] = {}
+						end
 						local group = ini[groupName]
 						for k, v in pairs(group) do
-							if k == 'fibreglass-board' then
-								print('found')
-							end
-							if not v then
-								print(k)
-								error()
-							end
-							meta.translations[language][k] = v
+							meta.translations[language][groupName][k] = v
 						end
 					end
 				end
@@ -443,6 +442,16 @@ local function saveMachine(entity)
 	copyIcon(entity)
 end
 
+local function saveTechnology(entity)
+	local technology = buildItem(entity, {
+		'type',
+		'effects',
+		'order',
+		'prerequisites',
+	})
+	meta.technologies[entity.name] = technology
+end
+
 local function pushGroup(entity)
 	if not entity.subgroup then return end
 	meta.groups[meta.subgroups[entity.subgroup].group].subgroups[entity.subgroup][entity.name] = true
@@ -465,9 +474,10 @@ local function parse(data, m)
 		{ name = 'mining-drill', saver = saveMachine },
 		{ name = 'rocket-silo', saver = saveMachine },
 		{ name = 'offshore-pump', saver = saveMachine },
+		{ name = 'technology', saver = saveTechnology },
 	}
 
-	local mappingLength = 12
+	local mappingLength = 13
 
 	for _, entity in pairs(data['item-group']) do
 		saveItem(entity)

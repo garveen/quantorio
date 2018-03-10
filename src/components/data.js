@@ -107,7 +107,20 @@ let parseMeta = (meta) => {
 
   meta.modules.sort(sortByOrder)
 
+  let insertersMap = {}
+  let inserters = []
+
   meta.inserters.sort((a, b) => sortByOrder(meta.items[a.name], meta.items[b.name]))
+  meta.inserters.forEach(inserter => {
+    if (!insertersMap[inserter.turns_per_minute]) {
+      insertersMap[inserter.turns_per_minute] = {}
+    }
+    if (!insertersMap[inserter.turns_per_minute][inserter.stack]) {
+      insertersMap[inserter.turns_per_minute][inserter.stack] = true
+      inserters.push(inserter)
+    }
+  })
+  meta.inserters = inserters
 
   meta.machines.sort((a, b) => {
     // put player first

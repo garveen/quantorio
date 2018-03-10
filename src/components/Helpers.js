@@ -4,6 +4,14 @@ import store from '../store'
 
 let state = store.state
 
+const nameGroups = [
+  'recipe-name',
+  'item-name',
+  'entity-name',
+  'equipment-name',
+  'fluid-name',
+]
+
 export default {
   icon (item, defaults) {
     let ret
@@ -39,13 +47,7 @@ export default {
     let locale = falling ? i18n.fallbackLocale : i18n.locale
     if (!entity) return false
     if (typeof entity === 'string') {
-      if (i18n.te(entity, locale)) {
-        return i18n.t(entity, locale)
-      }
-      if (!falling) {
-        return this.translate(entity, true)
-      }
-      return entity
+      entity = {name: entity}
     }
 
     if (i18n.te(entity.name, locale)) {
@@ -54,10 +56,24 @@ export default {
       return i18n.t(entity.showName, locale)
     }
 
+    let translation
+
+    if (nameGroups.some(g => {
+      if (i18n.te(g + '.' + entity.name, locale)) {
+        translation = i18n.t(g + '.' + entity.name, locale)
+        return true
+      } else if (i18n.te(g + '.' + entity.showName, locale)) {
+        translation = i18n.t(g + '.' + entity.showName, locale)
+        return true
+      }
+    })) {
+      return translation
+    }
+
     if (!falling) {
       return this.translate(entity, true)
     }
-    return name
+    return entity.name
   },
 
   isValid (obj) {

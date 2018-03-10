@@ -9,7 +9,8 @@
         </h1>
       </el-col>
       <el-col :span='8' :style='{"text-align": "end"}'>
-        <el-button type='primary' plain @click="handleMod">{{ $t('mods') }}</el-button>
+        <el-button type='primary' plain @click="technologyVisiable = true">{{ $t('gui-technology.title') }}</el-button>
+        <el-button type='primary' plain @click="handleMod">{{ $t('gui-menu.mods') }}</el-button>
         <el-button type='primary' plain @click="window.location.href = 'https://github.com/garveen/quantorio'">View on GitHub</el-button>
         <el-select v-model='locale' filterable default-first-option>
           <el-option v-for="long, short in languages" :key="short" :label="long" :value="short"></el-option>
@@ -135,10 +136,10 @@
       </el-table-column>
       <el-table-column prop="" :render-header='renderHeaderInserter' :width='inserters.length * 40'>
         <template slot-scope="scope">
-          <template v-if='scope.row.showMachine'>
+          <template v-if='scope.row.showMachine && !(scope.row.recipe.results && Object.keys(scope.row.recipe.results).some(r => items[r].type === "fluid"))'>
             <span class='flex around'>
               <span v-for='inserter in inserters'>
-                {{ format(scope.row.inserterCount(inserter)) }}
+                {{ format(scope.row.inserterCount(inserter) / (inserter.stack ? 1 + bonus['stack-inserter-capacity-bonus'] : 1 + bonus['inserter-stack-size-bonus'])) }}
               </span>
             </span>
           </template>
@@ -147,8 +148,9 @@
     </el-table>
     <RequirementSelector v-if='loadedLanguages[locale]' :visible.sync="selectTargetDialogVisiable" @select='doAdd' :key='locale + metaVersion'></RequirementSelector>
     <Mods :visible.sync="ModsDialogVisiable"></Mods>
-
-
+    <el-dialog :visible.sync='technologyVisiable'>
+      <Technologies :bonus='bonus' @change='handleTechnologies'></Technologies>
+    </el-dialog>
   </div>
 </template>
 <script>
@@ -172,6 +174,7 @@ export default {
     Mods,
     LuaLoader,
     vueHeadful,
+    Technologies: () => import('./Technologies'),
   },
   name: 'Index',
   data () {
@@ -191,6 +194,11 @@ export default {
       fs: {},
       hashLoaded: false,
       Helpers: Helpers,
+      technologyVisiable: false,
+      bonus: {
+        'inserter-stack-size-bonus': 0,
+        'stack-inserter-capacity-bonus': 0,
+      },
     }
   },
   methods: {
@@ -218,6 +226,22 @@ export default {
     handleRemove (row) {
       let index = this.requirements.findIndex(r => r === row)
       this.requirements.splice(index, 1)
+    },
+
+    handleTechnologies (technologies) {
+      let bonus = Object.assign({}, this.bonus)
+      Object.keys(bonus).forEach(k => { bonus[k] = 0 })
+      technologies.forEach(technologyName => {
+        let technology = this.technologies[technologyName]
+        if (technology.effects) {
+          technology.effects.forEach(effect => {
+            if (bonus[effect.type] !== undefined) {
+              bonus[effect.type] += effect.modifier
+            }
+          })
+        }
+      })
+      this.bonus = bonus
     },
 
     selectMachine (row, machine) {
@@ -529,6 +553,7 @@ export default {
     categories () { return this.$store.state.meta.categories },
     inserters () { return this.$store.state.meta.inserters },
     modules () { return this.$store.state.meta.modules },
+    technologies () { return this.$store.state.meta.technologies },
     languages () { return this.$store.state.meta.languages },
     loadedLanguages () { return this.$store.state.loadedLanguages },
     metaVersion () { return this.$store.state.metaVersion },
@@ -708,7 +733,7 @@ export default {
         if (this.hashLoaded) {
           this.saveHash()
         }
-      }, 50, {
+      }, 100, {
         trailing: false,
       }),
       deep: true,
