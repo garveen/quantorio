@@ -158,7 +158,6 @@ import throttle from 'lodash/throttle'
 import vueHeadful from 'vue-headful'
 import Data from './data'
 import Row from './Row'
-import Mods from './Mods'
 import Helpers from './Helpers'
 import LuaLoader from './LuaLoader'
 import ModuleSelector from './ModuleSelector'
@@ -171,9 +170,9 @@ export default {
   components: {
     ModuleSelector,
     RequirementSelector,
-    Mods,
     LuaLoader,
     vueHeadful,
+    Mods: () => import('./Mods'),
     Technologies: () => import('./Technologies'),
   },
   name: 'Index',

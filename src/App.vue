@@ -13,11 +13,6 @@
 import Data from './components/data'
 import Loading from './components/Loading'
 
-import Vue from 'vue'
-import('vue-transmit').then((transmit) => {
-  Vue.use(transmit)
-})
-
 // for lazy loading
 import('./element')
 

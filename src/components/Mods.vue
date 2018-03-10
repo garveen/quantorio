@@ -42,6 +42,9 @@
 </template>
 <script>
 import Data from './data'
+import VueTransmit from 'vue-transmit'
+import Vue from 'vue'
+Vue.use(VueTransmit)
 
 export default {
   props: ['visible'],
