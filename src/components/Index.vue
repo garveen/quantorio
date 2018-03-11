@@ -343,6 +343,24 @@ export default {
     saveHash () {
       let strings = []
       let str
+
+      let combineModules = modules => {
+        let moduleNames = {}
+        modules = modules.slice(0).sort(Helpers.sortByOrder)
+        modules.forEach(module => {
+          if (!module) return
+          if (!moduleNames[module.name]) {
+            moduleNames[module.name] = 0
+          }
+          moduleNames[module.name]++
+        })
+        let strs = []
+        Object.keys(moduleNames).forEach(name => {
+          strs.push(name + '!' + moduleNames[name])
+        })
+        return strs.join('~')
+      }
+
       this.shownData.forEach(row => {
         switch (row.type) {
           case 'requirement':
@@ -359,23 +377,12 @@ export default {
         }
 
         str += '/' + /* 1 */ row.name + '/' + /* 2 */ (row.type === 'requirement' ? row.needs : 0) + '/' + /* 3 */ row.machine.name + '/'
-        let modules = []
-        row.modules.forEach(module => {
-          if (module) {
-            modules.push(module.name)
-          }
-        })
-        str += /* 4 */ modules.join('~') + '/'
+
+        str += /* 4 */ combineModules(row.modules) + '/'
         let beacons = []
         row.beacons.forEach(beaconConfig => {
-          // if (!beaconConfig.count) return
-          let modules = []
-          beaconConfig.modules.forEach(module => {
-            if (module) {
-              modules.push(module.name)
-            }
-          })
-          beacons.push(beaconConfig.beacon.name + '=' + beaconConfig.count + '=' + modules.join('~'))
+          if (!beaconConfig.count) return
+          beacons.push(beaconConfig.beacon.name + '=' + beaconConfig.count + '=' + combineModules(beaconConfig.modules))
         })
         str += /* 5 */ beacons.join(':') + '/' + /* 6 */ (row.expended ? 'T' : 'F') + '/' + /* 7 */ row.indent
         if (row.recipe.name !== row.name) {
@@ -390,6 +397,23 @@ export default {
       if (!window.location.hash) {
         this.hashLoaded = true
         return
+      }
+
+      let splitModules = str => {
+        console.log(str)
+        if (!str) return []
+        let i = 0
+        let modules = []
+        str.split('~').forEach(moduleStr => {
+          let matches = moduleStr.split('!')
+          let moduleName = matches[0]
+          let limit = parseInt(matches[1]) || 1
+          limit += i
+          for (; i < limit; i++) {
+            modules[i] = this.modules.find(module => module && (module.name === moduleName))
+          }
+        })
+        return modules
       }
 
       this.hashLoaded = false
@@ -433,20 +457,14 @@ export default {
           }
         }
         row.machine = this.machines.find(machine => machine.name === rowConfig[3])
-        if (rowConfig[4]) {
-          rowConfig[4].split('~').forEach((moduleName, index) => {
-            row.modules[index] = this.modules.find(module => module && (module.name === moduleName))
-          })
-        }
+        console.log(rowConfig[4])
+        row.modules = splitModules(rowConfig[4])
         rowConfig[5].split(':').forEach(beaconConfigStr => {
           if (!beaconConfigStr) return
           let newBeaconConfig = beaconConfigStr.split('=')
           let beaconConfig = row.beacons.find(b => b.beacon.name === newBeaconConfig[0])
           beaconConfig.count = Number(newBeaconConfig[1])
-          beaconConfig.modules = []
-          newBeaconConfig[2].split('~').forEach(moduleName => {
-            beaconConfig.modules.push(this.modules.find(module => module && (module.name === moduleName)))
-          })
+          beaconConfig.modules = splitModules(newBeaconConfig[2])
         })
         row.expended = rowConfig[6] === 'T'
         row._sub = []
