@@ -64,19 +64,6 @@ export default {
   },
 
   methods: {
-    ichange (e) {
-      let files = e.target.files
-      for (let i = 0; i < files.length; i++) {
-        let f = files[i]
-        console.log(f)
-        if (this.tableData.find(o => o.name === f.name)) continue
-        this.tableData.push({
-          file: f,
-          name: f.name,
-        })
-      }
-    },
-
     setFiles (vtFiles) {
       this.$store.commit('setLoading', true)
       let _this = this
@@ -87,7 +74,11 @@ export default {
         })
         .catch(error => {
           console.error(error)
-          alert('some module got an error')
+          if (error.lua_stack) {
+            alert(error.lua_stack)
+          } else {
+            alert('some module got an error')
+          }
         }).finally(() => {
           _this.$store.commit('setLoading', false)
         })
@@ -123,10 +114,6 @@ export default {
       set: function (val) {
         this.$emit('update:visible', val)
       }
-    },
-    aheight () {
-      console.log(123)
-      return (this.$refs.uploader && this.$refs.uploader.files.length) ? '10vh' : '20vh'
     }
   },
 }

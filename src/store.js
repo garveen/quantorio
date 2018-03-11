@@ -11,6 +11,7 @@ const store = new Vuex.Store({
     loadedLanguages: {},
     networkProgress: 0,
     dataProgress: 0,
+    indexMounted: false,
   },
   mutations: {
     setDifficulty (state, v) {
@@ -38,7 +39,7 @@ const store = new Vuex.Store({
     },
     loadedLanguage (state, v) {
       state.loadedLanguages[v] = true
-    }
+    },
   }
 })
 

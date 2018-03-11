@@ -35,9 +35,12 @@
             <el-popover placement="bottom" trigger='hover' :disabled='scope.row.type !== "remainder"'>
               <div>
                 <div v-for='source in scope.row.sources' class='flex'>
-                  <img class='icon' :src='source.origin.icon' />
+                  <img class='icon' :src='icon(source.origin)'/>
                   <span class='row-name'>
                     {{ translate(source.origin) }} : {{ source.needs.toFixed(2) }} ( {{ scope.row.machineCount(source.needs).toFixed(2) }} )
+                    <template v-if='source.originParent'>
+                      -> {{ translate(source.originParent) }}
+                    </template>
                   </span>
                 </div>
               </div>
@@ -49,11 +52,11 @@
                         <el-button type='primary' plain class='el-icon-caret-bottom el-icon' style='height:36px;width:36px'></el-button>
                         <el-dropdown-menu slot="dropdown">
                           <el-dropdown-item v-for="recipe in getRecipeCandidates(scope.row)" :key='recipe.name' :command='[scope.row, recipe]'>
-                            <img :src='icon(recipe)'>
+                            <img :src='icon(recipe)'/>
                           </el-dropdown-item>
                         </el-dropdown-menu>
                       </el-dropdown>
-                      <img class='icon' :src='scope.row.icon' />
+                      <img class='icon' :src='icon(scope.row)'/>
                       <span class='row-name'>{{ translate(scope.row) }}</span>
                       <template v-if="scope.row.selectable">
                         <span class='row-name'>({{ translate(isValid(scope.row.recipe) ? scope.row.recipe : scope.row) }})</span>
@@ -82,14 +85,14 @@
           <el-popover v-if='scope.row.showMachine' placement="left" trigger='click' popper-class='machine-popper'>
             <div slot='reference'  class='flex button'>
               <span class='flex machine'>
-                <img :src='icon(scope.row.machine)' class='button icon'>
-                <img v-for='module in scope.row.modules' v-if='module' class='icon' :src='icon(module)'>
+                <img :src='icon(scope.row.machine)' class='button icon'/>
+                <img v-for='module in scope.row.modules' v-if='module' class='icon' :src='icon(module)'/>
                 <span v-if='!scope.row.modules.some(module => module)' :style='{"margin-right": "8px"}'>{{ translate(scope.row.machine) }}</span>
               </span>
               <span v-for='beaconConfig in scope.row.beacons' v-if='beaconConfig.count !== 0' class='flex'>
                 <span>{{ beaconConfig.count }} X</span>
-                <img class='icon' :src='icon(beaconConfig.beacon)'>
-                <img v-for='module in beaconConfig.modules' v-if='module' class='icon' :src='icon(module)'>
+                <img class='icon' :src='icon(beaconConfig.beacon)'/>
+                <img v-for='module in beaconConfig.modules' v-if='module' class='icon' :src='icon(module)'/>
               </span>
             </div>
             <div>
@@ -100,23 +103,23 @@
                   trigger="hover">
                   <div>
                     <template v-for='machine in machines' v-if='categories[scope.row.recipe.category].includes(machine.name) && (!machine.ingredient_count || machine.ingredient_count >= scope.row.recipe[difficulty].ingredient_count)'>
-                      <img :src='icon(machine)' @click='selectMachine(scope.row, machine)' class='button icon icon-bordered'>
+                      <img :src='icon(machine)' @click='selectMachine(scope.row, machine)' class='button icon icon-bordered'/>
                     </template>
                   </div>
                   <span slot='reference'>
-                    <img class='icon button' :src='icon(scope.row.machine)'>
+                    <img class='icon button' :src='icon(scope.row.machine)'/>
                   </span>
                 </el-popover>
                 <ModuleSelector ref="modulePopover" v-for="module, index in scope.row.modules" :key='index' :allows='scope.row.machine.allowed_effects' :recipe='scope.row.recipe' :module.sync='scope.row.modules[index]'>
-                  <img class='icon icon-bordered button' :src='icon(module, "module")'>
+                  <img class='icon icon-bordered button' :src='icon(module, "module")'/>
                 </ModuleSelector>
               </span>
             </div>
             <div>
               <span v-for="beaconConfig in scope.row.beacons" class='flex'>
-                <img class='icon' :src='icon(beaconConfig.beacon)'>
+                <img class='icon' :src='icon(beaconConfig.beacon)'/>
                 <ModuleSelector ref="modulePopover" v-for="index in beaconConfig.beacon.module_slots" :key='index' :allows='beaconConfig.beacon.allowed_effects' :module.sync='beaconConfig.modules[index - 1]'>
-                  <img class='icon icon-bordered button' :src='icon(beaconConfig.modules[index - 1], "module")'>
+                  <img class='icon icon-bordered button' :src='icon(beaconConfig.modules[index - 1], "module")'/>
                 </ModuleSelector>
                 <el-input-number :min=0 controls-position="right" v-model='beaconConfig.count' size='small'></el-input-number>
               </span>
@@ -124,7 +127,7 @@
           </el-popover>
           <template v-if='scope.row.type === "sums"'>
             <span v-for='machine in scope.row.machines' v-if='isValid(machine)' :style='{margin: "0 5px"}'>
-              <img :src='icon(machine)'>{{ machine.count }}
+              <img :src='icon(machine)'/>{{ machine.count }}
             </span>
           </template>
         </template>
@@ -141,7 +144,7 @@
           <template v-if='scope.row.showMachine && !(scope.row.recipe.results && Object.keys(scope.row.recipe.results).some(r => items[r].type === "fluid"))'>
             <span class='flex around'>
               <span v-for='inserter in inserters'>
-                {{ format(scope.row.inserterCount(inserter) / (inserter.stack ? 1 + bonus['stack-inserter-capacity-bonus'] : 1 + bonus['inserter-stack-size-bonus'])) }}
+                {{ (scope.row.inserterCount(inserter) / (inserter.stack ? 1 + bonus['stack-inserter-capacity-bonus'] : 1 + bonus['inserter-stack-size-bonus'])).toFixed(2) }}
               </span>
             </span>
           </template>
@@ -400,7 +403,6 @@ export default {
       }
 
       let splitModules = str => {
-        console.log(str)
         if (!str) return []
         let i = 0
         let modules = []
@@ -447,17 +449,19 @@ export default {
           }
         } else {
           if (indent > path.length - 1) {
-            path[path.length - 1]._sub.push(row)
             path.push(row)
           } else {
             while (indent !== path.length && path.length !== 0) {
               path.pop()
             }
-            path[path.length - 1].sub.push(row)
+          }
+          let parent = path[path.length - 1]
+          if (parent) {
+            parent.sub.push(row)
+            row.parent = parent
           }
         }
         row.machine = this.machines.find(machine => machine.name === rowConfig[3])
-        console.log(rowConfig[4])
         row.modules = splitModules(rowConfig[4])
         rowConfig[5].split(':').forEach(beaconConfigStr => {
           if (!beaconConfigStr) return
@@ -499,7 +503,7 @@ export default {
       return Object.values(this.recipes).filter(recipe => recipe.results[row.name])
     },
 
-    format (number) {
+    formatConsumption (number) {
       let prefixes = [
         'k',
         'M',
@@ -511,11 +515,7 @@ export default {
         number /= 1000
         level++
       }
-      number = '' + number.toFixed(2) + ' '
-      if (level) {
-        number += prefixes[level]
-      }
-      return number
+      return '' + number.toFixed(2) + ' ' + prefixes[level]
     },
 
     translate: Helpers.translate,
@@ -555,14 +555,17 @@ export default {
   },
 
   mounted () {
+    this.$emit('mounted')
     this.$store.state.meta.beacons.forEach(b => {
       let beacon = Object.assign({}, b)
       beacon.modules = []
       beacon.count = 0
       this.beacons.push(beacon)
     })
-    this.locale = this.$i18n.locale
-    this.$nextTick(this.$forceUpdate)
+    this.$nextTick(() => {
+      this.$forceUpdate()
+      this.locale = this.$i18n.locale
+    })
   },
 
   computed: {
@@ -664,7 +667,7 @@ export default {
       })
 
       sums.type = 'sums'
-      sums.consumption = '' + this.format(consumption) + 'W (' + this.translate('beacons-not-included') + ')'
+      sums.consumption = '' + this.formatConsumption(consumption) + 'W (' + this.translate('beacons-not-included') + ')'
 
       sums.machines = Object.values(machines).sort((a, b) => b.count - a.count).concat(Object.values(modules).sort(Helpers.sortByOrder))
 
@@ -680,8 +683,12 @@ export default {
     locale (val) {
       const i18n = this.$i18n
       if (!this.loadedLanguages[val]) {
+        this.$store.commit('setLoading', true)
         Data.loadTranslation(val).then(() => {
           i18n.locale = val
+        })
+        .finally(() => {
+          this.$store.commit('setLoading', false)
         })
       } else {
         i18n.locale = val
@@ -691,7 +698,7 @@ export default {
     requirements: {
       handler: throttle(function () {
         this.requirements.forEach(row => row.update())
-      }, 50, {
+      }, 100, {
         trailing: false,
       }),
       deep: true,
@@ -713,6 +720,11 @@ export default {
               }
               if (!remainder.sources.find(source => source.id === subrow.id)) {
                 subrow.origin = row
+                let r = subrow.parent
+                while (r.parent) r = r.parent
+                if (r && r !== row) {
+                  subrow.originParent = r
+                }
                 remainder.sources.push(subrow)
                 remainder.sources.sort((a, b) => b.needs - a.needs)
               }

@@ -1,10 +1,10 @@
 <template>
   <div id="app">
     <transition name='fade'>
-      <index v-if="!loading && inited"/>
+      <index @mounted='indexMounting' v-if="!loading && inited || preload"/>
     </transition>
     <transition name='fade'>
-      <Loading v-if="loading"></Loading>
+      <Loading v-if="loading || !inited"></Loading>
     </transition>
   </div>
 </template>
@@ -25,9 +25,10 @@ export default {
   data () {
     return {
       inited: false,
+      preload: false,
     }
   },
-  beforeCreate () {
+  mounted () {
     this.$store.commit('setLoading', true)
 
     let translateFallback = this.$i18n.fallbackLocale
@@ -49,17 +50,23 @@ export default {
     })
     .then(language => {
       this.$i18n.locale = language
-      this.inited = true
-      console.log('inited')
-      this.$store.commit('setLoading', false)
+      this.preload = true
     })
   },
 
+  methods: {
+    indexMounting () {
+      if (!this.preload) return
+      console.log('inited')
+      this.inited = true
+      this.preload = false
+      this.$store.commit('setLoading', false)
+    },
+  },
+
   computed: {
-    loading () {
-      return this.$store.state.loading
-    }
-  }
+    loading () { return this.$store.state.loading },
+  },
 }
 </script>
 

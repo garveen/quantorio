@@ -296,7 +296,6 @@ let setTranslation = (meta) => {
 }
 
 let loadTranslation = (name) => {
-  store.commit('setLoading', true)
   return loadZip('locale/' + name)
   .then(zip => {
     return parse([zip], undefined, undefined, true)
@@ -304,8 +303,11 @@ let loadTranslation = (name) => {
   .then(meta => {
     setTranslation(meta)
     store.commit('loadedLanguage', name)
-    store.commit('setLoading', false)
     return name
+  })
+  .catch(error => {
+    console.error(error)
+    alert('error when loading ' + name)
   })
 }
 
@@ -314,13 +316,6 @@ let parse = (zips, prefix, mods, onlyLanguage) => {
   .then(() => {
     console.log('lua...')
     return callLua(mods, onlyLanguage)
-  })
-  .catch(error => {
-    if (error.lua_stack) {
-      console.error(error.lua_stack)
-    } else {
-      throw error
-    }
   })
 }
 

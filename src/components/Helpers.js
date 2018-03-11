@@ -15,6 +15,9 @@ const nameGroups = [
 export default {
   icon (item, defaults) {
     let ret
+    if (typeof item === 'string' && item.substr(0, 10) === 'data:image') {
+      return item
+    }
     if (typeof item === 'string' && state.meta.items[item]) {
       ret = state.meta.items[item].icon
     } else if (item && item.icon) {
@@ -37,7 +40,7 @@ export default {
       case 'module':
         return 'data:image/png;base64,' + Data.files['slot-icon-module.png']
     }
-    console.log(item, ret, defaults)
+    console.warn(item, ret, defaults)
   },
 
   translate (entity, falling) {

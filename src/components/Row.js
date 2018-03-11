@@ -87,7 +87,7 @@ class Row {
     } else {
       iconName = this.showName || this.name
     }
-    this.icon = Helpers.icon(iconName)
+    this.icon = store.state.meta.items[iconName].icon
     this._machine = machines.find(machine => machine.name === categories[this._recipe.category][0])
 
     this._sub = null
@@ -200,7 +200,7 @@ class Row {
         return subrow.name === ingredient
       })
       if (!subrow) {
-        subrow = new Row(ingredient, 'sub', this.indent + 1)
+        subrow = new Row(ingredient, 'sub', this.indent + 1, this)
         this._sub.push(subrow)
       }
       let needs = this.needs / this.result_count * value / (1 + this.bonus.productivity)
