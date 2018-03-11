@@ -128,12 +128,14 @@ class Row {
   set machine (machine) {
     this._machine = machine
     let len = machine.module_slots ? machine.module_slots : 0
-    this.modules.splice(len)
-    if (this.modules.length < len) {
-      for (let i = this.modules.length; i < len; i++) {
-        Vue.set(this.modules, i, null)
+    let modules = this.modules.splice(0, len)
+
+    if (modules.length < len) {
+      for (let i = modules.length; i < len; i++) {
+        Vue.set(modules, i, null)
       }
     }
+    this.modules = modules
   }
 
   machineCount (needs) {

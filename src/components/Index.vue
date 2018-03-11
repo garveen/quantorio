@@ -81,11 +81,13 @@
         <template slot-scope="scope">
           <el-popover v-if='scope.row.showMachine' placement="left" trigger='click' popper-class='machine-popper'>
             <div slot='reference'  class='flex button'>
-              <img :src='icon(scope.row.machine)' class='button icon'>
-              <img v-for='module in scope.row.modules' v-if='module' class='icon' :src='icon(module)'>
-              <span v-if='scope.row.modules.length === 0' :style='{"margin-right": "8px"}'>{{ translate(scope.row.machine) }}</span>
+              <span class='flex machine'>
+                <img :src='icon(scope.row.machine)' class='button icon'>
+                <img v-for='module in scope.row.modules' v-if='module' class='icon' :src='icon(module)'>
+                <span v-if='!scope.row.modules.some(module => module)' :style='{"margin-right": "8px"}'>{{ translate(scope.row.machine) }}</span>
+              </span>
               <span v-for='beaconConfig in scope.row.beacons' v-if='beaconConfig.count !== 0' class='flex'>
-                <span>, {{ beaconConfig.count }} X</span>
+                <span>{{ beaconConfig.count }} X</span>
                 <img class='icon' :src='icon(beaconConfig.beacon)'>
                 <img v-for='module in beaconConfig.modules' v-if='module' class='icon' :src='icon(module)'>
               </span>
@@ -98,7 +100,7 @@
                   trigger="hover">
                   <div>
                     <template v-for='machine in machines' v-if='categories[scope.row.recipe.category].includes(machine.name) && (!machine.ingredient_count || machine.ingredient_count >= scope.row.recipe[difficulty].ingredient_count)'>
-                      <img :src='icon(items[machine.name])' @click='selectMachine(scope.row, machine)' class='button icon icon-bordered'>
+                      <img :src='icon(machine)' @click='selectMachine(scope.row, machine)' class='button icon icon-bordered'>
                     </template>
                   </div>
                   <span slot='reference'>
@@ -106,7 +108,7 @@
                   </span>
                 </el-popover>
                 <ModuleSelector ref="modulePopover" v-for="module, index in scope.row.modules" :key='index' :allows='scope.row.machine.allowed_effects' :recipe='scope.row.recipe' :module.sync='scope.row.modules[index]'>
-                  <img slot='reference' class='icon icon-bordered button' :src='icon(module, "module")'>
+                  <img class='icon icon-bordered button' :src='icon(module, "module")'>
                 </ModuleSelector>
               </span>
             </div>
@@ -114,7 +116,7 @@
               <span v-for="beaconConfig in scope.row.beacons" class='flex'>
                 <img class='icon' :src='icon(beaconConfig.beacon)'>
                 <ModuleSelector ref="modulePopover" v-for="index in beaconConfig.beacon.module_slots" :key='index' :allows='beaconConfig.beacon.allowed_effects' :module.sync='beaconConfig.modules[index - 1]'>
-                  <img slot='reference' class='icon icon-bordered button' :src='icon(beaconConfig.modules[index - 1], "module")'>
+                  <img class='icon icon-bordered button' :src='icon(beaconConfig.modules[index - 1], "module")'>
                 </ModuleSelector>
                 <el-input-number :min=0 controls-position="right" v-model='beaconConfig.count' size='small'></el-input-number>
               </span>
@@ -431,10 +433,11 @@ export default {
           }
         }
         row.machine = this.machines.find(machine => machine.name === rowConfig[3])
-        row.modules = []
-        rowConfig[4].split('~').forEach(moduleName => {
-          row.modules.push(this.modules.find(module => module && (module.name === moduleName)))
-        })
+        if (rowConfig[4]) {
+          rowConfig[4].split('~').forEach((moduleName, index) => {
+            row.modules[index] = this.modules.find(module => module && (module.name === moduleName))
+          })
+        }
         rowConfig[5].split(':').forEach(beaconConfigStr => {
           if (!beaconConfigStr) return
           let newBeaconConfig = beaconConfigStr.split('=')
@@ -829,6 +832,10 @@ div.cell {
 
 >>> .el-table::before {
   z-index: 0
+}
+
+>>> .machine {
+  min-width: 200px
 }
 
 </style>

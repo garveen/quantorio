@@ -7,7 +7,7 @@
     <span>
       <img v-for='_module in allowedModules' class='icon icon-bordered button' :src='icon(_module, "module")' @click="update(_module)">
     </span>
-    <slot slot='reference' name='reference'></slot>
+    <slot slot='reference'></slot>
   </el-popover>
 </template>
 <script>

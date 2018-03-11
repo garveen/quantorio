@@ -9,7 +9,7 @@
       <el-popover placement="bottom" trigger='click'>
         <div class="flex">
           <ModuleSelector ref="modulePopover" v-for="index in beacon.module_slots" :key='index' :allows='beacon.allowed_effects' :module.sync='beacon.modules[index - 1]' @change='maxBeacon(beacon, beaconIndex)'>
-            <span slot='reference'>
+            <span>
               <img class='icon icon-bordered button' :src='icon(beacon.modules[index - 1], "module")'>
             </span>
           </ModuleSelector>
