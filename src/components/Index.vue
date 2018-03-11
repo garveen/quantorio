@@ -551,6 +551,7 @@ export default {
     this.maxProductivityModule = maxProductivityModule
     this.maxSpeedModule = maxSpeedModule
     this.loadHash()
+    window.addEventListener('popstate', this.loadHash)
   },
 
   mounted () {
