@@ -171,6 +171,8 @@ import RequirementSelector from './RequirementSelector'
 import Plus from './Plus'
 import Inserters from './Inserters'
 import MachineSelector from './MachineSelector'
+import Mods from './Mods'
+import Technologies from './Technologies'
 
 export default {
   components: {
@@ -178,8 +180,8 @@ export default {
     RequirementSelector,
     LuaLoader,
     vueHeadful,
-    Mods: () => import('./Mods'),
-    Technologies: () => import('./Technologies'),
+    Mods,
+    Technologies,
   },
   name: 'Index',
   data () {
@@ -350,7 +352,7 @@ export default {
 
       let combineModules = modules => {
         let moduleNames = {}
-        modules = modules.slice(0).sort(Helpers.sortByOrder)
+        modules = modules.slice(0).sort(Data.sortByOrder)
         modules.forEach(module => {
           if (!module) return
           if (!moduleNames[module.name]) {
