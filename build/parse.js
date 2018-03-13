@@ -7,9 +7,14 @@ let path = require('path')
 let l = new LuaVM.Lua.State()
 
 let quantorioBridge = {
+  getFileContent: function (path) {
+    return fs.readFileSync(path, 'utf8')
+  },
+
   exists: function (path) {
     return fs.existsSync(path)
   },
+
   readDir: function (path) {
     return fs.readdirSync(path).join('|')
   },
@@ -74,7 +79,7 @@ global.zipStockFiles = (files) => {
   })
 
   fs.readdirSync('./core').forEach(filename => {
-    zips.quantorio.file(filename, fs.readFileSync('core/' + filename))
+    zips.quantorio.file('core/' + filename, fs.readFileSync('core/' + filename))
   })
   fs.readdirSync('./locale').forEach(filename => {
     zips.quantorio.file('locale/' + filename, fs.readFileSync('./locale/' + filename))
@@ -92,22 +97,10 @@ global.zipStockFiles = (files) => {
 
 let originPath = process.cwd()
 try {
-  let e = LuaVM.emscripten
-  e.FS_createFolder('/', 'lualib', true, true)
-  e.FS_createFolder('/', 'locale', true, true)
-
-  fs.readdirSync('./core').forEach(filename => {
-    e.FS_createDataFile('/', filename, fs.readFileSync('core/' + filename, "utf8"), true, false)
-  })
-
-  fs.readdirSync('./data/core/lualib').forEach(filename => {
-    e.FS_createDataFile('/lualib', filename, fs.readFileSync('./data/core/lualib/' + filename, "utf8"), true, false)
-  })
-
-  l.execute('modules = {"core", "base", length=2}')
-  global.dataPrefix = 'src/data'
-  global.iconPrefix = 'src/assets'
-  l.execute('require "lualib.dataloader"; require "quantorio"; localParse()')
+  let proxy = l.load(fs.readFileSync('core/quantorio.lua', 'utf8'), 'core/quantorio.lua', 't')
+  proxy()
+  proxy.free()
+  l.execute('localParse()')
   console.log('done')
 } catch(error) {
   if (error.lua_stack) {

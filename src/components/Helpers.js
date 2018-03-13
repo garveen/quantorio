@@ -38,7 +38,7 @@ export default {
 
     switch (defaults) {
       case 'module':
-        return 'data:image/png;base64,' + Data.files['slot-icon-module.png']
+        return 'data:image/png;base64,' + Data.files['core/slot-icon-module.png']
     }
     console.warn(item, ret, defaults)
   },

@@ -5,21 +5,29 @@ _G.print = function(...)
 	old_print(line, ...)
 end
 log = print
-
-originPaths = {
-	"?.lua",
-	"lualib/?.lua",
-}
-originPathsLength = 2
+fs = {}
 
 function isNode()
 	return not js.global.window
 end
 
-fs = require 'fs'
-generator = require "generator"
-defines = require 'defines'
-local dkjson = require 'dkjson'
+function fs.readFile(filename)
+	return quantorioBridge:getFileContent(filename)
+end
+
+function fs.exists(path)
+	return quantorioBridge:exists(path)
+end
+
+function fs.readDir(path)
+	local ret = {}
+	for file in quantorioBridge:readDir(path):gmatch('[^|]+') do
+		table.insert(ret, file)
+	end
+	return ret
+end
+
+package.path = '?.lua'
 
 function findfile(filename)
 	for i = 1, originPathsLength do
@@ -50,48 +58,28 @@ function loadfile(filename)
 	end
 end
 
+for i = 1, #package.searchers do
+  table.remove(package.searchers)
+end
+
 table.insert(package.searchers, 1, function(name)
 	local loaded, path = loadfile(name)
 	if loaded then return loaded, path end
 end)
 
-do -- Create js.ipairs and js.pairs functions. attach as __pairs and __ipairs on JS userdata objects.
-	local _PROXY_MT = debug.getregistry()._PROXY_MT
 
-	-- Iterates from 0 to collection.length-1
-	local function js_inext(collection, i)
-		i = i + 1
-		if i >= collection.length then return nil end
-		return i, collection[i]
-	end
-	function js.ipairs(collection)
-		return js_inext, collection, -1
-	end
-	_PROXY_MT.__ipairs = js.ipairs
 
-	function js.pairs(ob)
-		local keys = js.global.Object:keys(ob)
-		local i = 0
-		return function(ob, last)
-			local k = keys[i]
-			i = i + 1;
-			return k, ob[k]
-		end, ob, nil
-	end
-	_PROXY_MT.__pairs = js.pairs
-end
+originPaths = {
+  "lualib/?.lua",
+  "data/core/lualib/?.lua",
+  "core/?.lua",
+}
+originPathsLength = 3
 
-function split(inputstr, sep)
-        if sep == nil then
-                sep = "%s"
-        end
-        local t={} ; i=1
-        for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
-                t[i] = str
-                i = i + 1
-        end
-        return t
-end
+generator = require 'generator'
+dkjson = require 'dkjson'
+require 'dataloader'
+defines = require 'defines'
 
 function dump(...)
 	local info = debug.getinfo(2, 'Sl')
@@ -113,14 +101,6 @@ function size(T)
   return count
 end
 
-function Set(list)
-	local set = {}
-	for _, l in ipairs(list) do
-		set[l] = true
-	end
-	return set
-end
-
 local to_be_zipped = {}
 
 function zipIt(name)
@@ -129,7 +109,6 @@ end
 
 function loadModules(modules, modulesLength)
 	local old_require = require
-
 
 	require = function (filename)
 		fullname = findfile(filename)
@@ -235,12 +214,6 @@ end
 
 
 function localParse()
-	originPaths = {
-		"?.lua",
-		"data/core/lualib/?.lua",
-	}
-	originPathsLength = 2
-
 	local modules = {'core', 'base'}
 	local modulesLength = 2
 	local meta, files = parse(modules, modulesLength)

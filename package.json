@@ -17,7 +17,7 @@
     "dagre-d3": "^0.6.1",
     "element-ui": "2.0.9",
     "jszip": "^3.1.5",
-    "lua.vm.js": "0.0.1",
+    "lua.vm.js": "git+https://github.com/garveen/lua.vm.js.git#master",
     "vue": "^2.5.2",
     "vue-headful": "^1.0.0",
     "vue-i18n": "^7.4.2",

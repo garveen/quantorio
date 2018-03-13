@@ -24,14 +24,9 @@ let callLua = (mods, onlyLanguage) => {
 
       luaState.push(quantorioBridge)
       luaState.setglobal('quantorioBridge')
-
-      luaState.execute(`
-        package.path = '?.lua'
-        require("quantorio")
-        require("dataloader")
-        generator = require("generator")
-        dkjson = require 'dkjson'
-      `)
+      let proxy = luaState.load(quantorioBridge.files['core/quantorio.lua'], 'core/quantorio.lua', 't')
+      proxy()
+      proxy.free()
     }
 
     if (onlyLanguage) {

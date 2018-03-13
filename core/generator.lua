@@ -1,4 +1,3 @@
-local fs = require 'fs'
 local dkjson = require 'dkjson'
 local generator = {}
 local pathMapping = {}

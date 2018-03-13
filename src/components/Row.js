@@ -87,7 +87,11 @@ class Row {
     } else {
       iconName = this.showName || this.name
     }
-    this.icon = store.state.meta.items[iconName].icon
+    if (store.state.meta.items[iconName]) {
+      this.icon = store.state.meta.items[iconName].icon
+    } else {
+      this.icon = null
+    }
     this._machine = machines.find(machine => machine.name === categories[this._recipe.category][0])
 
     this._sub = null
