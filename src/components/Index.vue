@@ -161,6 +161,7 @@
 <script>
 import throttle from 'lodash/throttle'
 import vueHeadful from 'vue-headful'
+import Pako from 'pako'
 import Data from './data'
 import Row from './Row'
 import Helpers from './Helpers'
@@ -393,7 +394,8 @@ export default {
         }
         strings.push(str)
       })
-      window.history.pushState(null, null, '/#' + strings.join('&'))
+
+      window.history.pushState(null, null, '/#base64:' + window.btoa(String.fromCharCode.apply(null, Pako.deflate(strings.join('&'), {level: 9}))))
     },
 
     loadHash () {
@@ -422,7 +424,19 @@ export default {
       this.remainders = []
       this.requirements = []
 
-      let rows = window.location.hash.substring(1).split('&')
+      let hash = window.location.hash
+      if (hash.substr(1, 7) === 'base64:') {
+        let binaryString = window.atob(hash.substr(8))
+        let len = binaryString.length
+        let bytes = new Uint8Array(len)
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i)
+        }
+        hash = Pako.inflate(bytes, {to: 'string'})
+      } else {
+        hash = hash.substr(1)
+      }
+      let rows = hash.split('&')
       let map = {
         T: 'requirement',
         R: 'remainder',

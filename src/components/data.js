@@ -3,6 +3,9 @@ import store from '../store'
 import i18n from '../i18n'
 import quantorioBridge from './bridge'
 
+// just a hack for split to reduce built file
+import('pako')
+
 let luaState
 let _items
 
