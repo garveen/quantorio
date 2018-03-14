@@ -710,7 +710,8 @@ export default {
         let remainders = this.remainders
         remainders.forEach(row => { row.sources = [] })
 
-        res = row => {
+        res = (updated, row) => {
+          row.update()
           row.sub.forEach(subrow => {
             if (!row.expended) {
               let remainder = remainders.find(remainder => { return remainder.name === subrow.name })
@@ -719,6 +720,7 @@ export default {
                 remainders.push(remainder)
               }
               if (!remainder.sources.find(source => source.id === subrow.id)) {
+                updated = true
                 subrow.origin = row
                 let r = subrow.parent
                 while (r.parent) r = r.parent
@@ -729,14 +731,15 @@ export default {
                 remainder.sources.sort((a, b) => b.needs - a.needs)
               }
             } else {
-              res(subrow)
+              updated = updated || res(subrow)
             }
           })
+          return updated
         }
 
-        this.requirements.forEach(res)
+        this.requirements.reduce(res, false)
 
-        remainders.forEach(res)
+        while (remainders.slice(0).reduce(res, false));
 
         let counter = 0
         let changed
