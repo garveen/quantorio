@@ -9,6 +9,10 @@
         </h1>
       </el-col>
       <el-col :span='8' :style='{"text-align": "end"}'>
+        <el-button type='primary' plain @click="handleChangeDifficulty">
+          <template v-if='difficulty === "normal"'>{{ $t('recipe-difficulty.normal') }}</template>
+          <template v-else>{{ $t('recipe-difficulty.expensive') }}</template>
+        </el-button>
         <el-button type='primary' plain @click="technologyVisiable = true">{{ $t('gui-technology.title') }}</el-button>
         <el-button type='primary' plain @click="handleMod">{{ $t('gui-menu.mods') }}</el-button>
         <el-button type='primary' plain @click="window.location.href = 'https://github.com/garveen/quantorio'">View on GitHub</el-button>
@@ -222,6 +226,13 @@ export default {
       }
     },
 
+    handleChangeDifficulty () {
+      let difficulty = this.difficulty === 'normal' ? 'expensive' : 'normal'
+      this.$store.commit('setDifficulty', difficulty)
+      this.requirements.splice()
+      this.saveHash()
+    },
+
     handleAdd () {
       this.selectTargetDialogVisiable = true
     },
@@ -347,7 +358,8 @@ export default {
     },
 
     saveHash () {
-      let strings = []
+      let strings = ['!' + (this.difficulty === 'normal' ? 'N' : 'E')]
+      console.log(strings)
       let str
 
       let combineModules = modules => {
@@ -397,6 +409,7 @@ export default {
         strings.push(str)
       })
 
+      // window.history.pushState(null, null, '/#' + strings.join('&'))
       window.history.pushState(null, null, '/#base64:' + window.btoa(String.fromCharCode.apply(null, Pako.deflate(strings.join('&'), {level: 9}))))
     },
 
@@ -447,6 +460,9 @@ export default {
       let requirements = []
       let remainders = []
       let path = []
+      if (rows[0] && rows[0][0] === '!') {
+        this.$store.commit('setDifficulty', rows.shift()[1] === 'N' ? 'normal' : 'expensive')
+      }
       rows.forEach((rowConfigStr, index) => {
         let rowConfig = rowConfigStr.split('/')
         if (rowConfig.length < 8) return

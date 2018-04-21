@@ -186,6 +186,7 @@ local function saveLanguages(moduleName)
 						'equipment-name',
 						'recipe-name',
 						'technology-name',
+						'recipe-difficulty',
 						''
 						}) do
 					if ini[groupName] then

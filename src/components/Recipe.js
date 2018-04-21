@@ -9,6 +9,9 @@ class Recipe {
     let dif
     if (this[Store.state.difficulty]) {
       dif = this[Store.state.difficulty]
+      if (dif === undefined) {
+        dif = this.normal
+      }
     } else {
       dif = this.normal
     }
