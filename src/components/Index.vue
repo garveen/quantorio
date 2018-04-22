@@ -106,7 +106,7 @@
                   placement="bottom"
                   trigger="hover">
                   <div>
-                    <template v-for='machine in machines' v-if='categories[scope.row.recipe.category].includes(machine.name) && (!machine.ingredient_count || machine.ingredient_count >= scope.row.recipe[difficulty].ingredient_count)'>
+                    <template v-for='machine in machines' v-if='categories[scope.row.recipe.category].includes(machine.name) && (!machine.ingredient_count || machine.ingredient_count >= scope.row.recipe.ingredient_count)'>
                       <img :src='icon(machine)' @click='selectMachine(scope.row, machine)' class='button icon icon-bordered'/>
                     </template>
                   </div>
@@ -359,7 +359,6 @@ export default {
 
     saveHash () {
       let strings = ['!' + (this.difficulty === 'normal' ? 'N' : 'E')]
-      console.log(strings)
       let str
 
       let combineModules = modules => {
