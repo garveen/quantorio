@@ -352,9 +352,17 @@ local function saveRecipe(entity)
 			resultTypeCount = 1
 		else
 			for _, result in pairs(config.results) do
-				results[result.name] = result.amount
-				lastResult = result.name
-				resultTypeCount = resultTypeCount + 1
+				if result then
+					if result.name then
+						results[result.name] = result.amount
+						lastResult = result.name
+					else
+						results[result[1]] = result[2]
+						lastResult = result[1]
+					end
+
+					resultTypeCount = resultTypeCount + 1
+				end
 			end
 		end
 		results.type = nil
@@ -492,9 +500,11 @@ local function parse(data, m)
 	for i = 1, typesLength do
 		local typeName = legalTypes[i]
 		local entities = data[typeName]
-		for _, entity in pairs(entities) do
-			saveItem(entity)
-			pushGroup(entity)
+		if entities then
+			for _, entity in pairs(entities) do
+				saveItem(entity)
+				pushGroup(entity)
+			end
 		end
 	end
 
@@ -502,12 +512,13 @@ local function parse(data, m)
 		local typeName = mapping[i].name
 		local saver = mapping[i].saver
 		local entities = data[typeName]
-
-		for _, entity in pairs(entities) do
-			if saver then
-				saver(entity)
+		if entities then
+			for _, entity in pairs(entities) do
+				if saver then
+					saver(entity)
+				end
+				pushGroup(entity)
 			end
-			pushGroup(entity)
 		end
 	end
 end

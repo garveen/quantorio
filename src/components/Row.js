@@ -155,7 +155,7 @@ class Row {
     let machine = this._machine
     let count
     if (this.isResource) {
-      count = 60 / (recipe.mining_time / machine.mining_speed / (machine.mining_power - recipe.hardness))
+      count = 60 / (recipe.mining_time / machine.mining_speed)
     } else {
       count = 60 / (recipe.energy_required / machine.crafting_speed) * this.result_count
     }

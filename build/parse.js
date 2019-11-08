@@ -23,6 +23,27 @@ let quantorioBridge = {
 l.push(quantorioBridge)
 l.setglobal('quantorioBridge')
 
+function getFilePathsRecursiveSync(dir) {
+  let results = []
+  let list = fs.readdirSync(dir)
+  let pending = list.length
+  if (!pending) return results
+
+  for (let file of list) {
+    file = path.resolve(dir, file)
+    let stat = fs.statSync(file)
+    if (stat && stat.isDirectory()) {
+      let res = getFilePathsRecursiveSync(file)
+      results = results.concat(res)
+    } else {
+      results.push(file)
+    }
+    if (!--pending) return results
+  }
+
+  return results
+}
+
 global.mkDirByPathSync = (targetDir, {isRelativeToScript = false} = {}) => {
   const sep = path.sep;
   const initDir = path.isAbsolute(targetDir) ? sep : '';
@@ -74,9 +95,14 @@ global.zipStockFiles = (files) => {
     zip.file(file, fs.readFileSync(file))
   })
 
-  fs.readdirSync('./data/core/lualib').forEach(filename => {
-    zips.lualib.file('lualib/' + filename, fs.readFileSync('data/core/lualib/' + filename))
-  })
+  let lualibPath = './data/core/lualib'
+  let allPaths = getFilePathsRecursiveSync(lualibPath)
+
+  for (let filePath of allPaths) {
+    let addPath = path.relative(path.join(lualibPath, ".."), filePath)
+    let data = fs.readFileSync(filePath)
+    zips.lualib.file(addPath, data)
+  }
 
   fs.readdirSync('./core').forEach(filename => {
     zips.quantorio.file('core/' + filename, fs.readFileSync('core/' + filename))
