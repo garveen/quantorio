@@ -23,7 +23,7 @@ let quantorioBridge = {
 l.push(quantorioBridge)
 l.setglobal('quantorioBridge')
 
-function getFilePathsRecursiveSync(dir) {
+let getFilePathsRecursiveSync = (dir) => {
   let results = []
   let list = fs.readdirSync(dir)
   let pending = list.length
@@ -99,7 +99,7 @@ global.zipStockFiles = (files) => {
   let allPaths = getFilePathsRecursiveSync(lualibPath)
 
   for (let filePath of allPaths) {
-    let addPath = path.relative(path.join(lualibPath, ".."), filePath)
+    let addPath = path.posix.relative(path.join(lualibPath, ".."), filePath)
     let data = fs.readFileSync(filePath)
     zips.lualib.file(addPath, data)
   }
